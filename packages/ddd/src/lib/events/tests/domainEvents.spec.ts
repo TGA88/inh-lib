@@ -8,8 +8,8 @@ import { MockPostToSocial } from './mocks/services/mockPostToSocial'
 import { MockJobAggregateRootId } from './mocks/domain/mockJobAggregateRootId';
 import { UniqueEntityID } from '../../UniqueEntityID';
 
-let social: MockPostToSocial;
-let job: MockJobAggregateRoot;
+let social: MockPostToSocial | null;
+let job: MockJobAggregateRoot | null;
 let spy;
 
 describe('Domain Events', () => {
