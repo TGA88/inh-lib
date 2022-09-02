@@ -15,7 +15,8 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@inh-lib/common": ["packages/common/src/index.ts"]
+      "@inh-lib/common": ["packages/common/src/index.ts"],
+      "@inh-lib/ddd": ["packages/ddd/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
