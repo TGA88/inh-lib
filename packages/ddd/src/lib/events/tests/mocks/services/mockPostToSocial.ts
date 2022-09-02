@@ -3,6 +3,7 @@ import { MockJobCreatedEvent } from "../events/mockJobCreatedEvent";
 import { MockJobDeletedEvent } from "../events/mockJobDeletedEvent";
 import { IHandle } from "../../../IHandle";
 import { DomainEvents } from "../../../DomainEvents";
+import { IDomainEvent } from "../../../IDomainEvent";
 
 export class MockPostToSocial implements IHandle<MockJobCreatedEvent>, IHandle<MockJobDeletedEvent> {
   constructor () {
@@ -22,11 +23,11 @@ export class MockPostToSocial implements IHandle<MockJobCreatedEvent>, IHandle<M
    * These are examples of how we define the handlers for domain events.
    */
 
-  handleJobCreatedEvent (event: MockJobCreatedEvent): void {
+  handleJobCreatedEvent (event: IDomainEvent): void {
     console.log('A job was created!!!')
   }
 
-  handleDeletedEvent (event: MockJobDeletedEvent): void {
+  handleDeletedEvent (event: IDomainEvent): void {
     console.log('A job was deleted!!!')
   }
 }

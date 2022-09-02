@@ -28,7 +28,6 @@
     "appsDir": "apps",
     "libsDir": "packages"
   },
-  {
     "targetDependencies": {
       "version": [
         {
@@ -37,5 +36,4 @@
         }
       ]
     }
-  }
 }

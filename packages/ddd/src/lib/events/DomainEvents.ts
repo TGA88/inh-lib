@@ -3,8 +3,13 @@ import { IDomainEvent } from "./IDomainEvent";
 import { AggregateRoot } from "../AggregateRoot";
 import { UniqueEntityID } from "../UniqueEntityID";
 
+interface IEventStore {
+  [index: string]: any[]
+}
 export class DomainEvents {
-  private static handlersMap = {};
+
+  
+  private static handlersMap : IEventStore = {};
   private static markedAggregates: AggregateRoot<any>[] = [];
 
   /**
@@ -32,15 +37,17 @@ export class DomainEvents {
     this.markedAggregates.splice(index, 1);
   }
 
-  private static findMarkedAggregateByID (id: UniqueEntityID): AggregateRoot<any> {
-    let found: AggregateRoot<any> = null;
+  private static findMarkedAggregateByID (id: UniqueEntityID): AggregateRoot<any> |  any {
+
+    let found: AggregateRoot<any> | any = null;
+
     for (let aggregate of this.markedAggregates) {
       if (aggregate.id.equals(id)) {
         found = aggregate;
       }
     }
 
-    return found;
+    return found ; 
   }
 
   public static dispatchEventsForAggregate (id: UniqueEntityID): void {
