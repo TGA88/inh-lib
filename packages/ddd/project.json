@@ -43,8 +43,8 @@
     "version": {
       "executor": "@jscutlery/semver:version",
       "options": {
-        "preset": "conventional",
-        "postTargets": ["ddd:publish"]
+        "preset": "conventional"
+       
       }
     }
   },

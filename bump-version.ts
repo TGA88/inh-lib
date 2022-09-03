@@ -33,3 +33,12 @@ res.tasks.forEach(t => {
 //     }
 //   ]
 // },
+
+// "version": {
+//   "executor": "@jscutlery/semver:version",
+//   "options": {
+//     "preset": "conventional",
+//     "postTargets": ["common:publish"]
+//   }
+// }
+// },
