@@ -2,6 +2,14 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+### [0.1.2](https://github.com/TGA88/inh-lib/compare/common-0.1.1...common-0.1.2) (2022-09-03)
+
+
+### Bug Fixes
+
+* remove post-target after version on each project ([7fd702c](https://github.com/TGA88/inh-lib/commit/7fd702c179520ab3f739c6d4865feda6887c75fc))
+* try bumpversion both common and ddd ([8d8d310](https://github.com/TGA88/inh-lib/commit/8d8d310005f343d8d084fcdffaf3c9f33757497d))
+
 ### [0.1.1](https://github.com/TGA88/inh-lib/compare/common-0.1.0...common-0.1.1) (2022-09-03)
 
 
