@@ -14,9 +14,9 @@
       }
     },
     "publish": {
-      "executor": "@nrwl/workspace:run-commands",
+      "executor": "ngx-deploy-npm:deploy",
       "options": {
-        "command": "node tools/scripts/publish.mjs ddd {args.ver} {args.tag}"
+        "access": "public"
       },
       "dependsOn": [
         {
@@ -43,7 +43,8 @@
     "version": {
       "executor": "@jscutlery/semver:version",
       "options": {
-        "preset": "conventional"
+        "preset": "conventional",
+        "postTargets": ["ddd:publish"]
       }
     }
   },
