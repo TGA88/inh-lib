@@ -44,7 +44,12 @@
       "executor": "@jscutlery/semver:version",
       "options": {
         "preset": "conventional"
-       
+      }
+    },
+    "deploy": {
+      "executor": "ngx-deploy-npm:deploy",
+      "options": {
+        "access": "public"
       }
     }
   },

@@ -28,12 +28,12 @@
     "appsDir": "apps",
     "libsDir": "packages"
   },
-    "targetDependencies": {
-      "version": [
-        {
-          "target": "version",
-          "projects": "dependencies"
-        }
-      ]
-    }
+  "targetDependencies": {
+    "version": [
+      {
+        "target": "version",
+        "projects": "dependencies"
+      }
+    ]
+  }
 }
