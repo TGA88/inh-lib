@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+### [0.1.2](https://github.com/TGA88/inh-lib/compare/ddd-0.1.1...ddd-0.1.2) (2022-09-29)
+
+
+### Bug Fixes
+
+* **ddd:** fix warning in valueobject so that it keep shallow-equal-object in package.json ([eb03829](https://github.com/TGA88/inh-lib/commit/eb03829a527b3bf3a063695b0f20763423cc8786))
+
 ### [0.1.1](https://github.com/TGA88/inh-lib/compare/ddd-0.1.0...ddd-0.1.1) (2022-09-03)
 
 
