@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.2.0](https://github.com/TGA88/inh-lib/compare/ddd-0.1.2...ddd-0.2.0) (2023-01-15)
+
+
+### Features
+
+* **ddd:** add IEventHandler and change IHandle doesn't require generic ([86ca88c](https://github.com/TGA88/inh-lib/commit/86ca88cc14f6031b88883004ab27dca20486c99f))
+
 ### [0.1.2](https://github.com/TGA88/inh-lib/compare/ddd-0.1.1...ddd-0.1.2) (2022-09-29)
 
 
