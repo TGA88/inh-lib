@@ -5,7 +5,7 @@ import { UniqueEntityID } from "../../../../UniqueEntityID";
 import { MockJobDeletedEvent } from "../events/mockJobDeletedEvent";
 
 export interface IMockJobProps {
-
+  [index: string]: unknown[]
 }
 
 export class MockJobAggregateRoot extends AggregateRoot<IMockJobProps> {

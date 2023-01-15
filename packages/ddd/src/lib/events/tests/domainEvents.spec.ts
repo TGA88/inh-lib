@@ -1,5 +1,5 @@
 
-import * as sinon from 'sinon'
+// import * as sinon from 'sinon'
 import { DomainEvents } from '../DomainEvents';
 import { MockJobCreatedEvent } from './mocks/events/mockJobCreatedEvent'
 import { MockJobDeletedEvent } from './mocks/events/mockJobDeletedEvent'
@@ -10,7 +10,7 @@ import { UniqueEntityID } from '../../UniqueEntityID';
 
 let social: MockPostToSocial | null;
 let job: MockJobAggregateRoot | null;
-let spy;
+// let spy;
 
 describe('Domain Events', () => {
 
@@ -52,7 +52,7 @@ describe('Domain Events', () => {
       social = new MockPostToSocial();
       social.setupSubscriptions();
 
-      var domainEventsAggregateSpy = sinon.spy(DomainEvents, "markAggregateForDispatch");
+      //  const domainEventsAggregateSpy = sinon.spy(DomainEvents, "markAggregateForDispatch");
 
       // setTimeout(() => {
       //   expect(domainEventsAggregateSpy.calledOnce).toBeTruthy();
@@ -66,8 +66,8 @@ describe('Domain Events', () => {
       social = new MockPostToSocial();
       social.setupSubscriptions();
 
-      var jobCreatedEventSpy = sinon.spy(social, "handleJobCreatedEvent");
-      var jobDeletedEventSpy = sinon.spy(social, "handleDeletedEvent");
+      // var jobCreatedEventSpy = sinon.spy(social, "handleJobCreatedEvent");
+      // var jobDeletedEventSpy = sinon.spy(social, "handleDeletedEvent");
 
       // Create the event, mark the aggregate
       job = MockJobAggregateRoot.createJob({}, MockJobAggregateRootId);
