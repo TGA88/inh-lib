@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+### [0.2.1](https://github.com/TGA88/inh-lib/compare/ddd-0.2.0...ddd-0.2.1) (2023-01-16)
+
+
+### Bug Fixes
+
+* **ddd:** export IEventHandler ([243ec6c](https://github.com/TGA88/inh-lib/commit/243ec6c6300645a42ff54a5eb10f15f50c55db91))
+
 ## [0.2.0](https://github.com/TGA88/inh-lib/compare/ddd-0.1.2...ddd-0.2.0) (2023-01-15)
 
 
