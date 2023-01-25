@@ -61,7 +61,8 @@ export class DomainEvents {
     }
   }
 
-  public static register(callback: (event: IDomainEvent) => void, eventClassName: string): void {
+  public static register<T extends IDomainEvent>(callback: (event: T) => Promise<void>, eventClassName: string): void {
+    
     if (this.handlersMap[eventClassName] === undefined) {
       this.handlersMap[eventClassName] = [];
     }
@@ -82,8 +83,8 @@ export class DomainEvents {
     if (this.handlersMap[eventClassName] !== undefined) {
       const handlers: unknown[] = this.handlersMap[eventClassName];
       for (const handler of handlers) {
-       const h =  handler as IEventHandler<IDomainEvent>;
-       h.handle(event)
+        const h = handler as (event:IDomainEvent)=>Promise<void>
+       h(event)
       }
     }
   }
