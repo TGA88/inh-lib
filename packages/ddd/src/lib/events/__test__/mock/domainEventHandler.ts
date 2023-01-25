@@ -1,5 +1,4 @@
 import { DomainEvents } from '../../DomainEvents';
-import { IDomainEvent } from '../../IDomainEvent';
 import { IEventHandler } from '../../IEventHandler';
 import { IHandle } from '../../IHandle';
 import { CourseInfoCreatedEvent } from './event';
