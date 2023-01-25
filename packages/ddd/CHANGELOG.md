@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+### [0.2.2](https://github.com/TGA88/inh-lib/compare/ddd-0.2.1...ddd-0.2.2) (2023-01-25)
+
+
+### Bug Fixes
+
+* **ddd:** fix bug dispatch DomainEvent ([94b9489](https://github.com/TGA88/inh-lib/commit/94b9489c48d5fbcfbded68fdc29cbc247ecd0353))
+
 ### [0.2.1](https://github.com/TGA88/inh-lib/compare/ddd-0.2.0...ddd-0.2.1) (2023-01-16)
 
 
