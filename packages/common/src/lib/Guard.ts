@@ -5,7 +5,7 @@ export interface IGuardResult {
 }
 
 export interface IGuardArgument {
-  argument: any;
+  argument: unknown;
   argumentName: string;
 }
 
@@ -13,14 +13,14 @@ export type GuardArgumentCollection = IGuardArgument[];
 
 export class Guard {
   public static combine (guardResults: IGuardResult[]): IGuardResult {
-    for (let result of guardResults) {
+    for (const result of guardResults) {
       if (result.succeeded === false) return result;
     }
 
     return { succeeded: true };
   }
 
-  public static againstNullOrUndefined (argument: any, argumentName: string): IGuardResult {
+  public static againstNullOrUndefined (argument: unknown, argumentName: string): IGuardResult {
     if (argument === null || argument === undefined) {
       return { succeeded: false, message: `${argumentName} is null or undefined` }
     } else {
@@ -29,7 +29,7 @@ export class Guard {
   }
 
   public static againstNullOrUndefinedBulk(args: GuardArgumentCollection): IGuardResult {
-    for (let arg of args) {
+    for (const arg of args) {
       const result = this.againstNullOrUndefined(arg.argument, arg.argumentName);
       if (!result.succeeded) return result;
     }
@@ -37,9 +37,9 @@ export class Guard {
     return { succeeded: true }
   }
 
-  public static isOneOf (value: any, validValues: any[], argumentName: string) : IGuardResult {
+  public static isOneOf (value: unknown, validValues: unknown[], argumentName: string) : IGuardResult {
     let isValid = false;
-    for (let validValue of validValues) {
+    for (const validValue of validValues) {
       if (value === validValue) {
         isValid = true;
       }
@@ -66,7 +66,7 @@ export class Guard {
 
   public static allInRange (numbers: number[], min: number, max: number, argumentName: string) : IGuardResult {
     let failingResult: IGuardResult | null = null;
-    for(let num of numbers) {
+    for(const num of numbers) {
       const numIsInRangeResult = this.inRange(num, min, max, argumentName);
       if (!numIsInRangeResult.succeeded) failingResult = numIsInRangeResult;
     }

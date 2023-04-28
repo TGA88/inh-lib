@@ -2,7 +2,7 @@
 import { IDomainEvent } from "./IDomainEvent";
 import { AggregateRoot } from "../AggregateRoot";
 import { UniqueEntityID } from "../UniqueEntityID";
-import { IEventHandler } from "./IEventHandler";
+// import { IEventHandler } from "./IEventHandler";
 
 interface IEventStore {
   [index: string]: unknown[]

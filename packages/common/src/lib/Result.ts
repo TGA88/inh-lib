@@ -38,12 +38,12 @@ export class Result<T> {
     return new Result<U>(true,undefined , value);
   }
 
-  public static fail<U> (error: any): Result<U> {
+  public static fail<U> (error: U): Result<U> {
     return new Result<U>(false, error);
   }
 
-  public static combine (results: Result<any>[]) : Result<any> {
-    for (let result of results) {
+  public static combine (results: Result<unknown>[]) : Result<unknown> {
+    for (const result of results) {
       if (result.isFailure) return result;
     }
     return Result.ok();

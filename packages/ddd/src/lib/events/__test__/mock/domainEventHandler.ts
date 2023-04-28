@@ -13,6 +13,7 @@ export class AfterCourseInoCreated
     this.broker = broker;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async handle(event: CourseInfoCreatedEvent): Promise<void> {
     // const ev:CourseInfoCreatedEvent = event as CourseInfoCreatedEvent
 
@@ -26,6 +27,7 @@ export class AfterCourseInoCreated
   }
 
   private async onCourseInfoCreatedEvent(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     event: CourseInfoCreatedEvent
   ): Promise<void> {
     // const { courseInfoAGM} = event;

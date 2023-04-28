@@ -4,7 +4,7 @@ import { DomainEvents } from '../DomainEvents';
 import { MockJobCreatedEvent } from './mocks/events/mockJobCreatedEvent'
 import { MockJobDeletedEvent } from './mocks/events/mockJobDeletedEvent'
 import { MockJobAggregateRoot } from './mocks/domain/mockJobAggregateRoot'
-import { MockPostToSocial } from './mocks/services/mockPostToSocial'
+// import { MockPostToSocial } from './mocks/services/mockPostToSocial'
 import { MockJobAggregateRootId } from './mocks/domain/mockJobAggregateRootId';
 import { UniqueEntityID } from '../../UniqueEntityID';
 

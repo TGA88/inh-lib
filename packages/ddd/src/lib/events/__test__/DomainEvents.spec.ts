@@ -12,7 +12,7 @@ describe('Test DomainEvents', () => {
   eventHandler.setupSubscriptions();
 
   it('should dispatch', async () => {
-    const agm = CourseInfoAGM.create(props).getValue() as CourseInfoAGM;
+    const agm = CourseInfoAGM.create(props) ;
     DomainEvents.dispatchEventsForAggregate(agm.id);
   });
 });
