@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.1.4](https://github.com/TGA88/inh-lib/compare/common-0.1.3...common-0.1.4) (2023-04-29)
+
+
+### Bug Fixes
+
+* **common:** result.fail broken ([512c4f5](https://github.com/TGA88/inh-lib/commit/512c4f5048a5d83d971021e8942f8dcc71a3933a))
+
 ## [0.1.3](https://github.com/TGA88/inh-lib/compare/common-0.1.2...common-0.1.3) (2023-04-29)
 
 
