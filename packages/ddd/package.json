@@ -1,6 +1,6 @@
 {
   "name": "@inh-lib/ddd",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "commonjs",
   "devDependencies": {
     "@types/sinon": "^10.0.13",
