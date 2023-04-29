@@ -6,7 +6,7 @@
     "prepare": "husky install",
     "commit-init": "npx commitizen init cz-conventional-changelog --save-dev --save-exact",
     "commit": "git-cz",
-    "version": "nx affected --target version --base HEAD~1 --head HEAD --trackDeps "
+    "version": "nx affected --target version --base HEAD~1 --head HEAD --trackDeps --parallel=1"
   },
   "private": true,
   "workspaces": [
