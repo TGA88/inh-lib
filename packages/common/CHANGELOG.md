@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.1.3](https://github.com/TGA88/inh-lib/compare/common-0.1.2...common-0.1.3) (2023-04-29)
+
+
+### Bug Fixes
+
+* to disable log in UnexpectedError Class and fix warning in when lint ([f7ba49c](https://github.com/TGA88/inh-lib/commit/f7ba49c013851cb84425e96f98dc5989f3b4a05b))
+
 ### [0.1.2](https://github.com/TGA88/inh-lib/compare/common-0.1.1...common-0.1.2) (2022-09-03)
 
 
