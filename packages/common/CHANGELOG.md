@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.2.0](https://github.com/TGA88/inh-lib/compare/common-0.1.4...common-0.2.0) (2023-05-10)
+
+
+### Features
+
+* **common:** add type InhLogger InhProducer InhConsumer ([fd94d1d](https://github.com/TGA88/inh-lib/commit/fd94d1d2eacfc920dbe5a27a7312ee0bdff8b8e8))
+
 ## [0.1.4](https://github.com/TGA88/inh-lib/compare/common-0.1.3...common-0.1.4) (2023-04-29)
 
 
