@@ -1,10 +1,11 @@
 
+import { Result } from '../../Result';
 import {MakeInhHealthCheckCommandFn} from './shared/healthcheck.type'
 import {InhMessageFormat} from './shared/message.type'
 
 export interface InhPublishCommandItf {
      //Broadcast
-  execute: <O>(data: InhMessageFormat) => Promise<O>;
+  execute: <O,F>(data: InhMessageFormat) => Promise<Result<O,F>>;
 }
 
 export type MakeInhPublishCommandFn =  (target:string) => InhPublishCommandItf;
