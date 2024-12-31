@@ -1,16 +1,16 @@
 
-export class Result<T> {
+export class Result<T,F> {
   public isSuccess: boolean;
   public isFailure: boolean
-  public error?: T | string;
+  public error?: F | string;
   private _value?: T;
 
-  public constructor (isSuccess: boolean, error?: T | string, value?: T) {
+  public constructor (isSuccess: boolean, error?: F | string, value?: T) {
     if (isSuccess && error) {
-      throw new Error("InvalidOperation: A result cannot be successful and contain an error");
+      throw new Error("InvalidOperation: A Result cannot be successful and contain an error");
     }
     if (!isSuccess && !error) {
-      throw new Error("InvalidOperation: A failing result needs to contain an error message");
+      throw new Error("InvalidOperation: A failing Result needs to contain an error message");
     }
 
     this.isSuccess = isSuccess;
@@ -24,27 +24,27 @@ export class Result<T> {
   public getValue () : T | undefined {
     if (!this.isSuccess) {
       console.log(this.error,);
-      throw new Error("Can't get the value of an error result. Use 'errorValue' instead.")
+      throw new Error("Can't get the value of an error Result. Use 'errorValue' instead.")
     } 
 
     return this._value;
   }
 
-  public errorValue (): T {
-    return this.error as T;
+  public errorValue (): F {
+    return this.error as F;
   }
 
-  public static ok<U> (value?: U) : Result<U> {
-    return new Result<U>(true,undefined , value);
+  public static ok<T,F> (value?: T) : Result<T,F> {
+    return new Result<T,F>(true,undefined , value);
   }
 
-  public static fail<U> (error: unknown): Result<U> {
-    return new Result<U>(false, error as U);
+  public static fail<T,F> (error: F): Result<T,F> {
+    return new Result<T,F>(false, error as F);
   }
 
-  public static combine (results: Result<unknown>[]) : Result<unknown> {
-    for (const result of results) {
-      if (result.isFailure) return result;
+  public static combine (Results: Result<unknown,unknown>[]) : Result<unknown,unknown> {
+    for (const Result of Results) {
+      if (Result.isFailure) return Result;
     }
     return Result.ok();
   }

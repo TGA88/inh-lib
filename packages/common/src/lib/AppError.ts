@@ -4,7 +4,7 @@ import { UseCaseError } from "./UseCaseError";
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace GenericAppError {
-  export class UnexpectedError extends Result<UseCaseError> {
+  export class UnexpectedError extends Result<void,UseCaseError> {
     public constructor (err: unknown,) {
       super(false, {
         message: `An unexpected error occurred.`,
