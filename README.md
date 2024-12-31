@@ -1,94 +1,156 @@
+#  Inh-Lib 
+เป็น Project ที่สร้างด้วย Nx แบบ ProjectBase (เก่าแล้วมีเวลาจะมาปรับ) 
+
+## การ Publish ขึ้น NPM ให้ Manul ก่อน เพราะยังไม่มีเวลามาปรับ Pipeline
+
+### login npm (แบบ manual)
+```bash
+npm login 
+# แล้วเด๋ว จะเปิด Browser มาให้ login
+# กรอก userที่ใช้งาน bebestdev (ให่้เปลี่ยนเป็น bebestdev เป็น user ของคุณ)
+```
 
 
-# InhLib
+### pack
+```bash
+# ให้เข้าไปที่ Project ที่ ต้องการ เช่น common
 
-This project was generated using [Nx](https://nx.dev).
+# สร้างไฟล์ .tgz
+npm pack
 
-<p style="text-align: center;"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="450"></p>
+# จะได้ไฟล์ชื่อ: package-name-version.tgz
 
-🔎 **Smart, Fast and Extensible Build System**
+# ดูรายการไฟล์ที่จะถูก pack โดยไม่สร้างไฟล์ .tgz
+npm pack --dry-run
 
-## Adding capabilities to your workspace
+# แสดงรายละเอียดของไฟล์ที่จะถูก pack
+npm pack --json
 
-Nx supports many plugins which add capabilities for developing different types of applications and different tools.
+# pack เฉพาะ production dependencies
+npm pack --production
+```
 
-These capabilities include generating applications, libraries, etc as well as the devtools to test, and build projects as well.
+### Bump version
+การ bump version ใน npm ทำได้หลายวิธี:
 
-Below are our core plugins:
+**1.ใช้คำสั่ง npm version:**
+```bash
 
-- [React](https://reactjs.org)
-  - `npm install --save-dev @nrwl/react`
-- Web (no framework frontends)
-  - `npm install --save-dev @nrwl/web`
-- [Angular](https://angular.io)
-  - `npm install --save-dev @nrwl/angular`
-- [Nest](https://nestjs.com)
-  - `npm install --save-dev @nrwl/nest`
-- [Express](https://expressjs.com)
-  - `npm install --save-dev @nrwl/express`
-- [Node](https://nodejs.org)
-  - `npm install --save-dev @nrwl/node`
+bashCopy# เพิ่ม patch version (1.0.0 -> 1.0.1)
+npm version patch
 
-There are also many [community plugins](https://nx.dev/community) you could add.
+# เพิ่ม minor version (1.0.0 -> 1.1.0)
+npm version minor
 
-## Generate an application
+# เพิ่ม major version (1.0.0 -> 2.0.0)
+npm version major
 
-Run `nx g @nrwl/react:app my-app` to generate an application.
+# กำหนด version แบบชัดเจน
+npm version 1.2.3
+```
 
-> You can use any of the plugins above to generate applications as well.
+**2.ใช้ flag เพิ่มเติม:**
+```bash
+bashCopy# ไม่สร้าง git tag
+npm version patch --no-git-tag-version
 
-When using Nx, you can create multiple applications and libraries in the same workspace.
+# สร้าง commit แต่ไม่สร้าง tag
+npm version minor --no-git-tag-version --force
 
-## Generate a library
+# สร้าง commit พร้อม custom message
+npm version patch -m "Bump version to %s"
+```
 
-Run `nx g @nrwl/react:lib my-lib` to generate a library.
+**3.หรือแก้ไข version ใน package.json โดยตรง (ไม่แนะนำ):**
+```bash 
+# package.json
+jsonCopy{
+  "name": "your-package",
+  "version": "1.0.1"
+}
+```
+**Bump Versionแล้ว จะError เพราะ Commit Codeไม่ได้ ให้ เช็ค File Change และทำการ commit และ push พร้อมทั้ง ติด git-tag เรียบร้อย(จะได้tag อัตโนมัติ ตอน npm publish) และ push to remote**
 
-> You can also use any of the plugins above to generate libraries as well.
+หลังจาก bump version แล้วควร:
 
-Libraries are shareable across libraries and applications. They can be imported from `@inh-lib/mylib`.
+ตรวจสอบการเปลี่ยนแปลงใน package.json
+commit การเปลี่ยนแปลง (ถ้าไม่ได้ใช้ --force)
+push tags (ถ้าใช้ git)
+publish package ใหม่
 
-## Development server
+### Publish
+การระบุ tag ตอน publish ไป npm ทำได้ 2 วิธี:
 
-Run `nx serve my-app` for a dev server. Navigate to http://localhost:4200/. The app will automatically reload if you change any of the source files.
+**1.ระบุตอน publish โดยใช้ --tag:**
+```bash
+npm publish --tag beta
+npm publish --tag alpha
+npm publish --tag latest  # latest คือ default tag
+```
 
-## Code scaffolding
+**2.ใช้คำสั่ง npm dist-tag หลังจาก publish:**
+```bash
+#เพิ่ม tag ให้กับ version ที่ต้องการ
+npm dist-tag add your-package@1.0.0 beta
+```
 
-Run `nx g @nrwl/react:component my-component --project=my-app` to generate a new component.
+**List and Delete npm tag**
+```bash
+# ดู tags ทั้งหมด
+npm dist-tag ls your-package
 
-## Build
+# ลบ tag
+npm dist-tag rm your-package beta
+```
 
-Run `nx build my-app` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `--prod` flag for a production build.
+### Depreacte Tag
+**ใน npm เราไม่สามารถลบ (unpublish) version ที่ publish ไปแล้วเกิน 72 ชั่วโมงได้ แต่มีวิธีจัดการดังนี้:**
 
-## Running unit tests
+**ถ้ายังไม่เกิน 72 ชั่วโมง สามารถ unpublish ได้:**
+```bash
+npm unpublish your-package@1.0.0
+```
 
-Run `nx test my-app` to execute the unit tests via [Jest](https://jestjs.io).
+**ถ้าเกิน 72 ชั่วโมงแล้ว แนะนำให้ ใช้ deprecate**
+```bash
+# deprecate ทั้ง package
+npm deprecate package-name "This package is no longer maintained"
 
-Run `nx affected:test` to execute the unit tests affected by a change.
+# deprecate เฉพาะ version
+npm deprecate package-name@"1.x" "Version 1.x is no longer supported"
 
-## Running end-to-end tests
+# deprecate version range
+npm deprecate package-name@">=1.0.0 <2.0.0" "Please upgrade to version 2.x"
 
-Run `nx e2e my-app` to execute the end-to-end tests via [Cypress](https://www.cypress.io).
+# ใช้ version range แบบนี้
+npm deprecate @inh-lib/ddd@"<0.2.3" "Please upgrade to version 0.2.3 or above"
 
-Run `nx affected:e2e` to execute the end-to-end tests affected by a change.
+# หรือถ้าต้องการ deprecate หลาย version:
+npm deprecate "@inh-lib/ddd@0.0.0 @inh-lib/ddd@0.1.0" "Please upgrade to version 0.2.3 or above"
+```
+---
+## การตั้งชื่อ git tag สำหรับ workspaceนี้่ (mono-repo)
 
-## Understand your workspace
+```
+# การตั้งชื่อ tag สำหรับ release commit
+[projectname]-[sematicversion] เช่น common-1.0.0
 
-Run `nx graph` to see a diagram of the dependencies of your projects.
-
-## Further help
-
-Visit the [Nx Documentation](https://nx.dev) to learn more.
-
+# การตั้งชื่อ tag สำหรับ latest เพื่อง่ายในการเช็ค commit ที่ publish ไป npm
+[projectname]-latest เช่น common-latest
 
 
-## ☁ Nx Cloud
+# การตั้งชื่อ tag สำหรับ next version เพื่อง่ายในการเช็ค commit ที่ publish ไป npm
+# (ใช้กรณีที่ต้องการทำ multi version เนื่องจาก major change หรือ ไม่รองรับ backward compatible)
+[projectname]-next เช่น common-latest
+```
+**การ npm publish จะนำเอา tag ที่อยู่ที่ commit ที่ publish เป็น npm tag อัตโนมัติ**
+tag next หรือ lataest เราจะต้อง publish เอง เพราะไม่งั้นเราจะใช้ npm i @inh-lib/common@next ไม่ได้ เพราะ มันใช้ git-tag ของเราแทน 
 
-### Distributed Computation Caching & Distributed Task Execution
 
-<p style="text-align: center;"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-cloud-card.png"></p>
 
-Nx Cloud pairs with Nx in order to enable you to build and test code more rapidly, by up to 10 times. Even teams that are new to Nx can connect to Nx Cloud and start saving time instantly.
 
-Teams using Nx gain the advantage of building full-stack applications with their preferred framework alongside Nx’s advanced code generation and project dependency graph, plus a unified experience for both frontend and backend developers.
 
-Visit [Nx Cloud](https://nx.app/) to learn more.
+
+
+
+
