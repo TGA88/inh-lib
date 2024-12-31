@@ -4,7 +4,7 @@ import {InhMessageFormat} from './shared/message.type'
 // Send
 export interface InhSendCommandItf {
      //1to1
-  execute: <O>(data: InhMessageFormat) => Promise<O>;
+  execute: <O>(data: InhMessageFormat,messageGroupId?:string) => Promise<O>;
 }
 
 // target is queueUrl
