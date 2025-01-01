@@ -1,5 +1,5 @@
 
-export class Result<T,F> {
+export class Result<T,F=unknown> {
   public isSuccess: boolean;
   public isFailure: boolean
   public error?: F | string;
