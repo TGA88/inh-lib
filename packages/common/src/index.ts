@@ -4,10 +4,12 @@ export * from './lib/Guard';
 export * from './lib/Result';
 export * from './lib/UseCaseError';
 
-export * from './lib/type/data-parser'
-export * from './lib/type/inh-consumer'
-export * from './lib/type/inh-producer'
+
 export * from './lib/type/inh-logger'
+
+
+export * from './lib/type/data-parser'
+export * from './lib/type/endpoint/data-response'
 
 
 // commit common1
