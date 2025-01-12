@@ -12,6 +12,8 @@ export * from './lib/type/communication/inh-sender'
 export * from './lib/type/communication/shared/healthcheck.type'
 export * from './lib/type/communication/shared/message.type'
 
+export * from './lib/type/endpoint/data-response'
+
 
 // commit common1
 // commit common2
