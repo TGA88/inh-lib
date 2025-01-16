@@ -19,3 +19,10 @@ export interface InhLogger {
     error(params: string | unknown): unknown;
     fatal(params: string | unknown): unknown;
 }
+
+
+export function createEventLogFormatFn(name: string) {
+    return function <T>(message: string, data: T) {
+        return { eventName: name, message: message, data: data }
+    }
+}
