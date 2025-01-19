@@ -1,14 +1,16 @@
 
 import { Result } from '../../Result';
+import { InhLogger } from '../inh-logger';
 import {MakeInhHealthCheckCommandFn} from './shared/healthcheck.type'
 import {InhMessageFormat} from './shared/message.type'
 
 export interface InhPublishCommandItf {
      //Broadcast
-  execute: <O,F>(data: InhMessageFormat,messageGroupId?:string) => Promise<Result<O,F>>;
+  execute: <I,O,F>(data: InhMessageFormat<I>,messageGroupId?:string) => Promise<Result<O,F>>;
 }
 
-export type MakeInhPublishCommandFn =  (target:string) => InhPublishCommandItf;
+// T1 is configuration for specific Provider like awsSNS is {topicArn:string}
+export type MakeInhPublishCommandFn =  <T1>(publisherContext:T1,logger:InhLogger) => InhPublishCommandItf;
 
 
 

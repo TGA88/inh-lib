@@ -1,31 +1,21 @@
+import { Result } from '../../Result';
+import { InhLogger } from '../inh-logger';
 import {MakeInhHealthCheckCommandFn} from './shared/healthcheck.type'
 import {InhMessageFormat} from './shared/message.type'
 
 // Send
 export interface InhSendCommandItf {
      //1to1
-  execute: <O>(data: InhMessageFormat,messageGroupId?:string) => Promise<O>;
+  execute: <I,O,F>(data: InhMessageFormat<I>,messageGroupId?:string) => Promise<Result<O,F>>;
 }
 
-// target is queueUrl
-export type MakeInhSendCommandFn =  (target:string) => InhSendCommandItf;
+// T1 is configuration for specific Provider like aws is AWS.SendMessageRequest
+export type MakeInhSendCommandFn =  <T1>(senderContext:T1,logger:InhLogger) => InhSendCommandItf;
 // ===========
-
-
-// Recieve
-export interface InhRecieveCommandItf {
-  //Pull message from Q
-execute: <O>() => Promise<O>;
-}
-
-// target is queueUrl
-export type MakeInhRecieveCommandFn =  (target:string) => InhRecieveCommandItf;
-// ==========
 
 
 export interface InhSenderClientItf  {
   makeSendCommand: MakeInhSendCommandFn;
-  makeRecieveCommand: MakeInhSendCommandFn;
   makeHealthCheckCommand: MakeInhHealthCheckCommandFn;
 }
 

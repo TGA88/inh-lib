@@ -1,4 +1,4 @@
-export type InhMessageFormat={
+export type InhMessageFormat<T>={
     eventId: string 
     topicName: string
     originId: string
@@ -6,6 +6,6 @@ export type InhMessageFormat={
     systemName: string
     totalChunk: number
     chunk: number
-    data: unknown,
+    data: T,
     actions: string
   }
