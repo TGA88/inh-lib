@@ -15,7 +15,7 @@ execute: <I>(data: InhMessageFormat<I>,messageGroupId?:string) => Promise<Result
 }
 
 
-// T1 is configuration for specific Provider like aws is AWS.SendMessageRequest
+// T1 is Provider instant like sqsClient or bullJsClient
 export type MakeInhSendCommandFn =  <T1,O,F>(senderContext:T1,logger:InhLogger) => InhSendCommandItf<O,F>;
 // ===========
 
