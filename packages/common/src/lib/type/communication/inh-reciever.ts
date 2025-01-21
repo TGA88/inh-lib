@@ -4,13 +4,13 @@ import {MakeInhHealthCheckCommandFn} from './shared/healthcheck.type'
 import { Result } from '../../Result';
 
 // Recieve
-export interface InhRecieveCommandItf<O,F,I=void> {
+export interface InhRecieveCommandItf<O,F> {
   //Pull message from Q
-execute: (input:I) => Promise<Result<O,F>>;
+execute: <I=void>(input:I) => Promise<Result<O,F>>;
 }
 
 // T1 is configuration for specific Provider like aws is AWS.ReceiveMessageRequest
-export type MakeInhRecieveCommandFn =  <T1, IRequest, IResponse,O,F,I=void>(recieveContext:T1,recieveHandler:UseCase<IRequest, IResponse>,logger:InhLogger) => InhRecieveCommandItf<O,F,I>;
+export type MakeInhRecieveCommandFn =  <T1, IRequest, IResponse,O,F>(recieveContext:T1,recieveHandler:UseCase<IRequest, IResponse>,logger:InhLogger) => InhRecieveCommandItf<O,F>;
 // ==========
 
 export interface InhRecieverClientItf  {

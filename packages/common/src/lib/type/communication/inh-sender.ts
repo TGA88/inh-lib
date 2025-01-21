@@ -9,14 +9,14 @@ import {InhMessageFormat} from './shared/message.type'
 //   execute: <I,O,F>(data: InhMessageFormat<I>,messageGroupId?:string) => Promise<Result<O,F>>;
 // }
 
-export interface InhSendCommandItf<I,O,F> {
+export interface InhSendCommandItf<O,F> {
   //1to1
-execute: (data: InhMessageFormat<I>,messageGroupId?:string) => Promise<Result<O,F>>;
+execute: <I>(data: InhMessageFormat<I>,messageGroupId?:string) => Promise<Result<O,F>>;
 }
 
 
 // T1 is configuration for specific Provider like aws is AWS.SendMessageRequest
-export type MakeInhSendCommandFn =  <T1,I,O,F>(senderContext:T1,logger:InhLogger) => InhSendCommandItf<I,O,F>;
+export type MakeInhSendCommandFn =  <T1,O,F>(senderContext:T1,logger:InhLogger) => InhSendCommandItf<O,F>;
 // ===========
 
 
