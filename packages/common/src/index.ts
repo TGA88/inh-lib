@@ -9,6 +9,7 @@ export * from './lib/type/inh-logger'
 
 export * from './lib/type/communication/inh-producer'
 export * from './lib/type/communication/inh-sender'
+export * from './lib/type/communication/inh-reciever'
 export * from './lib/type/communication/shared/healthcheck.type'
 export * from './lib/type/communication/shared/message.type'
 
