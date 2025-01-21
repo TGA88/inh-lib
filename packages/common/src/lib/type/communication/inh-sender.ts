@@ -4,13 +4,19 @@ import {MakeInhHealthCheckCommandFn} from './shared/healthcheck.type'
 import {InhMessageFormat} from './shared/message.type'
 
 // Send
-export interface InhSendCommandItf {
-     //1to1
-  execute: <I,O,F>(data: InhMessageFormat<I>,messageGroupId?:string) => Promise<Result<O,F>>;
+// export interface InhSendCommandItf {
+//      //1to1
+//   execute: <I,O,F>(data: InhMessageFormat<I>,messageGroupId?:string) => Promise<Result<O,F>>;
+// }
+
+export interface InhSendCommandItf<I,O,F> {
+  //1to1
+execute: (data: InhMessageFormat<I>,messageGroupId?:string) => Promise<Result<O,F>>;
 }
 
+
 // T1 is configuration for specific Provider like aws is AWS.SendMessageRequest
-export type MakeInhSendCommandFn =  <T1>(senderContext:T1,logger:InhLogger) => InhSendCommandItf;
+export type MakeInhSendCommandFn =  <T1,I,O,F>(senderContext:T1,logger:InhLogger) => InhSendCommandItf<I,O,F>;
 // ===========
 
 
