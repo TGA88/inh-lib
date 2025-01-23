@@ -68,7 +68,7 @@ export class InhLogContext {
 
 export function createEventLogFormatFn(name: string,eventLogContext:EventLogContext): EventLogFormatter {
     // const eventId=new UniqueEntityID().toValue() as string
-    return function <T>(message: string, data: T) {
+    return function <T>(message: string, data: T = undefined) {
         return  {
             originEventId: eventLogContext.originEventId || "0", // กำหนดค่า default
             eventId:eventLogContext.eventId,
