@@ -1,7 +1,7 @@
 export type InhMessageFormat<T>={
     eventId: string 
     topicName: string
-    originId: string
+    originEventId: string
     publishBy: string
     systemName: string
     totalChunk: number
@@ -9,3 +9,5 @@ export type InhMessageFormat<T>={
     data: T,
     actions: string
   }
+
+  

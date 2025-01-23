@@ -1,6 +1,5 @@
 import { Result } from '../../Result';
 import { InhLogger } from '../inh-logger';
-import {MakeInhHealthCheckCommandFn} from './shared/healthcheck.type'
 import {InhMessageFormat} from './shared/message.type'
 
 // Send
@@ -21,13 +20,9 @@ export type MakeInhSendCommandFn =  <T1,O,F>(senderContext:T1,logger:InhLogger) 
 
 
 export interface InhSenderClientItf  {
-  makeSendCommand: MakeInhSendCommandFn;
-  makeHealthCheckCommand: MakeInhHealthCheckCommandFn;
+  makeSendCommand: InhSendCommandItf<unknown,unknown>;
 }
 
-export interface InhSenderProviderItf{
-  makeSenderClient(config:InhSenderConfig): InhSenderClientItf
-}
 
 
 export type InhSenderConfig = AwsSqsSenderConfig 
