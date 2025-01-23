@@ -43,6 +43,22 @@ describe('createEventLogFormatFn', () => {
         });
     });
 
+    it('should format the log correctly when it has only message', () => {
+        const eventName = 'testEvent';
+        const eventLogContext = { eventId: 'mocked-event-id', originEventId: 'mocked-origin-event-id' };
+        const formatFn = createEventLogFormatFn(eventName, eventLogContext);
+        const message = 'This is a test message';
+        
+        const result = formatFn(message);
+        expect(result).toEqual({
+            originEventId: 'mocked-origin-event-id',
+            eventId: 'mocked-event-id',
+            eventName: eventName,
+            message: message,
+            data: undefined
+        });
+    });
+
     it('should handle different data types', () => {
         const eventName = 'testEvent';
         const eventLogContext = { eventId: 'mocked-event-id', originEventId: 'mocked-origin-event-id' };

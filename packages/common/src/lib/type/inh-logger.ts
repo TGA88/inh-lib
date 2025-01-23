@@ -23,12 +23,12 @@ export interface InhLogger {
 
 
 
-export type EventLogFormatter = <T>(message: string, data: T) => {
+export type EventLogFormatter = <T>(message: string, data?: T) => {
     originEventId:string;
     eventId:string;
     eventName: string;
     message: string;
-    data: T;
+    data?: T;
 }
 
 
@@ -68,7 +68,7 @@ export class InhLogContext {
 
 export function createEventLogFormatFn(name: string,eventLogContext:EventLogContext): EventLogFormatter {
     // const eventId=new UniqueEntityID().toValue() as string
-    return function <T>(message: string, data: T = undefined) {
+    return function <T>(message: string, data?: T ) {
         return  {
             originEventId: eventLogContext.originEventId || "0", // กำหนดค่า default
             eventId:eventLogContext.eventId,
