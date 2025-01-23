@@ -7,7 +7,7 @@ import { InhPublishCommandItf } from './shared/inh-producer';
 
 
 export interface InhPubSubItf  {
-  makePublishCommand: InhPublishCommandItf<unknown,unknown>;
+  makePublishCommand<TPublishConfig>(ctx:TPublishConfig): InhPublishCommandItf<unknown,unknown>;
 }
 
 

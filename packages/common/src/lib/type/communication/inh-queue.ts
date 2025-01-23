@@ -1,5 +1,6 @@
 
 
+import { UseCase } from '@inh-lib/ddd';
 import { InhRecieveCommandItf } from './shared/inh-reciever';
 import { InhSendCommandItf } from './shared/inh-sender';
 
@@ -9,8 +10,8 @@ import { InhSendCommandItf } from './shared/inh-sender';
 
 
 export interface InhQueueItf  {
-  makeRecieveCommand: InhRecieveCommandItf<unknown,unknown>;  
-  makeSendCommand: InhSendCommandItf<unknown,unknown>;
+  makeRecieveCommand<TRecieveConfig,TUsecaseInput,TUsecaseOutput>(ctx:TRecieveConfig,handler:UseCase<TUsecaseInput,TUsecaseOutput>): InhRecieveCommandItf<unknown,unknown>;  
+  makeSendCommand<TSendConfig>(ctx:TSendConfig): InhSendCommandItf<unknown,unknown>;
 }
 
 
