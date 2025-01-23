@@ -10,8 +10,8 @@ import { InhSendCommandItf } from './shared/inh-sender';
 
 
 export interface InhQueueItf  {
-  makeRecieveCommand<TRecieveConfig,TUsecaseInput,TUsecaseOutput>(ctx:TRecieveConfig,handler:UseCase<TUsecaseInput,TUsecaseOutput>): InhRecieveCommandItf<unknown,unknown>;  
-  makeSendCommand<TSendConfig>(ctx:TSendConfig): InhSendCommandItf<unknown,unknown>;
+  makeRecieveCommand<TUsecaseInput,TUsecaseOutput>(ctx:unknown,handler:UseCase<TUsecaseInput,TUsecaseOutput>): InhRecieveCommandItf<unknown,unknown>;  
+  makeSendCommand(ctx:unknown): InhSendCommandItf<unknown,unknown>;
 }
 
 
