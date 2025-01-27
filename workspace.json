@@ -3,6 +3,7 @@
   "version": 2,
   "projects": {
     "common": "packages/common",
-    "ddd": "packages/ddd"
+    "ddd": "packages/ddd",
+    "ui-core": "packages/ui-core"
   }
 }

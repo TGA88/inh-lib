@@ -17,7 +17,8 @@
     "baseUrl": ".",
     "paths": {
       "@inh-lib/common": ["packages/common/src/index.ts"],
-      "@inh-lib/ddd": ["packages/ddd/src/index.ts"]
+      "@inh-lib/ddd": ["packages/ddd/src/index.ts"],
+      "@inh-lib/ui-core": ["packages/ui-core/src/index.ts"],
     }
   },
   "exclude": ["node_modules", "tmp"]
