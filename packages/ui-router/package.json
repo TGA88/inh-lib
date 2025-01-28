@@ -2,24 +2,24 @@
   "name": "@inh-lib/ui-router",
   "version": "0.1.0",
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.cjs",
+  "module": "./src/index.js",
+  "types": "./src/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js",
+      "require": "./src/index.cjs"
     },
     "./hooks/*": {
-      "types": "./dist/hooks/*/*.d.ts",
-      "import": "./dist/hooks/*/*.js",
-      "require": "./dist/hooks/*/*.cjs"
+      "types": "./src/hooks/*/*.d.ts",
+      "import": "./src/hooks/*/*.js",
+      "require": "./src/hooks/*/*.cjs"
     },
     "./components/*": {
-      "types": "./dist/components/*/*.d.ts",
-      "import": "./dist/components/*/*.js",
-      "require": "./dist/components/*/*.cjs"
+      "types": "./src/components/*/*.d.ts",
+      "import": "./src/components/*/*.js",
+      "require": "./src/components/*/*.cjs"
     }
   }
 }
