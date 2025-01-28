@@ -1,17 +1,17 @@
 {
-  "name": "ui-core",
+  "name": "ui-router",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/ui-core/src",
+  "sourceRoot": "packages/ui-router/src",
   "projectType": "library",
   "targets": {
     "build": {
       "executor": "@nrwl/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/packages/ui-core",
-        "main": "packages/ui-core/src/index.ts",
-        "tsConfig": "packages/ui-core/tsconfig.lib.json",
-        "assets": ["packages/ui-core/*.md"]
+        "outputPath": "dist/packages/ui-router",
+        "main": "packages/ui-router/src/index.ts",
+        "tsConfig": "packages/ui-router/tsconfig.lib.json",
+        "assets": ["packages/ui-router/*.md"]
       }
     },
     "publish": {
@@ -30,12 +30,12 @@
       "executor": "@nrwl/linter:eslint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["packages/ui-core/**/*.ts"]
+        "lintFilePatterns": ["packages/ui-router/**/*.ts"]
       }
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/packages/ui-core"],
+      "outputs": ["{workspaceRoot}/coverage/packages/ui-router"],
       "options": {
         "jestConfig": "packages/ui-core/jest.config.ts",
         "passWithNoTests": true

@@ -1,7 +1,16 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "allowImportingTsExtensions": true,
+    "allowSyntheticDefaultImports":true,                                       /* Specify a set of bundled library declaration files that describe the target runtime environment. */
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "noImplicitOverride": true,

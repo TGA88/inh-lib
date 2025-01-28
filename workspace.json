@@ -4,6 +4,6 @@
   "projects": {
     "common": "packages/common",
     "ddd": "packages/ddd",
-    "ui-core": "packages/ui-core"
+    "ui-router": "packages/ui-router"
   }
 }
