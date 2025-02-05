@@ -9,6 +9,7 @@
       "DOM",
       "DOM.Iterable"
     ],
+    "noEmit": true,
     "allowImportingTsExtensions": true,
     "allowSyntheticDefaultImports":true,                                       /* Specify a set of bundled library declaration files that describe the target runtime environment. */
     "forceConsistentCasingInFileNames": true,
