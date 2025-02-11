@@ -19,6 +19,6 @@ export interface InhHttpResponse<TData> {
     get<TResponse>(url: string, config?: InhHttpRequestConfig): Promise<InhHttpResponse<TResponse>>;
     post<TResponse, TRequest = unknown>(url: string, data?: TRequest, config?: InhHttpRequestConfig): Promise<InhHttpResponse<TResponse>>;
     put<TResponse, TRequest = unknown>(url: string, data?: TRequest, config?: InhHttpRequestConfig): Promise<InhHttpResponse<TResponse>>;
-    delete<TResponse>(url: string, config?: InhHttpRequestConfig): Promise<InhHttpResponse<TResponse>>;
+    delete<TResponse,TRequest = unknown>(url: string,data?: TRequest, config?: InhHttpRequestConfig): Promise<InhHttpResponse<TResponse>>;
     patch<TResponse, TRequest = unknown>(url: string, data?: TRequest, config?: InhHttpRequestConfig): Promise<InhHttpResponse<TResponse>>;
   }

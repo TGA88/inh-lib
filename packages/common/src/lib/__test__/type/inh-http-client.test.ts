@@ -64,6 +64,11 @@ describe('InhHttpClient', () => {
     expect(response.statusText).toBe('No Content');
   });
 
+  test('should perform DELETE request with body', async () => {
+    const response = await client.delete('https://example.com', { data: { key: 'value' } });
+    expect(response.status).toBe(204);
+    expect(response.statusText).toBe('No Content');
+  });
   test('should perform PATCH request', async () => {
     const response = await client.patch('https://example.com', { key: 'value' });
     expect(response.status).toBe(200);
