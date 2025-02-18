@@ -138,6 +138,7 @@ export class FunctionChain<T, O> implements FunctionChainItf<T, O> {
         this.logger.debug(this.logFmt(`Initial data`, data));
 
         let result = await this.steps[0](data) as Either<unknown, unknown>;
+        this.currentResult = result as O;
         // If the result is a failure, break the loop
         if (result.isLeft()) {
             const fail = result.value;
