@@ -1,6 +1,6 @@
 // adapters/unified-fastify-adapter.ts
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { UnifiedRequestContext, UnifiedResponseContext, UnifiedHttpContext } from '@inh-lib/common';
+import { UnifiedRequestContext, UnifiedResponseContext, UnifiedHttpContext } from '@inh-lib/unified-route';
 
 export function adaptFastifyRequest<TBody = Record<string, unknown>>(
   req: FastifyRequest

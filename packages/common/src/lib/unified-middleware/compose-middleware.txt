@@ -1,0 +1,9 @@
+import { UnifiedMiddleware, UnifiedRouteHandler } from "../type/unified/unified-middleware";
+import { UnifiedMiddlewareComposer } from "./internal/composser";
+
+// Simple composition helper for basic use cases
+export const composeMiddleware = (middlewares: UnifiedMiddleware[]): (handler: UnifiedRouteHandler) => UnifiedRouteHandler => {
+  const composer = new UnifiedMiddlewareComposer();
+  middlewares.forEach(middleware => composer.add(middleware));
+  return composer.compose();
+};
