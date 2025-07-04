@@ -3,10 +3,14 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "build": "nx run-many --target=build --all",
+    "build:affected": "nx affected --target=build",
     "prepare": "husky install",
     "commit-init": "npx commitizen init cz-conventional-changelog --save-dev --save-exact",
     "commit": "git-cz",
-    "version": "nx affected --target version --base HEAD~1 --head HEAD --trackDeps --parallel=1"
+    "version": "nx affected --target version --base HEAD~1 --head HEAD --trackDeps --parallel=1",
+    "link:examples": "npm run build && cd examples && npm link ../packages/api-util-fastify ../packages/unified-route ../packages/unified-telemetry-core ../packages/unified-telemetry-middleware ../packages/unified-telemetry-otel",
+    "setup:examples": "npm run build && cd examples && npm install --no-package-lock"
   },
   "private": true,
   "workspaces": [
@@ -41,7 +45,7 @@
     "nx": "15.6.3",
     "prettier": "^2.6.2",
     "ts-jest": "28.0.5",
-    "ts-node": "ู^10.9.2",
+    "ts-node": "^10.9.2",
     "typescript": "^5.0.0",
     "fastify": "^4.26.1"
   },
@@ -52,6 +56,12 @@
     "uuid": "^8.3.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
+  },
+    "optionalDependencies": {
+      
+    "fastify-plugin": "^4.0.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/sdk-node": "^0.50.0"
   },
   "peerDependencies": {
     "fastify": "^4.26.1"

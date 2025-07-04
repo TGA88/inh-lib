@@ -1,0 +1,130 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Docker service discovery (primary method)
+  - job_name: docker-containers
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: label
+            values: ["logging=promtail"]
+
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        target_label: 'container_name'
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'logstream'
+      - source_labels: ['__meta_docker_container_label_logging_jobname']
+        target_label: 'job'
+      - source_labels: ['__meta_docker_container_label_logging_jobname']
+        target_label: 'service_name'
+
+    pipeline_stages:
+      # Try to parse as JSON first (for structured logs)
+      - json:
+          expressions:
+            level: level
+            service: service
+            message: message
+            timestamp: timestamp
+            traceId: traceId
+            spanId: spanId
+            method: method
+            url: url
+            statusCode: statusCode
+            duration: duration
+            requestId: requestId
+      # Add timestamp parsing for non-JSON logs
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+          fallback_formats:
+            - "2006-01-02T15:04:05.000000000Z07:00"
+            - "2006-01-02T15:04:05.000Z07:00"
+            - "2006-01-02T15:04:05Z07:00"
+      # Add labels (DO NOT include traceId/spanId as labels - too high cardinality)
+      - labels:
+          level:
+          service:
+          method:
+          statusCode:
+
+  # Backup: Direct Docker log files for all containers
+  - job_name: docker-logs-direct
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: docker-direct
+          __path__: /var/lib/docker/containers/*/*-json.log
+
+    pipeline_stages:
+      # Parse Docker JSON log format first
+      - json:
+          expressions:
+            log: log
+            stream: stream
+            time: time
+      # Try to parse the actual log content as JSON (for structured logs)
+      - json:
+          source: log
+          expressions:
+            level: level
+            service: service
+            message: message
+            timestamp: timestamp
+            traceId: traceId
+            spanId: spanId
+            method: method
+            url: url
+            statusCode: statusCode
+            duration: duration
+            requestId: requestId
+      # Use Docker timestamp
+      - timestamp:
+          source: time
+          format: RFC3339Nano
+      # Add labels (DO NOT include traceId/spanId as labels - too high cardinality)
+      - labels:
+          level:
+          service:
+          method:
+          statusCode:
+          stream:
+
+  # Simplified application logs (only if files exist)
+  - job_name: app-file-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: app-files
+          service: fastify-unified-example
+          __path__: /app/logs/*.log
+
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            message: message
+            timestamp: timestamp
+            service: service
+            traceId: traceId
+            spanId: spanId
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+      - labels:
+          level:
+          service:
+          traceId:
+          spanId:

@@ -1,0 +1,120 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "*"
+          allowed_headers:
+            - "*"
+
+  # Prometheus metrics receiver (optional)
+  # prometheus:
+  #   config:
+  #     scrape_configs:
+  #       - job_name: 'otel-collector'
+  #         static_configs:
+  #           - targets: ['0.0.0.0:8888']
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  # Resource processor to add/modify resource attributes
+  resource:
+    attributes:
+      - key: service.instance.id
+        value: "otel-collector"
+        action: upsert
+      - key: deployment.environment
+        value: "development"
+        action: upsert
+
+  # Memory limiter
+  memory_limiter:
+    limit_mib: 512
+    check_interval: 1s
+
+  # Transform processor to fix timestamp issues  
+  transform:
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(time_unix_nano, UnixNano(Now())) where time_unix_nano == 0
+
+exporters:
+  # Export traces to Tempo
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  # Export logs to Loki (commented out - loki exporter not available in this version)
+  # loki:
+  #   endpoint: http://loki:3100/loki/api/v1/push
+  #   tenant_id: "otel"
+  #   labels:
+  #     attributes:
+  #       service.name: "service_name"
+  #       service.instance.id: "service_instance_id"
+  #     resource:
+  #       container.name: "container_name"
+  #       k8s.pod.name: "k8s_pod_name"
+
+  # Export metrics to Prometheus (remote write - optional)
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+    tls:
+      insecure: true
+    resource_to_telemetry_conversion:
+      enabled: true
+    add_metric_suffixes: false
+    send_metadata: true
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 120s
+
+  # Debug exporter (for development)
+  debug:
+    verbosity: detailed
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1777
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp/tempo]
+
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, transform, batch]
+      exporters: [prometheusremotewrite]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      # exporters: [loki]  # Loki exporter not available in standard distribution
+      exporters: [debug]  # Development only - production logs use Promtail → Loki
+
+  extensions: [health_check, pprof, zpages]
+
+  telemetry:
+    logs:
+      level: "info"
+    metrics:
+      level: "detailed"
