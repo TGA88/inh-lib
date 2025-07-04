@@ -1588,6 +1588,1841 @@ const fastifySchema = {
 
 This Zod integration provides robust, type-safe validation while maintaining the framework-agnostic nature of your business logic. The validation happens at the HTTP boundary, keeping your core logic clean and focused.
 
+## Enterprise Architecture & Large Scale System Management
+
+For large-scale applications, we recommend organizing your codebase using a layered mono-repo architecture. This approach provides clear separation of concerns, maintainable dependencies, and excellent scalability.
+
+### Recommended Mono-repo Structure
+
+```
+workspace/
+├── packages/
+│   ├── api-contract/              # 📋 Shared contracts & schemas
+│   ├── api-core/                  # 🏛️ Core business types & interfaces
+│   ├── api-service/               # 🚀 HTTP service layer
+│   ├── api-data-prisma/           # 💾 Data access layer (Prisma implementation)
+│   ├── api-client/                # 📡 Client SDK
+│   └── api-util-fastify/          # 🔧 Framework adapters
+├── apps/
+│   ├── user-service/              # 👥 User management service
+│   ├── order-service/             # 📦 Order management service
+│   └── notification-service/      # 📢 Notification service
+└── tools/
+    ├── build-scripts/
+    └── deployment/
+```
+
+### Layer Dependencies & Architecture
+
+```mermaid
+graph TD
+    A[api-service] --> B[api-core]
+    A --> C[api-contract]
+    
+    D[api-data-prisma] --> B[api-core]
+    
+    E[api-client] --> C[api-contract]
+    
+    F[user-service] --> A[api-service]
+    F --> C[api-contract]
+    F --> G[api-util-fastify]
+    F --> D[api-data-prisma]
+    
+    H[order-service] --> A[api-service]
+    H --> C[api-contract]
+    H --> G[api-util-fastify]
+    H --> D[api-data-prisma]
+    
+    I[notification-service] --> A[api-service]
+    I --> C[api-contract]
+    I --> G[api-util-fastify]
+    I --> D[api-data-prisma]
+    
+    style C fill:#e1f5fe
+    style B fill:#f3e5f5
+    style A fill:#e8f5e8
+    style D fill:#fff3e0
+    style G fill:#f0f4c3
+```
+
+**Dependency Rules:**
+- ⬆️ Higher layers can depend on lower layers
+- ❌ Lower layers cannot depend on higher layers
+- 🎯 **api-data-prisma** only depends on **api-core** (implements repository interfaces)
+- 🚀 **Apps** import contracts, adapters, services, and data layers
+- ⚙️ **Configuration-driven** instead of direct environment variables
+
+### Package Structure Details
+
+#### 1. api-contract (Schemas & Contracts)
+
+```typescript
+// packages/api-contract/src/
+├── user/
+│   ├── schemas.ts              # Zod schemas for user domain
+│   ├── types.ts                # Inferred TypeScript types
+│   └── index.ts                # Exports
+├── order/
+│   ├── schemas.ts
+│   ├── types.ts
+│   └── index.ts
+├── notification/
+│   ├── schemas.ts
+│   ├── types.ts
+│   └── index.ts
+└── shared/
+    ├── common-schemas.ts       # Shared validation schemas
+    ├── api-responses.ts        # Standard API response types
+    └── pagination.ts           # Pagination schemas
+
+// Example: packages/api-contract/src/user/schemas.ts
+import { z } from 'zod';
+
+export const CreateUserRequestSchema = z.object({
+  email: z.string().email(),
+  firstName: z.string().min(1).max(50),
+  lastName: z.string().min(1).max(50),
+  age: z.number().int().min(13).max(120).optional(),
+});
+
+export const UserResponseSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  firstName: z.string(),
+  lastName: z.string(),
+  age: z.number().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const GetUsersQuerySchema = z.object({
+  page: z.string().transform(Number).default('1'),
+  limit: z.string().transform(Number).default('10'),
+  search: z.string().optional(),
+});
+
+// Export types
+export type CreateUserRequest = z.infer<typeof CreateUserRequestSchema>;
+export type UserResponse = z.infer<typeof UserResponseSchema>;
+export type GetUsersQuery = z.infer<typeof GetUsersQuerySchema>;
+```
+
+#### 2. api-core (Business Types & Repository Interfaces)
+
+```typescript
+// packages/api-core/src/
+├── user/
+│   ├── repository.ts           # Repository interface contracts
+│   ├── types.ts                # Domain types
+│   └── index.ts
+├── order/
+│   ├── repository.ts
+│   ├── types.ts
+│   └── index.ts
+├── notification/
+│   ├── repository.ts
+│   ├── types.ts
+│   └── index.ts
+└── shared/
+    ├── base-repository.ts      # Base repository patterns
+    ├── query-options.ts        # Common query interfaces
+    └── domain-events.ts        # Domain event types
+
+// Example: packages/api-core/src/user/repository.ts
+import { CreateUserRequest, UserResponse, GetUsersQuery } from '@workspace/api-contract/user';
+
+export interface UserRepository {
+  create(userData: CreateUserRequest): Promise<UserResponse>;
+  findById(id: string): Promise<UserResponse | null>;
+  findMany(options: GetUsersQuery): Promise<{
+    users: UserResponse[];
+    total: number;
+  }>;
+  update(id: string, userData: Partial<CreateUserRequest>): Promise<UserResponse | null>;
+  delete(id: string): Promise<boolean>;
+  findByEmail(email: string): Promise<UserResponse | null>;
+}
+
+export interface UserQueryOptions {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: 'email' | 'firstName' | 'lastName' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
+  filters?: {
+    ageMin?: number;
+    ageMax?: number;
+    verified?: boolean;
+  };
+}
+
+// Domain-specific business types
+export interface UserAggregate {
+  id: string;
+  profile: UserResponse;
+  preferences: UserPreferences;
+  permissions: UserPermissions;
+}
+
+export interface UserPreferences {
+  theme: 'light' | 'dark' | 'auto';
+  language: string;
+  notifications: {
+    email: boolean;
+    push: boolean;
+    sms: boolean;
+  };
+}
+```
+
+#### 3. api-service (HTTP Layer with CQRS)
+
+```typescript
+// packages/api-service/src/
+├── user/
+│   ├── commands/
+│   │   ├── create-user.command.ts      # Command handlers
+│   │   ├── update-user.command.ts
+│   │   ├── delete-user.command.ts
+│   │   └── index.ts
+│   ├── queries/
+│   │   ├── get-user.query.ts           # Query handlers
+│   │   ├── get-users.query.ts
+│   │   ├── search-users.query.ts
+│   │   └── index.ts
+│   ├── routes/
+│   │   ├── user.routes.ts              # HTTP route handlers
+│   │   └── index.ts
+│   └── index.ts
+├── order/
+│   ├── commands/
+│   ├── queries/
+│   ├── routes/
+│   └── index.ts
+├── notification/
+│   ├── commands/
+│   ├── queries/
+│   ├── routes/
+│   └── index.ts
+└── shared/
+    ├── base-command.ts                 # Base command patterns
+    ├── base-query.ts                   # Base query patterns
+    ├── middleware/                     # Shared middleware
+    └── utils/
+
+// Example: packages/api-service/src/user/commands/create-user.command.ts
+import { UserRepository } from '@workspace/api-core/user';
+
+export class CreateUserCommand {
+  constructor(private userRepository: UserRepository) {}
+
+  // Pure business logic - receives validated data
+  async execute(userData: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    age?: number;
+  }): Promise<any> {
+    // Check business rules
+    const existingUser = await this.userRepository.findByEmail(userData.email);
+    if (existingUser) {
+      throw new Error('Email already exists');
+    }
+
+    // Execute command - pure business logic
+    const user = await this.userRepository.create(userData);
+    return user;
+  }
+}
+
+// Example: packages/api-service/src/user/queries/get-users.query.ts
+import { UserRepository } from '@workspace/api-core/user';
+
+export class GetUsersQuery {
+  constructor(private userRepository: UserRepository) {}
+
+  // Pure business logic - receives validated query params
+  async execute(queryParams: {
+    page: number;
+    limit: number;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<{
+    users: any[];
+    total: number;
+  }> {
+    // Pure query logic
+    const result = await this.userRepository.findMany(queryParams);
+    return result;
+  }
+}
+
+export class GetUserQuery {
+  constructor(private userRepository: UserRepository) {}
+
+  async execute(userId: string): Promise<any | null> {
+    const user = await this.userRepository.findById(userId);
+    return user;
+  }
+}
+
+// Example: packages/api-service/src/user/routes/user.routes.ts
+import { UnifiedHttpContext } from '@workspace/api-util-fastify';
+import { CreateUserRequestSchema, GetUsersQuerySchema, UserParamsSchema } from '@workspace/api-contract/user';
+import { validateRequestBodyOrError, validateParamsOrError, validateQueryOrError, sendResponse, sendError } from '../../../shared/utils';
+import { CreateUserCommand } from '../commands/create-user.command';
+import { GetUsersQuery, GetUserQuery } from '../queries';
+import { UserRepository } from '@workspace/api-core/user';
+
+export class UserRoutes {
+  private createUserCommand: CreateUserCommand;
+  private getUsersQuery: GetUsersQuery;
+  private getUserQuery: GetUserQuery;
+
+  constructor(userRepository: UserRepository) {
+    this.createUserCommand = new CreateUserCommand(userRepository);
+    this.getUsersQuery = new GetUsersQuery(userRepository);
+    this.getUserQuery = new GetUserQuery(userRepository);
+  }
+
+  // Route handles validation, authorization, and pre-processing
+  async createUser(context: UnifiedHttpContext): Promise<void> {
+    try {
+      // 1. Validate request schema
+      const userData = validateRequestBodyOrError(context, CreateUserRequestSchema);
+      if (!userData) return;
+
+      // 2. Pre-processing: Additional business validation for public registration
+      if (userData.age && userData.age < 13) {
+        sendError(context, 'Must be at least 13 years old for public registration', 422, {
+          code: 'AGE_RESTRICTION',
+        });
+        return;
+      }
+
+      // 3. Execute pure business logic
+      const user = await this.createUserCommand.execute(userData);
+      
+      sendResponse(context, user, 201);
+    } catch (error) {
+      if (error.message === 'Email already exists') {
+        sendError(context, 'Email already exists', 409, {
+          code: 'EMAIL_EXISTS',
+        });
+      } else {
+        console.error('Create user error:', error);
+        sendError(context, 'Failed to create user', 500);
+      }
+    }
+  }
+
+  // Admin route - same command, different pre-processing
+  async createUserAdmin(context: UnifiedHttpContext): Promise<void> {
+    try {
+      // 1. Validate admin request schema (could be different)
+      const userData = validateRequestBodyOrError(context, CreateUserRequestSchema);
+      if (!userData) return;
+
+      // 2. Pre-processing: Check admin permissions
+      const headers = getHeaders(context);
+      const userRole = headers['x-user-role'];
+      
+      if (userRole !== 'admin') {
+        sendError(context, 'Admin access required', 403, {
+          code: 'INSUFFICIENT_PERMISSIONS',
+        });
+        return;
+      }
+
+      // 3. Pre-processing: Admin can create users of any age
+      // No age restriction for admin
+
+      // 4. Execute same business logic
+      const user = await this.createUserCommand.execute(userData);
+      
+      sendResponse(context, user, 201);
+    } catch (error) {
+      if (error.message === 'Email already exists') {
+        sendError(context, 'Email already exists', 409, {
+          code: 'EMAIL_EXISTS',
+        });
+      } else {
+        console.error('Admin create user error:', error);
+        sendError(context, 'Failed to create user', 500);
+      }
+    }
+  }
+
+  async getUsers(context: UnifiedHttpContext): Promise<void> {
+    try {
+      // 1. Validate and transform query parameters
+      const queryParams = validateQueryOrError(context, GetUsersQuerySchema);
+      if (!queryParams) return;
+
+      // 2. Pre-processing: Rate limiting for public access
+      const headers = getHeaders(context);
+      const userRole = headers['x-user-role'];
+      
+      // Limit results for non-admin users
+      if (userRole !== 'admin') {
+        queryParams.limit = Math.min(queryParams.limit, 50);
+      }
+
+      // 3. Execute pure business logic
+      const result = await this.getUsersQuery.execute(queryParams);
+      
+      const response = {
+        data: result.users,
+        pagination: {
+          page: queryParams.page,
+          limit: queryParams.limit,
+          total: result.total,
+          totalPages: Math.ceil(result.total / queryParams.limit),
+        },
+      };
+      
+      sendResponse(context, response);
+    } catch (error) {
+      console.error('Get users error:', error);
+      sendError(context, 'Failed to fetch users', 500);
+    }
+  }
+
+  // Admin route - same query, different pre-processing
+  async getUsersAdmin(context: UnifiedHttpContext): Promise<void> {
+    try {
+      // 1. Validate query parameters
+      const queryParams = validateQueryOrError(context, GetUsersQuerySchema);
+      if (!queryParams) return;
+
+      // 2. Pre-processing: Check admin permissions
+      const headers = getHeaders(context);
+      const userRole = headers['x-user-role'];
+      
+      if (userRole !== 'admin') {
+        sendError(context, 'Admin access required', 403);
+        return;
+      }
+
+      // 3. Pre-processing: No rate limiting for admin
+      // Admin can fetch unlimited results
+
+      // 4. Execute same business logic
+      const result = await this.getUsersQuery.execute(queryParams);
+      
+      const response = {
+        data: result.users,
+        pagination: {
+          page: queryParams.page,
+          limit: queryParams.limit,
+          total: result.total,
+          totalPages: Math.ceil(result.total / queryParams.limit),
+        },
+        meta: {
+          accessLevel: 'admin',
+          unrestricted: true,
+        },
+      };
+      
+      sendResponse(context, response);
+    } catch (error) {
+      console.error('Get users admin error:', error);
+      sendError(context, 'Failed to fetch users', 500);
+    }
+  }
+
+  async getUserById(context: UnifiedHttpContext): Promise<void> {
+    try {
+      // 1. Validate URL parameters
+      const params = validateParamsOrError(context, UserParamsSchema);
+      if (!params) return;
+
+      // 2. Pre-processing: Check access permissions
+      const headers = getHeaders(context);
+      const currentUserId = headers['x-user-id'];
+      const userRole = headers['x-user-role'];
+      
+      // Users can only access their own data unless they're admin
+      if (userRole !== 'admin' && currentUserId !== params.id) {
+        sendError(context, 'Access denied', 403, {
+          code: 'ACCESS_DENIED',
+        });
+        return;
+      }
+
+      // 3. Execute pure business logic
+      const user = await this.getUserQuery.execute(params.id);
+      
+      if (!user) {
+        sendError(context, 'User not found', 404);
+        return;
+      }
+      
+      sendResponse(context, user);
+    } catch (error) {
+      console.error('Get user error:', error);
+      sendError(context, 'Failed to fetch user', 500);
+    }
+  }
+
+  // Public profile route - same query, different data filtering
+  async getUserProfile(context: UnifiedHttpContext): Promise<void> {
+    try {
+      // 1. Validate URL parameters
+      const params = validateParamsOrError(context, UserParamsSchema);
+      if (!params) return;
+
+      // 2. Pre-processing: No authorization needed for public profiles
+
+      // 3. Execute same business logic
+      const user = await this.getUserQuery.execute(params.id);
+      
+      if (!user) {
+        sendError(context, 'User not found', 404);
+        return;
+      }
+
+      // 4. Post-processing: Filter sensitive data for public access
+      const publicProfile = {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        // Don't expose email, age, etc. for public profiles
+        createdAt: user.createdAt,
+      };
+      
+      sendResponse(context, publicProfile);
+    } catch (error) {
+      console.error('Get user profile error:', error);
+      sendError(context, 'Failed to fetch user profile', 500);
+    }
+  }
+
+  // API v2 route - same command with different validation schema
+  async createUserV2(context: UnifiedHttpContext): Promise<void> {
+    try {
+      // 1. Validate with v2 schema (might have additional fields)
+      const userData = validateRequestBodyOrError(context, CreateUserV2RequestSchema);
+      if (!userData) return;
+
+      // 2. Pre-processing: Transform v2 data to v1 format
+      const v1UserData = {
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        age: userData.profile?.age,
+      };
+
+      // 3. Execute same business logic
+      const user = await this.createUserCommand.execute(v1UserData);
+      
+      // 4. Post-processing: Transform response to v2 format
+      const v2Response = {
+        ...user,
+        profile: {
+          age: user.age,
+          fullName: `${user.firstName} ${user.lastName}`,
+        },
+        version: 'v2',
+      };
+      
+      sendResponse(context, v2Response, 201);
+    } catch (error) {
+      if (error.message === 'Email already exists') {
+        sendError(context, 'Email already exists', 409, {
+          code: 'EMAIL_EXISTS',
+        });
+      } else {
+        console.error('Create user v2 error:', error);
+        sendError(context, 'Failed to create user', 500);
+      }
+    }
+  }
+}
+
+// Example: Authentication and authorization helpers
+export class AuthHelpers {
+  static extractUserContext(context: UnifiedHttpContext): {
+    userId?: string;
+    role?: string;
+    permissions?: string[];
+  } {
+    const headers = getHeaders(context);
+    return {
+      userId: headers['x-user-id'],
+      role: headers['x-user-role'],
+      permissions: headers['x-user-permissions']?.split(',') || [],
+    };
+  }
+
+  static requireAuthentication(context: UnifiedHttpContext): boolean {
+    const userContext = this.extractUserContext(context);
+    if (!userContext.userId) {
+      sendError(context, 'Authentication required', 401, {
+        code: 'UNAUTHENTICATED',
+      });
+      return false;
+    }
+    return true;
+  }
+
+  static requireRole(context: UnifiedHttpContext, requiredRole: string): boolean {
+    if (!this.requireAuthentication(context)) return false;
+    
+    const userContext = this.extractUserContext(context);
+    if (userContext.role !== requiredRole) {
+      sendError(context, `${requiredRole} role required`, 403, {
+        code: 'INSUFFICIENT_ROLE',
+      });
+      return false;
+    }
+    return true;
+  }
+
+  static requirePermission(context: UnifiedHttpContext, permission: string): boolean {
+    if (!this.requireAuthentication(context)) return false;
+    
+    const userContext = this.extractUserContext(context);
+    if (!userContext.permissions?.includes(permission)) {
+      sendError(context, `Permission '${permission}' required`, 403, {
+        code: 'INSUFFICIENT_PERMISSIONS',
+      });
+      return false;
+    }
+    return true;
+  }
+}
+
+// Usage with auth helpers
+export class SecureUserRoutes extends UserRoutes {
+  async createUserSecure(context: UnifiedHttpContext): Promise<void> {
+    // Pre-processing: Check authentication and permissions
+    if (!AuthHelpers.requirePermission(context, 'users:create')) return;
+    
+    // Continue with normal create user flow
+    await this.createUser(context);
+  }
+
+  async deleteUser(context: UnifiedHttpContext): Promise<void> {
+    try {
+      // 1. Validate parameters
+      const params = validateParamsOrError(context, UserParamsSchema);
+      if (!params) return;
+
+      // 2. Pre-processing: Require admin role for deletion
+      if (!AuthHelpers.requireRole(context, 'admin')) return;
+
+      // 3. Additional pre-processing: Prevent self-deletion
+      const userContext = AuthHelpers.extractUserContext(context);
+      if (userContext.userId === params.id) {
+        sendError(context, 'Cannot delete your own account', 422, {
+          code: 'SELF_DELETION_FORBIDDEN',
+        });
+        return;
+      }
+
+      // 4. Execute business logic (could be a DeleteUserCommand)
+      const deleted = await this.userRepository.delete(params.id);
+      
+      if (!deleted) {
+        sendError(context, 'User not found', 404);
+        return;
+      }
+      
+      sendResponse(context, { message: 'User deleted successfully' });
+    } catch (error) {
+      console.error('Delete user error:', error);
+      sendError(context, 'Failed to delete user', 500);
+    }
+  }
+}
+```
+
+#### 4. api-data-prisma (Data Access Layer)
+
+```typescript
+// packages/api-data-prisma/src/
+├── user/
+│   ├── user.repository.ts              # Prisma implementation
+│   ├── user.mappers.ts                 # Domain ↔ Prisma mappers
+│   └── index.ts
+├── order/
+│   ├── order.repository.ts
+│   ├── order.mappers.ts
+│   └── index.ts
+├── notification/
+│   ├── notification.repository.ts
+│   ├── notification.mappers.ts
+│   └── index.ts
+├── shared/
+│   ├── prisma-client.ts                # Prisma client setup
+│   ├── base-repository.ts              # Base Prisma patterns
+│   ├── transaction-manager.ts          # Transaction management
+│   └── migrations/
+└── prisma/
+    ├── schema.prisma
+    ├── migrations/
+    └── seed.ts
+
+// Example: packages/api-data-prisma/src/user/user.repository.ts
+import { PrismaClient } from '@prisma/client';
+import { UserRepository, UserQueryOptions, UserAggregate } from '@workspace/api-core/user';
+import { UserMapper } from './user.mappers';
+
+// Note: api-data-prisma only depends on api-core, NOT api-contract
+// Types come from api-core domain definitions
+
+export class PrismaUserRepository implements UserRepository {
+  constructor(private prisma: PrismaClient) {}
+
+  async create(userData: any): Promise<any> {
+    const prismaUser = await this.prisma.user.create({
+      data: UserMapper.toPrismaCreate(userData),
+    });
+    
+    return UserMapper.toDomain(prismaUser);
+  }
+
+  async findById(id: string): Promise<any | null> {
+    const prismaUser = await this.prisma.user.findUnique({
+      where: { id },
+    });
+    
+    return prismaUser ? UserMapper.toDomain(prismaUser) : null;
+  }
+
+  async findMany(options: UserQueryOptions): Promise<{
+    users: any[];
+    total: number;
+  }> {
+    const where = this.buildWhereClause(options);
+    const orderBy = this.buildOrderBy(options);
+    
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        orderBy,
+        skip: ((options.page || 1) - 1) * (options.limit || 10),
+        take: options.limit || 10,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      users: users.map(UserMapper.toDomain),
+      total,
+    };
+  }
+
+  async findByEmail(email: string): Promise<any | null> {
+    const prismaUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    
+    return prismaUser ? UserMapper.toDomain(prismaUser) : null;
+  }
+
+  private buildWhereClause(options: UserQueryOptions) {
+    const where: any = {};
+    
+    if (options.search) {
+      where.OR = [
+        { firstName: { contains: options.search, mode: 'insensitive' } },
+        { lastName: { contains: options.search, mode: 'insensitive' } },
+        { email: { contains: options.search, mode: 'insensitive' } },
+      ];
+    }
+    
+    if (options.filters?.ageMin || options.filters?.ageMax) {
+      where.age = {};
+      if (options.filters.ageMin) where.age.gte = options.filters.ageMin;
+      if (options.filters.ageMax) where.age.lte = options.filters.ageMax;
+    }
+    
+    return where;
+  }
+
+  private buildOrderBy(options: UserQueryOptions) {
+    const sortBy = options.sortBy || 'createdAt';
+    const sortOrder = options.sortOrder || 'desc';
+    
+    return { [sortBy]: sortOrder };
+  }
+}
+
+// Example: packages/api-data-prisma/src/user/user.mappers.ts
+import { User as PrismaUser } from '@prisma/client';
+
+// UserMapper only uses domain types from api-core, not contract types
+export class UserMapper {
+  static toDomain(prismaUser: PrismaUser): any {
+    return {
+      id: prismaUser.id,
+      email: prismaUser.email,
+      firstName: prismaUser.firstName,
+      lastName: prismaUser.lastName,
+      age: prismaUser.age || undefined,
+      createdAt: prismaUser.createdAt,
+      updatedAt: prismaUser.updatedAt,
+    };
+  }
+
+  static toPrismaCreate(userData: any) {
+    return {
+      email: userData.email,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      age: userData.age || null,
+    };
+  }
+
+  static toPrismaUpdate(userData: any) {
+    const updateData: any = {};
+    
+    if (userData.email !== undefined) updateData.email = userData.email;
+    if (userData.firstName !== undefined) updateData.firstName = userData.firstName;
+    if (userData.lastName !== undefined) updateData.lastName = userData.lastName;
+    if (userData.age !== undefined) updateData.age = userData.age || null;
+    
+    return updateData;
+  }
+}
+
+// Configuration-driven Prisma client factory
+export interface DatabaseConfig {
+  url: string;
+  ssl?: boolean;
+  maxConnections?: number;
+  timeout?: number;
+  logging?: boolean;
+}
+
+export class PrismaClientFactory {
+  static create(config: DatabaseConfig): PrismaClient {
+    return new PrismaClient({
+      datasources: {
+        db: {
+          url: config.url,
+        },
+      },
+      log: config.logging ? ['query', 'info', 'warn', 'error'] : ['error'],
+    });
+  }
+}
+```
+
+#### 5. api-client (Client SDK)
+
+```typescript
+// packages/api-client/src/
+├── user/
+│   ├── user.client.ts                  # User API client
+│   └── index.ts
+├── order/
+│   ├── order.client.ts
+│   └── index.ts
+├── notification/
+│   ├── notification.client.ts
+│   └── index.ts
+├── shared/
+│   ├── base-client.ts                  # Base HTTP client
+│   ├── auth.ts                         # Authentication handling
+│   ├── types.ts                        # Client-specific types
+│   └── interceptors.ts                 # Request/response interceptors
+└── index.ts
+
+// Example: packages/api-client/src/user/user.client.ts
+import { CreateUserRequest, UserResponse, GetUsersQuery } from '@workspace/api-contract/user';
+import { BaseApiClient } from '../shared/base-client';
+
+export class UserApiClient extends BaseApiClient {
+  async createUser(userData: CreateUserRequest): Promise<UserResponse> {
+    return this.post<UserResponse>('/users', userData);
+  }
+
+  async getUsers(query?: GetUsersQuery): Promise<{
+    data: UserResponse[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }> {
+    return this.get('/users', { params: query });
+  }
+
+  async getUserById(id: string): Promise<UserResponse> {
+    return this.get<UserResponse>(`/users/${id}`);
+  }
+
+  async updateUser(id: string, userData: Partial<CreateUserRequest>): Promise<UserResponse> {
+    return this.put<UserResponse>(`/users/${id}`, userData);
+  }
+
+  async deleteUser(id: string): Promise<{ message: string }> {
+    return this.delete(`/users/${id}`);
+  }
+}
+```
+
+### Application Assembly
+
+```typescript
+// apps/user-service/src/config/app.config.ts
+export interface AppConfig {
+  server: {
+    port: number;
+    host: string;
+    cors: {
+      origin: string[];
+      credentials: boolean;
+    };
+  };
+  database: {
+    url: string;
+    ssl: boolean;
+    maxConnections: number;
+    timeout: number;
+    logging: boolean;
+  };
+  auth: {
+    jwtSecret: string;
+    jwtExpiresIn: string;
+  };
+  logging: {
+    level: 'debug' | 'info' | 'warn' | 'error';
+    format: 'json' | 'pretty';
+  };
+}
+
+export function loadConfig(): AppConfig {
+  return {
+    server: {
+      port: Number(process.env.PORT) || 3000,
+      host: process.env.HOST || '0.0.0.0',
+      cors: {
+        origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
+        credentials: process.env.CORS_CREDENTIALS === 'true',
+      },
+    },
+    database: {
+      url: process.env.DATABASE_URL || 'postgresql://localhost:5432/userdb',
+      ssl: process.env.DATABASE_SSL === 'true',
+      maxConnections: Number(process.env.DATABASE_MAX_CONNECTIONS) || 10,
+      timeout: Number(process.env.DATABASE_TIMEOUT) || 5000,
+      logging: process.env.DATABASE_LOGGING === 'true',
+    },
+    auth: {
+      jwtSecret: process.env.JWT_SECRET || 'default-secret',
+      jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
+    },
+    logging: {
+      level: (process.env.LOG_LEVEL as any) || 'info',
+      format: (process.env.LOG_FORMAT as any) || 'pretty',
+    },
+  };
+}
+
+// apps/user-service/src/main.ts
+import { FastifyInstance } from 'fastify';
+import { createFastifyContext } from '@workspace/api-util-fastify';
+import { UserRoutes } from '@workspace/api-service/user';
+import { PrismaUserRepository, PrismaClientFactory } from '@workspace/api-data-prisma/user';
+import { CreateUserRequest, UserResponse } from '@workspace/api-contract/user';
+import { loadConfig, AppConfig } from './config/app.config';
+
+// Configuration-driven initialization
+const config = loadConfig();
+
+// Initialize dependencies with config
+const prisma = PrismaClientFactory.create(config.database);
+const userRepository = new PrismaUserRepository(prisma);
+const userRoutes = new UserRoutes(userRepository);
+
+// Fastify setup with config
+const fastify: FastifyInstance = require('fastify')({ 
+  logger: {
+    level: config.logging.level,
+    prettyPrint: config.logging.format === 'pretty',
+  }
+});
+
+// CORS configuration
+fastify.register(require('@fastify/cors'), {
+  origin: config.server.cors.origin,
+  credentials: config.server.cors.credentials,
+});
+
+// Register routes as thin adapters with typed interfaces
+fastify.post<{ Body: CreateUserRequest }>('/users', async (request, reply) => {
+  const context = createFastifyContext(request, reply);
+  await userRoutes.createUser(context);
+});
+
+fastify.get('/users', async (request, reply) => {
+  const context = createFastifyContext(request, reply);
+  await userRoutes.getUsers(context);
+});
+
+fastify.get<{ Params: { id: string } }>('/users/:id', async (request, reply) => {
+  const context = createFastifyContext(request, reply);
+  await userRoutes.getUserById(context);
+});
+
+fastify.put<{ 
+  Params: { id: string }; 
+  Body: Partial<CreateUserRequest> 
+}>('/users/:id', async (request, reply) => {
+  const context = createFastifyContext(request, reply);
+  await userRoutes.updateUser(context);
+});
+
+fastify.delete<{ Params: { id: string } }>('/users/:id', async (request, reply) => {
+  const context = createFastifyContext(request, reply);
+  await userRoutes.deleteUser(context);
+});
+
+// Health check endpoint
+fastify.get('/health', async (request, reply) => {
+  try {
+    // Check database connection
+    await prisma.$queryRaw`SELECT 1`;
+    
+    return {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: 'user-service',
+      database: 'connected',
+    };
+  } catch (error) {
+    reply.status(503);
+    return {
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      service: 'user-service',
+      database: 'disconnected',
+      error: error.message,
+    };
+  }
+});
+
+// Graceful shutdown
+const gracefulShutdown = async () => {
+  try {
+    console.log('Shutting down gracefully...');
+    await fastify.close();
+    await prisma.$disconnect();
+    console.log('Shutdown complete');
+    process.exit(0);
+  } catch (error) {
+    console.error('Error during shutdown:', error);
+    process.exit(1);
+  }
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
+
+// Start server with config
+const start = async () => {
+  try {
+    await fastify.listen({ 
+      port: config.server.port, 
+      host: config.server.host 
+    });
+    console.log(`User service listening on ${config.server.host}:${config.server.port}`);
+  } catch (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
+};
+
+start();
+
+// apps/user-service/src/dependency-injection.ts (Advanced DI Pattern)
+export class ServiceContainer {
+  private config: AppConfig;
+  private prisma: PrismaClient;
+  private repositories: Map<string, any> = new Map();
+  private services: Map<string, any> = new Map();
+
+  constructor(config: AppConfig) {
+    this.config = config;
+    this.prisma = PrismaClientFactory.create(config.database);
+    this.registerDependencies();
+  }
+
+  private registerDependencies() {
+    // Register repositories
+    this.repositories.set('userRepository', new PrismaUserRepository(this.prisma));
+    this.repositories.set('orderRepository', new PrismaOrderRepository(this.prisma));
+    
+    // Register services with injected repositories
+    this.services.set('userRoutes', new UserRoutes(this.repositories.get('userRepository')));
+    this.services.set('orderRoutes', new OrderRoutes(this.repositories.get('orderRepository')));
+  }
+
+  getRepository<T>(name: string): T {
+    const repository = this.repositories.get(name);
+    if (!repository) {
+      throw new Error(`Repository ${name} not found`);
+    }
+    return repository;
+  }
+
+  getService<T>(name: string): T {
+    const service = this.services.get(name);
+    if (!service) {
+      throw new Error(`Service ${name} not found`);
+    }
+    return service;
+  }
+
+  async cleanup() {
+    await this.prisma.$disconnect();
+  }
+}
+
+// Usage with DI container
+const container = new ServiceContainer(config);
+const userRoutes = container.getService<UserRoutes>('userRoutes');
+```
+
+### Build & Dependency Management
+
+#### Package.json Dependencies
+
+```json
+// packages/api-contract/package.json
+{
+  "name": "@workspace/api-contract",
+  "dependencies": {
+    "zod": "^3.22.0"
+  }
+}
+
+// packages/api-core/package.json  
+{
+  "name": "@workspace/api-core",
+  "dependencies": {
+    "@workspace/api-contract": "workspace:*"
+  }
+}
+
+// packages/api-service/package.json
+{
+  "name": "@workspace/api-service", 
+  "dependencies": {
+    "@workspace/api-contract": "workspace:*",
+    "@workspace/api-core": "workspace:*"
+  }
+}
+
+// packages/api-data-prisma/package.json
+{
+  "name": "@workspace/api-data-prisma",
+  "dependencies": {
+    "@workspace/api-core": "workspace:*",
+    "@prisma/client": "^5.0.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.0.0"
+  }
+}
+
+// packages/api-client/package.json
+{
+  "name": "@workspace/api-client",
+  "dependencies": {
+    "@workspace/api-contract": "workspace:*",
+    "axios": "^1.0.0"
+  }
+}
+
+// packages/api-util-fastify/package.json
+{
+  "name": "@workspace/api-util-fastify",
+  "dependencies": {
+    "@workspace/api-contract": "workspace:*",
+    "fastify": "^4.0.0"
+  }
+}
+
+// apps/user-service/package.json
+{
+  "name": "user-service",
+  "dependencies": {
+    "@workspace/api-contract": "workspace:*",
+    "@workspace/api-service": "workspace:*", 
+    "@workspace/api-data-prisma": "workspace:*",
+    "@workspace/api-util-fastify": "workspace:*",
+    "fastify": "^4.0.0",
+    "@fastify/cors": "^8.0.0"
+  }
+}
+
+// apps/order-service/package.json
+{
+  "name": "order-service", 
+  "dependencies": {
+    "@workspace/api-contract": "workspace:*",
+    "@workspace/api-service": "workspace:*",
+    "@workspace/api-data-prisma": "workspace:*", 
+    "@workspace/api-util-fastify": "workspace:*",
+    "fastify": "^4.0.0",
+    "@fastify/cors": "^8.0.0"
+  }
+}
+
+// apps/notification-service/package.json
+{
+  "name": "notification-service",
+  "dependencies": {
+    "@workspace/api-contract": "workspace:*",
+    "@workspace/api-service": "workspace:*",
+    "@workspace/api-data-prisma": "workspace:*",
+    "@workspace/api-util-fastify": "workspace:*", 
+    "fastify": "^4.0.0",
+    "@fastify/cors": "^8.0.0"
+  }
+}
+```
+
+### Configuration Management Strategy
+
+#### 1. **Environment-Specific Configurations**
+
+```typescript
+// shared/config/src/base.config.ts
+export interface BaseConfig {
+  environment: 'development' | 'staging' | 'production' | 'test';
+  server: ServerConfig;
+  database: DatabaseConfig;
+  logging: LoggingConfig;
+  auth: AuthConfig;
+}
+
+export interface ServerConfig {
+  port: number;
+  host: string;
+  cors: {
+    origin: string[];
+    credentials: boolean;
+  };
+  rateLimit?: {
+    max: number;
+    timeWindow: string;
+  };
+}
+
+export interface DatabaseConfig {
+  url: string;
+  ssl: boolean;
+  maxConnections: number;
+  timeout: number;
+  logging: boolean;
+  migrations: {
+    autoRun: boolean;
+    directory: string;
+  };
+}
+
+// config/development.ts
+export const developmentConfig: BaseConfig = {
+  environment: 'development',
+  server: {
+    port: 3001,
+    host: 'localhost',
+    cors: {
+      origin: ['http://localhost:3000', 'http://localhost:3001'],
+      credentials: true,
+    },
+  },
+  database: {
+    url: process.env.DATABASE_URL || 'postgresql://localhost:5432/userdb_dev',
+    ssl: false,
+    maxConnections: 5,
+    timeout: 10000,
+    logging: true,
+    migrations: {
+      autoRun: true,
+      directory: './prisma/migrations',
+    },
+  },
+  logging: {
+    level: 'debug',
+    format: 'pretty',
+  },
+  auth: {
+    jwtSecret: 'dev-secret-key',
+    jwtExpiresIn: '1h',
+  },
+};
+
+// config/production.ts  
+export const productionConfig: BaseConfig = {
+  environment: 'production',
+  server: {
+    port: Number(process.env.PORT) || 3000,
+    host: '0.0.0.0',
+    cors: {
+      origin: process.env.CORS_ORIGINS?.split(',') || [],
+      credentials: false,
+    },
+    rateLimit: {
+      max: 100,
+      timeWindow: '15 minutes',
+    },
+  },
+  database: {
+    url: process.env.DATABASE_URL!,
+    ssl: true,
+    maxConnections: 25,
+    timeout: 5000,
+    logging: false,
+    migrations: {
+      autoRun: false,
+      directory: './prisma/migrations',
+    },
+  },
+  logging: {
+    level: 'info',
+    format: 'json',
+  },
+  auth: {
+    jwtSecret: process.env.JWT_SECRET!,
+    jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
+  },
+};
+
+// config/config-loader.ts
+export function loadConfig(): BaseConfig {
+  const env = process.env.NODE_ENV || 'development';
+  
+  switch (env) {
+    case 'production':
+      return productionConfig;
+    case 'staging':
+      return stagingConfig;
+    case 'test':
+      return testConfig;
+    default:
+      return developmentConfig;
+  }
+}
+
+// Validation with Zod
+import { z } from 'zod';
+
+const ConfigSchema = z.object({
+  environment: z.enum(['development', 'staging', 'production', 'test']),
+  server: z.object({
+    port: z.number().min(1).max(65535),
+    host: z.string().min(1),
+    cors: z.object({
+      origin: z.array(z.string()),
+      credentials: z.boolean(),
+    }),
+  }),
+  database: z.object({
+    url: z.string().url(),
+    ssl: z.boolean(),
+    maxConnections: z.number().min(1),
+    timeout: z.number().min(1000),
+    logging: z.boolean(),
+  }),
+});
+
+export function validateConfig(config: unknown): BaseConfig {
+  return ConfigSchema.parse(config);
+}
+```
+
+#### 2. **Service Component Factory Pattern**
+
+```typescript
+// apps/user-service/src/components/service-factory.ts
+import { BaseConfig } from '@workspace/shared-config';
+import { UserRoutes } from '@workspace/api-service/user';
+import { PrismaUserRepository, PrismaClientFactory } from '@workspace/api-data-prisma/user';
+
+export interface ServiceComponents {
+  userRoutes: UserRoutes;
+  prisma: PrismaClient;
+  cleanup: () => Promise<void>;
+}
+
+export class ServiceFactory {
+  static async create(config: BaseConfig): Promise<ServiceComponents> {
+    // Initialize database with config
+    const prisma = PrismaClientFactory.create(config.database);
+    
+    // Test database connection
+    try {
+      await prisma.$connect();
+      console.log('Database connected successfully');
+    } catch (error) {
+      console.error('Database connection failed:', error);
+      throw error;
+    }
+
+    // Run migrations if configured
+    if (config.database.migrations.autoRun) {
+      await this.runMigrations(prisma);
+    }
+
+    // Initialize repositories
+    const userRepository = new PrismaUserRepository(prisma);
+    
+    // Initialize services
+    const userRoutes = new UserRoutes(userRepository);
+
+    // Return components with cleanup function
+    return {
+      userRoutes,
+      prisma,
+      cleanup: async () => {
+        await prisma.$disconnect();
+        console.log('Database disconnected');
+      },
+    };
+  }
+
+  private static async runMigrations(prisma: PrismaClient) {
+    try {
+      // This would typically use Prisma migrate in production
+      console.log('Running database migrations...');
+      // await prisma.$executeRaw`-- Your migration logic here`;
+      console.log('Migrations completed');
+    } catch (error) {
+      console.error('Migration failed:', error);
+      throw error;
+    }
+  }
+}
+
+// apps/user-service/src/main.ts (Updated with Factory Pattern)
+import { FastifyInstance } from 'fastify';
+import { createFastifyContext } from '@workspace/api-util-fastify';
+import { loadConfig, validateConfig } from '@workspace/shared-config';
+import { ServiceFactory } from './components/service-factory';
+import { CreateUserRequest } from '@workspace/api-contract/user';
+
+async function createApp(): Promise<{ 
+  fastify: FastifyInstance; 
+  cleanup: () => Promise<void> 
+}> {
+  // Load and validate configuration
+  const config = validateConfig(loadConfig());
+  console.log(`Starting user-service in ${config.environment} mode`);
+
+  // Create service components
+  const components = await ServiceFactory.create(config);
+
+  // Setup Fastify with config
+  const fastify: FastifyInstance = require('fastify')({
+    logger: {
+      level: config.logging.level,
+      serializers: {
+        req: (req) => ({
+          method: req.method,
+          url: req.url,
+          headers: req.headers,
+        }),
+      },
+    },
+  });
+
+  // Register plugins with config
+  await fastify.register(require('@fastify/cors'), {
+    origin: config.server.cors.origin,
+    credentials: config.server.cors.credentials,
+  });
+
+  if (config.server.rateLimit) {
+    await fastify.register(require('@fastify/rate-limit'), {
+      max: config.server.rateLimit.max,
+      timeWindow: config.server.rateLimit.timeWindow,
+    });
+  }
+
+  // Register routes with typed interfaces from api-contract
+  fastify.post<{ Body: CreateUserRequest }>('/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.userRoutes.createUser(context);
+  });
+
+  fastify.get('/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.userRoutes.getUsers(context);
+  });
+
+  fastify.get<{ Params: { id: string } }>('/users/:id', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.userRoutes.getUserById(context);
+  });
+
+  // Health check with database ping
+  fastify.get('/health', async (request, reply) => {
+    try {
+      await components.prisma.$queryRaw`SELECT 1`;
+      return {
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        service: 'user-service',
+        environment: config.environment,
+        database: 'connected',
+      };
+    } catch (error) {
+      reply.status(503);
+      return {
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        service: 'user-service',
+        environment: config.environment,
+        database: 'disconnected',
+        error: error.message,
+      };
+    }
+  });
+
+  return {
+    fastify,
+    cleanup: components.cleanup,
+  };
+}
+
+// Main execution
+async function main() {
+  const { fastify, cleanup } = await createApp();
+  const config = loadConfig();
+
+  // Graceful shutdown
+  const gracefulShutdown = async (signal: string) => {
+    console.log(`Received ${signal}, shutting down gracefully...`);
+    try {
+      await fastify.close();
+      await cleanup();
+      console.log('Shutdown complete');
+      process.exit(0);
+    } catch (error) {
+      console.error('Error during shutdown:', error);
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  // Start server
+  try {
+    await fastify.listen({ 
+      port: config.server.port, 
+      host: config.server.host 
+    });
+    console.log(`User service listening on ${config.server.host}:${config.server.port}`);
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  }
+}
+
+main().catch((error) => {
+  console.error('Unhandled error:', error);
+  process.exit(1);
+});
+```
+
+#### Build Scripts (Nx/Lerna/Rush)
+
+```json
+// package.json (root)
+{
+  "scripts": {
+    "build": "nx run-many --target=build --all",
+    "build:affected": "nx affected --target=build", 
+    "build:libs": "nx run-many --target=build --projects=api-contract,api-core,api-service,api-data-prisma,api-util-fastify",
+    "build:apps": "nx run-many --target=build --projects=user-service,order-service,notification-service",
+    "test": "nx run-many --target=test --all",
+    "test:affected": "nx affected --target=test",
+    "test:libs": "nx run-many --target=test --projects=api-contract,api-core,api-service",
+    "lint": "nx run-many --target=lint --all",
+    "db:generate": "nx run api-data-prisma:db:generate",
+    "db:migrate:dev": "nx run api-data-prisma:db:migrate:dev",
+    "db:migrate:prod": "nx run api-data-prisma:db:migrate:prod",
+    "start:user": "nx serve user-service",
+    "start:order": "nx serve order-service", 
+    "start:notification": "nx serve notification-service",
+    "docker:build:user": "nx build user-service && docker build -t user-service -f apps/user-service/Dockerfile .",
+    "docker:build:all": "nx build --all && docker-compose build"
+  }
+}
+
+// nx.json (build targets and dependencies)
+{
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"],
+      "cache": true
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "cache": true
+    }
+  },
+  "projects": {
+    "api-contract": {
+      "tags": ["scope:shared", "type:library"]
+    },
+    "api-core": {
+      "tags": ["scope:shared", "type:library"],
+      "implicitDependencies": ["api-contract"]
+    },
+    "api-service": {
+      "tags": ["scope:shared", "type:library"],
+      "implicitDependencies": ["api-contract", "api-core"]
+    },
+    "api-data-prisma": {
+      "tags": ["scope:shared", "type:library"],
+      "implicitDependencies": ["api-core"]
+    },
+    "user-service": {
+      "tags": ["scope:app", "type:application"],
+      "implicitDependencies": ["api-contract", "api-service", "api-data-prisma", "api-util-fastify"]
+    }
+  }
+}
+```
+
+## Summary: Complete Architecture Benefits
+
+### 🎯 **Corrected Dependency Flow**
+
+```
+Apps (user-service, order-service) 
+  ↓ imports: api-contract, api-service, api-data-prisma, api-util-fastify
+  
+api-service 
+  ↓ imports: api-contract, api-core
+  
+api-data-prisma 
+  ↓ imports: api-core (NOT api-contract)
+  
+api-core 
+  ↓ imports: api-contract
+  
+api-contract 
+  ↓ standalone (Zod schemas)
+```
+
+### 🏗️ **Key Architectural Principles**
+
+#### 1. **Configuration-Driven Design**
+- ✅ Environment-specific configs (dev, staging, prod)
+- ✅ Validation with Zod schemas
+- ✅ Factory pattern for component initialization
+- ✅ No direct environment variable usage in business logic
+
+#### 2. **Clear Layer Separation**
+- **api-contract**: Schemas & type definitions only
+- **api-core**: Repository interfaces & domain types
+- **api-service**: Business logic with CQRS pattern (Commands/Queries/Routes)
+- **api-data-prisma**: Data access implementation (Prisma-specific)
+- **Apps**: Thin HTTP adapters with configuration assembly
+
+#### 3. **Framework Independence**
+- ✅ Business logic completely framework-agnostic
+- ✅ Easy framework migration (Fastify → Express → Koa)
+- ✅ Testable without HTTP dependencies
+- ✅ Reusable across multiple applications
+
+#### 4. **Type Safety & Validation**
+- ✅ End-to-end type safety from HTTP → Database
+- ✅ Runtime validation with Zod schemas
+- ✅ Compile-time contract enforcement
+- ✅ Auto-generated types from schemas
+
+#### 5. **Scalability & Maintenance**
+- ✅ Independent team development per layer/domain
+- ✅ Microservice-ready architecture
+- ✅ Incremental migration capabilities
+- ✅ Clear dependency boundaries
+
+### 🚀 **Production Deployment Strategy**
+
+#### 1. **Monolith Deployment**
+```bash
+# Single deployment with all services
+nx build --all
+docker build -t api-monolith .
+docker run -p 3000:3000 api-monolith
+```
+
+#### 2. **Microservice Deployment**
+```bash
+# Independent service deployment
+nx build user-service
+docker build -t user-service -f apps/user-service/Dockerfile .
+
+nx build order-service  
+docker build -t order-service -f apps/order-service/Dockerfile .
+```
+
+#### 3. **Shared Package Publishing**
+```bash
+# Publish contracts and utilities for external consumption
+nx build api-contract && cd packages/api-contract && npm publish --access public
+nx build api-util-fastify && cd packages/api-util-fastify && npm publish --access public
+```
+
+This architecture provides a rock-solid foundation for enterprise applications that need to:
+- **Scale**: Handle growth in team size, feature complexity, and user load
+- **Evolve**: Adapt to changing requirements and technology stacks  
+- **Maintain**: Keep code quality high with clear separation of concerns
+- **Test**: Achieve comprehensive test coverage with isolated components
+- **Deploy**: Support both monolithic and microservice deployment strategies
+
+The configuration-driven approach ensures your applications are deployment-environment agnostic while maintaining type safety and framework independence throughout the entire stack.
+
+### Testing Strategy
+
+#### 1. Unit Tests (Package Level)
+```bash
+# Test individual packages
+nx test api-contract    # Schema validation tests
+nx test api-core        # Business logic tests  
+nx test api-service     # Command/Query tests
+nx test api-data-prisma # Repository tests
+nx test api-client      # Client tests
+```
+
+#### 2. Integration Tests (Cross-Package)
+```typescript
+// Test command + repository integration
+describe('CreateUserCommand Integration', () => {
+  let command: CreateUserCommand;
+  let repository: PrismaUserRepository;
+  let prisma: PrismaClient;
+
+  beforeAll(async () => {
+    prisma = new PrismaClient({ datasourceUrl: process.env.TEST_DATABASE_URL });
+    repository = new PrismaUserRepository(prisma);
+    command = new CreateUserCommand(repository);
+  });
+
+  it('should create user end-to-end', async () => {
+    const context = createMockContext({
+      body: {
+        email: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+      },
+    });
+
+    await command.execute(context);
+
+    expect(context.response.status).toHaveBeenCalledWith(201);
+    
+    // Verify in database
+    const createdUser = await prisma.user.findUnique({
+      where: { email: 'test@example.com' },
+    });
+    expect(createdUser).toBeTruthy();
+  });
+});
+```
+
+#### 3. End-to-End Tests (Application Level)
+```typescript
+// Test complete HTTP flow
+describe('User API E2E', () => {
+  let app: FastifyInstance;
+  let client: UserApiClient;
+
+  beforeAll(async () => {
+    app = await createTestApp();
+    client = new UserApiClient({ baseURL: 'http://localhost:3001' });
+  });
+
+  it('should create and retrieve user', async () => {
+    const userData = {
+      email: 'e2e@example.com',
+      firstName: 'E2E',
+      lastName: 'Test',
+    };
+
+    const createdUser = await client.createUser(userData);
+    expect(createdUser.email).toBe(userData.email);
+
+    const retrievedUser = await client.getUserById(createdUser.id);
+    expect(retrievedUser).toEqual(createdUser);
+  });
+});
+```
+
+### Benefits of This Architecture
+
+#### 1. **Separation of Concerns**
+- Each layer has a single responsibility
+- Changes in one layer don't cascade to others
+- Easy to understand and maintain
+
+#### 2. **Scalability** 
+- Each domain can be developed independently
+- Teams can work on different layers simultaneously
+- Easy to split into microservices later
+
+#### 3. **Testability**
+- Each layer can be tested in isolation
+- Mock dependencies at layer boundaries
+- Fast unit tests, comprehensive integration tests
+
+#### 4. **Framework Independence**
+- Business logic is not tied to HTTP framework
+- Can switch from Fastify to Express/Koa easily
+- Database can be changed without affecting business logic
+
+#### 5. **Type Safety**
+- End-to-end type safety from HTTP request to database
+- Compile-time validation of layer interfaces
+- Runtime validation with Zod schemas
+
+#### 6. **Code Reuse**
+- Schemas used across client, service, and validation
+- Repository interfaces enable multiple implementations
+- Business logic shared across different applications
+
+### Deployment Strategies
+
+#### 1. **Monolith Deployment**
+```bash
+# Deploy all services together
+nx build user-service order-service notification-service
+docker build -t api-services .
+```
+
+#### 2. **Microservice Deployment**
+```bash
+# Deploy services independently  
+nx build user-service
+docker build -t user-service -f apps/user-service/Dockerfile .
+
+nx build order-service  
+docker build -t order-service -f apps/order-service/Dockerfile .
+```
+
+#### 3. **Package Publishing**
+```bash
+# Publish shared packages to npm
+nx build api-contract && cd packages/api-contract && npm publish
+nx build api-core && cd packages/api-core && npm publish
+nx build api-client && cd packages/api-client && npm publish
+```
+
+This architecture provides a solid foundation for building maintainable, scalable, and testable enterprise applications while maintaining the flexibility to evolve your system architecture over time.
+
 ### CRUD Operations
 
 ```typescript
