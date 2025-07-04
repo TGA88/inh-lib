@@ -4,6 +4,7 @@
   "projects": {
     "common": "packages/common",
     "ddd": "packages/ddd",
-    "ui-router": "packages/ui-router"
+    "ui-router": "packages/ui-router",
+    "api-util-fastify": "packages/api-util-fastify"
   }
 }
