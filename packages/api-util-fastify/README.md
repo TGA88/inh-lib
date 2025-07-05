@@ -1649,6 +1649,8 @@ graph TD
 - ⬆️ Higher layers can depend on lower layers
 - ❌ Lower layers cannot depend on higher layers
 - 🎯 **api-data-prisma** only depends on **api-core** (implements repository interfaces)
+- 🎯 **api-core** is standalone (repository interfaces & domain types)
+- 🎯 **api-contract** is standalone (Zod schemas & HTTP types)
 - 🚀 **Apps** import contracts, adapters, services, and data layers
 - ⚙️ **Configuration-driven** instead of direct environment variables
 
@@ -1729,18 +1731,36 @@ export type GetUsersQuery = z.infer<typeof GetUsersQuerySchema>;
     └── domain-events.ts        # Domain event types
 
 // Example: packages/api-core/src/user/repository.ts
-import { CreateUserRequest, UserResponse, GetUsersQuery } from '@workspace/api-contract/user';
+// Note: api-core is standalone - uses its own domain types, not contract types
 
 export interface UserRepository {
-  create(userData: CreateUserRequest): Promise<UserResponse>;
-  findById(id: string): Promise<UserResponse | null>;
-  findMany(options: GetUsersQuery): Promise<{
-    users: UserResponse[];
+  create(userData: UserCreateData): Promise<UserDomain>;
+  findById(id: string): Promise<UserDomain | null>;
+  findMany(options: UserQueryOptions): Promise<{
+    users: UserDomain[];
     total: number;
   }>;
-  update(id: string, userData: Partial<CreateUserRequest>): Promise<UserResponse | null>;
+  update(id: string, userData: Partial<UserCreateData>): Promise<UserDomain | null>;
   delete(id: string): Promise<boolean>;
-  findByEmail(email: string): Promise<UserResponse | null>;
+  findByEmail(email: string): Promise<UserDomain | null>;
+}
+
+// Domain types defined in api-core (not imported from api-contract)
+export interface UserCreateData {
+  email: string;
+  firstName: string;
+  lastName: string;
+  age?: number;
+}
+
+export interface UserDomain {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  age?: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface UserQueryOptions {
@@ -1759,7 +1779,7 @@ export interface UserQueryOptions {
 // Domain-specific business types
 export interface UserAggregate {
   id: string;
-  profile: UserResponse;
+  profile: UserDomain;
   preferences: UserPreferences;
   permissions: UserPermissions;
 }
@@ -1772,6 +1792,12 @@ export interface UserPreferences {
     push: boolean;
     sms: boolean;
   };
+}
+
+export interface UserPermissions {
+  roles: string[];
+  permissions: string[];
+  isActive: boolean;
 }
 ```
 
@@ -1811,18 +1837,13 @@ export interface UserPreferences {
     └── utils/
 
 // Example: packages/api-service/src/user/commands/create-user.command.ts
-import { UserRepository } from '@workspace/api-core/user';
+import { UserRepository, UserCreateData, UserDomain } from '@workspace/api-core/user';
 
 export class CreateUserCommand {
   constructor(private userRepository: UserRepository) {}
 
-  // Pure business logic - receives validated data
-  async execute(userData: {
-    email: string;
-    firstName: string;
-    lastName: string;
-    age?: number;
-  }): Promise<any> {
+  // Pure business logic - receives domain data (mapped from contract in routes)
+  async execute(userData: UserCreateData): Promise<UserDomain> {
     // Check business rules
     const existingUser = await this.userRepository.findByEmail(userData.email);
     if (existingUser) {
@@ -1836,24 +1857,18 @@ export class CreateUserCommand {
 }
 
 // Example: packages/api-service/src/user/queries/get-users.query.ts
-import { UserRepository } from '@workspace/api-core/user';
+import { UserRepository, UserQueryOptions, UserDomain } from '@workspace/api-core/user';
 
 export class GetUsersQuery {
   constructor(private userRepository: UserRepository) {}
 
-  // Pure business logic - receives validated query params
-  async execute(queryParams: {
-    page: number;
-    limit: number;
-    search?: string;
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-  }): Promise<{
-    users: any[];
+  // Pure business logic - receives domain query options
+  async execute(queryOptions: UserQueryOptions): Promise<{
+    users: UserDomain[];
     total: number;
   }> {
     // Pure query logic
-    const result = await this.userRepository.findMany(queryParams);
+    const result = await this.userRepository.findMany(queryOptions);
     return result;
   }
 }
@@ -1861,35 +1876,35 @@ export class GetUsersQuery {
 export class GetUserQuery {
   constructor(private userRepository: UserRepository) {}
 
-  async execute(userId: string): Promise<any | null> {
+  async execute(userId: string): Promise<UserDomain | null> {
     const user = await this.userRepository.findById(userId);
     return user;
   }
 }
 
 // Example: packages/api-service/src/user/routes/user.routes.ts
-import { UnifiedHttpContext } from '@workspace/api-util-fastify';
-import { CreateUserRequestSchema, GetUsersQuerySchema, UserParamsSchema } from '@workspace/api-contract/user';
-import { validateRequestBodyOrError, validateParamsOrError, validateQueryOrError, sendResponse, sendError } from '../../../shared/utils';
+import { UnifiedHttpContext, getHeaders, sendResponse, sendError } from '@workspace/api-util-fastify';
+import { CreateUserRequestSchema, GetUsersQuerySchema, UserParamsSchema, CreateUserRequest, GetUsersQuery, UserResponse } from '@workspace/api-contract/user';
+import { validateRequestBodyOrError, validateParamsOrError, validateQueryOrError } from '../../../shared/utils';
 import { CreateUserCommand } from '../commands/create-user.command';
-import { GetUsersQuery, GetUserQuery } from '../queries';
-import { UserRepository } from '@workspace/api-core/user';
+import { GetUsersQuery as GetUsersQueryHandler, GetUserQuery } from '../queries';
+import { UserRepository, UserCreateData, UserDomain, UserQueryOptions } from '@workspace/api-core/user';
 
 export class UserRoutes {
   private createUserCommand: CreateUserCommand;
-  private getUsersQuery: GetUsersQuery;
+  private getUsersQuery: GetUsersQueryHandler;
   private getUserQuery: GetUserQuery;
 
   constructor(userRepository: UserRepository) {
     this.createUserCommand = new CreateUserCommand(userRepository);
-    this.getUsersQuery = new GetUsersQuery(userRepository);
+    this.getUsersQuery = new GetUsersQueryHandler(userRepository);
     this.getUserQuery = new GetUserQuery(userRepository);
   }
 
-  // Route handles validation, authorization, and pre-processing
+  // Route handles validation, authorization, mapping, and pre-processing
   async createUser(context: UnifiedHttpContext): Promise<void> {
     try {
-      // 1. Validate request schema
+      // 1. Validate request schema (contract types)
       const userData = validateRequestBodyOrError(context, CreateUserRequestSchema);
       if (!userData) return;
 
@@ -1901,10 +1916,29 @@ export class UserRoutes {
         return;
       }
 
-      // 3. Execute pure business logic
-      const user = await this.createUserCommand.execute(userData);
+      // 3. Map contract types to domain types
+      const domainUserData: UserCreateData = {
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        age: userData.age,
+      };
+
+      // 4. Execute pure business logic with domain types
+      const domainUser = await this.createUserCommand.execute(domainUserData);
       
-      sendResponse(context, user, 201);
+      // 5. Map domain types back to contract types for response
+      const responseUser: UserResponse = {
+        id: domainUser.id,
+        email: domainUser.email,
+        firstName: domainUser.firstName,
+        lastName: domainUser.lastName,
+        age: domainUser.age,
+        createdAt: domainUser.createdAt,
+        updatedAt: domainUser.updatedAt,
+      };
+      
+      sendResponse(context, responseUser, 201);
     } catch (error) {
       if (error.message === 'Email already exists') {
         sendError(context, 'Email already exists', 409, {
@@ -1917,46 +1951,9 @@ export class UserRoutes {
     }
   }
 
-  // Admin route - same command, different pre-processing
-  async createUserAdmin(context: UnifiedHttpContext): Promise<void> {
-    try {
-      // 1. Validate admin request schema (could be different)
-      const userData = validateRequestBodyOrError(context, CreateUserRequestSchema);
-      if (!userData) return;
-
-      // 2. Pre-processing: Check admin permissions
-      const headers = getHeaders(context);
-      const userRole = headers['x-user-role'];
-      
-      if (userRole !== 'admin') {
-        sendError(context, 'Admin access required', 403, {
-          code: 'INSUFFICIENT_PERMISSIONS',
-        });
-        return;
-      }
-
-      // 3. Pre-processing: Admin can create users of any age
-      // No age restriction for admin
-
-      // 4. Execute same business logic
-      const user = await this.createUserCommand.execute(userData);
-      
-      sendResponse(context, user, 201);
-    } catch (error) {
-      if (error.message === 'Email already exists') {
-        sendError(context, 'Email already exists', 409, {
-          code: 'EMAIL_EXISTS',
-        });
-      } else {
-        console.error('Admin create user error:', error);
-        sendError(context, 'Failed to create user', 500);
-      }
-    }
-  }
-
   async getUsers(context: UnifiedHttpContext): Promise<void> {
     try {
-      // 1. Validate and transform query parameters
+      // 1. Validate and transform query parameters (contract types)
       const queryParams = validateQueryOrError(context, GetUsersQuerySchema);
       if (!queryParams) return;
 
@@ -1969,11 +1966,31 @@ export class UserRoutes {
         queryParams.limit = Math.min(queryParams.limit, 50);
       }
 
-      // 3. Execute pure business logic
-      const result = await this.getUsersQuery.execute(queryParams);
+      // 3. Map contract query to domain query options
+      const domainQueryOptions: UserQueryOptions = {
+        page: queryParams.page,
+        limit: queryParams.limit,
+        search: queryParams.search,
+        sortBy: queryParams.sort as 'email' | 'firstName' | 'lastName' | 'createdAt',
+        sortOrder: queryParams.order,
+      };
+
+      // 4. Execute pure business logic with domain types
+      const result = await this.getUsersQuery.execute(domainQueryOptions);
+      
+      // 5. Map domain results back to contract types
+      const responseUsers: UserResponse[] = result.users.map(domainUser => ({
+        id: domainUser.id,
+        email: domainUser.email,
+        firstName: domainUser.firstName,
+        lastName: domainUser.lastName,
+        age: domainUser.age,
+        createdAt: domainUser.createdAt,
+        updatedAt: domainUser.updatedAt,
+      }));
       
       const response = {
-        data: result.users,
+        data: responseUsers,
         pagination: {
           page: queryParams.page,
           limit: queryParams.limit,
@@ -1989,52 +2006,9 @@ export class UserRoutes {
     }
   }
 
-  // Admin route - same query, different pre-processing
-  async getUsersAdmin(context: UnifiedHttpContext): Promise<void> {
-    try {
-      // 1. Validate query parameters
-      const queryParams = validateQueryOrError(context, GetUsersQuerySchema);
-      if (!queryParams) return;
-
-      // 2. Pre-processing: Check admin permissions
-      const headers = getHeaders(context);
-      const userRole = headers['x-user-role'];
-      
-      if (userRole !== 'admin') {
-        sendError(context, 'Admin access required', 403);
-        return;
-      }
-
-      // 3. Pre-processing: No rate limiting for admin
-      // Admin can fetch unlimited results
-
-      // 4. Execute same business logic
-      const result = await this.getUsersQuery.execute(queryParams);
-      
-      const response = {
-        data: result.users,
-        pagination: {
-          page: queryParams.page,
-          limit: queryParams.limit,
-          total: result.total,
-          totalPages: Math.ceil(result.total / queryParams.limit),
-        },
-        meta: {
-          accessLevel: 'admin',
-          unrestricted: true,
-        },
-      };
-      
-      sendResponse(context, response);
-    } catch (error) {
-      console.error('Get users admin error:', error);
-      sendError(context, 'Failed to fetch users', 500);
-    }
-  }
-
   async getUserById(context: UnifiedHttpContext): Promise<void> {
     try {
-      // 1. Validate URL parameters
+      // 1. Validate URL parameters (contract types)
       const params = validateParamsOrError(context, UserParamsSchema);
       if (!params) return;
 
@@ -2051,190 +2025,64 @@ export class UserRoutes {
         return;
       }
 
-      // 3. Execute pure business logic
-      const user = await this.getUserQuery.execute(params.id);
+      // 3. Execute pure business logic with domain types
+      const domainUser = await this.getUserQuery.execute(params.id);
       
-      if (!user) {
+      if (!domainUser) {
         sendError(context, 'User not found', 404);
         return;
       }
       
-      sendResponse(context, user);
+      // 4. Map domain result to contract type
+      const responseUser: UserResponse = {
+        id: domainUser.id,
+        email: domainUser.email,
+        firstName: domainUser.firstName,
+        lastName: domainUser.lastName,
+        age: domainUser.age,
+        createdAt: domainUser.createdAt,
+        updatedAt: domainUser.updatedAt,
+      };
+      
+      sendResponse(context, responseUser);
     } catch (error) {
       console.error('Get user error:', error);
       sendError(context, 'Failed to fetch user', 500);
     }
   }
-
-  // Public profile route - same query, different data filtering
-  async getUserProfile(context: UnifiedHttpContext): Promise<void> {
-    try {
-      // 1. Validate URL parameters
-      const params = validateParamsOrError(context, UserParamsSchema);
-      if (!params) return;
-
-      // 2. Pre-processing: No authorization needed for public profiles
-
-      // 3. Execute same business logic
-      const user = await this.getUserQuery.execute(params.id);
-      
-      if (!user) {
-        sendError(context, 'User not found', 404);
-        return;
-      }
-
-      // 4. Post-processing: Filter sensitive data for public access
-      const publicProfile = {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        // Don't expose email, age, etc. for public profiles
-        createdAt: user.createdAt,
-      };
-      
-      sendResponse(context, publicProfile);
-    } catch (error) {
-      console.error('Get user profile error:', error);
-      sendError(context, 'Failed to fetch user profile', 500);
-    }
-  }
-
-  // API v2 route - same command with different validation schema
-  async createUserV2(context: UnifiedHttpContext): Promise<void> {
-    try {
-      // 1. Validate with v2 schema (might have additional fields)
-      const userData = validateRequestBodyOrError(context, CreateUserV2RequestSchema);
-      if (!userData) return;
-
-      // 2. Pre-processing: Transform v2 data to v1 format
-      const v1UserData = {
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        age: userData.profile?.age,
-      };
-
-      // 3. Execute same business logic
-      const user = await this.createUserCommand.execute(v1UserData);
-      
-      // 4. Post-processing: Transform response to v2 format
-      const v2Response = {
-        ...user,
-        profile: {
-          age: user.age,
-          fullName: `${user.firstName} ${user.lastName}`,
-        },
-        version: 'v2',
-      };
-      
-      sendResponse(context, v2Response, 201);
-    } catch (error) {
-      if (error.message === 'Email already exists') {
-        sendError(context, 'Email already exists', 409, {
-          code: 'EMAIL_EXISTS',
-        });
-      } else {
-        console.error('Create user v2 error:', error);
-        sendError(context, 'Failed to create user', 500);
-      }
-    }
-  }
 }
 
-// Example: Authentication and authorization helpers
-export class AuthHelpers {
-  static extractUserContext(context: UnifiedHttpContext): {
-    userId?: string;
-    role?: string;
-    permissions?: string[];
-  } {
-    const headers = getHeaders(context);
+// Helper class for mapping between contract and domain types
+export class UserMapper {
+  static contractToDomain(contractUser: CreateUserRequest): UserCreateData {
     return {
-      userId: headers['x-user-id'],
-      role: headers['x-user-role'],
-      permissions: headers['x-user-permissions']?.split(',') || [],
+      email: contractUser.email,
+      firstName: contractUser.firstName,
+      lastName: contractUser.lastName,
+      age: contractUser.age,
     };
   }
 
-  static requireAuthentication(context: UnifiedHttpContext): boolean {
-    const userContext = this.extractUserContext(context);
-    if (!userContext.userId) {
-      sendError(context, 'Authentication required', 401, {
-        code: 'UNAUTHENTICATED',
-      });
-      return false;
-    }
-    return true;
+  static domainToContract(domainUser: UserDomain): UserResponse {
+    return {
+      id: domainUser.id,
+      email: domainUser.email,
+      firstName: domainUser.firstName,
+      lastName: domainUser.lastName,
+      age: domainUser.age,
+      createdAt: domainUser.createdAt,
+      updatedAt: domainUser.updatedAt,
+    };
   }
 
-  static requireRole(context: UnifiedHttpContext, requiredRole: string): boolean {
-    if (!this.requireAuthentication(context)) return false;
-    
-    const userContext = this.extractUserContext(context);
-    if (userContext.role !== requiredRole) {
-      sendError(context, `${requiredRole} role required`, 403, {
-        code: 'INSUFFICIENT_ROLE',
-      });
-      return false;
-    }
-    return true;
-  }
-
-  static requirePermission(context: UnifiedHttpContext, permission: string): boolean {
-    if (!this.requireAuthentication(context)) return false;
-    
-    const userContext = this.extractUserContext(context);
-    if (!userContext.permissions?.includes(permission)) {
-      sendError(context, `Permission '${permission}' required`, 403, {
-        code: 'INSUFFICIENT_PERMISSIONS',
-      });
-      return false;
-    }
-    return true;
-  }
-}
-
-// Usage with auth helpers
-export class SecureUserRoutes extends UserRoutes {
-  async createUserSecure(context: UnifiedHttpContext): Promise<void> {
-    // Pre-processing: Check authentication and permissions
-    if (!AuthHelpers.requirePermission(context, 'users:create')) return;
-    
-    // Continue with normal create user flow
-    await this.createUser(context);
-  }
-
-  async deleteUser(context: UnifiedHttpContext): Promise<void> {
-    try {
-      // 1. Validate parameters
-      const params = validateParamsOrError(context, UserParamsSchema);
-      if (!params) return;
-
-      // 2. Pre-processing: Require admin role for deletion
-      if (!AuthHelpers.requireRole(context, 'admin')) return;
-
-      // 3. Additional pre-processing: Prevent self-deletion
-      const userContext = AuthHelpers.extractUserContext(context);
-      if (userContext.userId === params.id) {
-        sendError(context, 'Cannot delete your own account', 422, {
-          code: 'SELF_DELETION_FORBIDDEN',
-        });
-        return;
-      }
-
-      // 4. Execute business logic (could be a DeleteUserCommand)
-      const deleted = await this.userRepository.delete(params.id);
-      
-      if (!deleted) {
-        sendError(context, 'User not found', 404);
-        return;
-      }
-      
-      sendResponse(context, { message: 'User deleted successfully' });
-    } catch (error) {
-      console.error('Delete user error:', error);
-      sendError(context, 'Failed to delete user', 500);
-    }
+  static contractQueryToDomain(contractQuery: GetUsersQuery): UserQueryOptions {
+    return {
+      page: contractQuery.page,
+      limit: contractQuery.limit,
+      search: contractQuery.search,
+      sortBy: contractQuery.sort as 'email' | 'firstName' | 'lastName' | 'createdAt',
+      sortOrder: contractQuery.order,
+    };
   }
 }
 ```
@@ -2707,7 +2555,7 @@ const userRoutes = container.getService<UserRoutes>('userRoutes');
 {
   "name": "@workspace/api-core",
   "dependencies": {
-    "@workspace/api-contract": "workspace:*"
+    // Standalone - no dependencies on other workspace packages
   }
 }
 
@@ -3396,30 +3244,483 @@ describe('User API E2E', () => {
 
 ### Deployment Strategies
 
-#### 1. **Monolith Deployment**
+#### 1. **True Monolith Deployment**
+Single server combining all domains in one Fastify instance:
+
+```typescript
+// apps/monolith-api/src/main.ts
+import { FastifyInstance } from 'fastify';
+import { createFastifyContext } from '@workspace/api-util-fastify';
+import { UserRoutes } from '@workspace/api-service/user';
+import { OrderRoutes } from '@workspace/api-service/order';
+import { NotificationRoutes } from '@workspace/api-service/notification';
+import { ServiceFactory } from './components/service-factory';
+import { loadConfig } from '@workspace/shared-config';
+
+async function createMonolithApp(): Promise<FastifyInstance> {
+  const config = loadConfig();
+  
+  // Initialize all dependencies
+  const components = await ServiceFactory.create(config);
+  
+  // Single Fastify instance for all domains
+  const fastify: FastifyInstance = require('fastify')({ logger: true });
+  
+  // Register CORS and other plugins
+  await fastify.register(require('@fastify/cors'), config.server.cors);
+  
+  // === USER ROUTES ===
+  fastify.post('/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.userRoutes.createUser(context);
+  });
+  
+  fastify.get('/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.userRoutes.getUsers(context);
+  });
+  
+  fastify.get('/users/:id', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.userRoutes.getUserById(context);
+  });
+  
+  // === ORDER ROUTES ===
+  fastify.post('/orders', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.orderRoutes.createOrder(context);
+  });
+  
+  fastify.get('/orders', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.orderRoutes.getOrders(context);
+  });
+  
+  fastify.get('/orders/:id', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.orderRoutes.getOrderById(context);
+  });
+  
+  // === NOTIFICATION ROUTES ===
+  fastify.post('/notifications', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.notificationRoutes.sendNotification(context);
+  });
+  
+  fastify.get('/notifications', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.notificationRoutes.getNotifications(context);
+  });
+  
+  // Health check for entire monolith
+  fastify.get('/health', async (request, reply) => {
+    try {
+      // Check all dependencies
+      await components.prisma.$queryRaw`SELECT 1`;
+      
+      return {
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        service: 'monolith-api',
+        domains: ['users', 'orders', 'notifications'],
+        database: 'connected',
+      };
+    } catch (error) {
+      reply.status(503);
+      return {
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        service: 'monolith-api',
+        error: error.message,
+      };
+    }
+  });
+  
+  return fastify;
+}
+
+// Start monolith server
+async function main() {
+  const config = loadConfig();
+  const app = await createMonolithApp();
+  
+  try {
+    await app.listen({ port: config.server.port, host: config.server.host });
+    console.log(`Monolith API listening on ${config.server.host}:${config.server.port}`);
+    console.log('Available endpoints:');
+    console.log('  Users: /users');
+    console.log('  Orders: /orders');
+    console.log('  Notifications: /notifications');
+  } catch (err) {
+    console.error('Failed to start monolith:', err);
+    process.exit(1);
+  }
+}
+
+main();
+```
+
 ```bash
-# Deploy all services together
-nx build user-service order-service notification-service
-docker build -t api-services .
+# Build and deploy single monolith
+nx build monolith-api
+docker build -t monolith-api -f apps/monolith-api/Dockerfile .
+docker run -p 3000:3000 monolith-api
+
+# All domains accessible through single port
+curl http://localhost:3000/users
+curl http://localhost:3000/orders  
+curl http://localhost:3000/notifications
 ```
 
 #### 2. **Microservice Deployment**
+Each domain runs as separate HTTP server:
+
+```typescript
+// apps/user-service/src/main.ts (Port 3001)
+const fastify = require('fastify')({ logger: true });
+
+fastify.post('/users', async (request, reply) => {
+  const context = createFastifyContext(request, reply);
+  await userRoutes.createUser(context);
+});
+
+await fastify.listen({ port: 3001 });
+
+// apps/order-service/src/main.ts (Port 3002)  
+const fastify = require('fastify')({ logger: true });
+
+fastify.post('/orders', async (request, reply) => {
+  const context = createFastifyContext(request, reply);
+  await orderRoutes.createOrder(context);
+});
+
+await fastify.listen({ port: 3002 });
+
+// apps/notification-service/src/main.ts (Port 3003)
+const fastify = require('fastify')({ logger: true });
+
+fastify.post('/notifications', async (request, reply) => {
+  const context = createFastifyContext(request, reply);
+  await notificationRoutes.sendNotification(context);
+});
+
+await fastify.listen({ port: 3003 });
+```
+
 ```bash
-# Deploy services independently  
+# Build and deploy each service independently
 nx build user-service
 docker build -t user-service -f apps/user-service/Dockerfile .
+docker run -p 3001:3001 user-service
 
 nx build order-service  
 docker build -t order-service -f apps/order-service/Dockerfile .
+docker run -p 3002:3002 order-service
+
+nx build notification-service
+docker build -t notification-service -f apps/notification-service/Dockerfile .
+docker run -p 3003:3003 notification-service
+
+# Each service runs on different port
+curl http://localhost:3001/users
+curl http://localhost:3002/orders
+curl http://localhost:3003/notifications
 ```
 
-#### 3. **Package Publishing**
-```bash
-# Publish shared packages to npm
-nx build api-contract && cd packages/api-contract && npm publish
-nx build api-core && cd packages/api-core && npm publish
-nx build api-client && cd packages/api-client && npm publish
+#### 3. **Multi-Service Container Deployment**
+Multiple services in single container (still microservices, but co-located):
+
+```dockerfile
+# Dockerfile.multi-service
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy built applications
+COPY dist/apps/user-service ./user-service
+COPY dist/apps/order-service ./order-service  
+COPY dist/apps/notification-service ./notification-service
+
+# Copy startup script
+COPY scripts/start-all-services.sh .
+RUN chmod +x start-all-services.sh
+
+EXPOSE 3001 3002 3003
+
+CMD ["./start-all-services.sh"]
 ```
+
+```bash
+#!/bin/bash
+# scripts/start-all-services.sh
+
+# Start all services in background
+cd /app/user-service && node main.js &
+cd /app/order-service && node main.js &
+cd /app/notification-service && node main.js &
+
+# Wait for all background processes
+wait
+```
+
+```bash
+# Deploy multiple services in single container
+nx build user-service order-service notification-service
+docker build -t multi-service-api -f Dockerfile.multi-service .
+docker run -p 3001:3001 -p 3002:3002 -p 3003:3003 multi-service-api
+
+# Still separate services, just co-located
+curl http://localhost:3001/users
+curl http://localhost:3002/orders  
+curl http://localhost:3003/notifications
+```
+
+#### 4. **Docker Compose for Development**
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # True Monolith Option
+  monolith-api:
+    build:
+      context: .
+      dockerfile: apps/monolith-api/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/db
+    depends_on:
+      - postgres
+
+  # Microservices Option
+  user-service:
+    build:
+      context: .
+      dockerfile: apps/user-service/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/userdb
+    depends_on:
+      - postgres
+
+  order-service:
+    build:
+      context: .
+      dockerfile: apps/order-service/Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/orderdb
+    depends_on:
+      - postgres
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: apps/notification-service/Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/notificationdb
+    depends_on:
+      - postgres
+
+  # API Gateway for microservices
+  api-gateway:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - user-service
+      - order-service
+      - notification-service
+
+  postgres:
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+```
+
+```nginx
+# nginx.conf - API Gateway configuration
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream user_service {
+        server user-service:3001;
+    }
+    
+    upstream order_service {
+        server order-service:3002;
+    }
+    
+    upstream notification_service {
+        server notification-service:3003;
+    }
+
+    server {
+        listen 80;
+        
+        # Route to appropriate service
+        location /users {
+            proxy_pass http://user_service;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+        
+        location /orders {
+            proxy_pass http://order_service;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+        
+        location /notifications {
+            proxy_pass http://notification_service;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+    }
+}
+```
+
+```bash
+# Development with monolith
+docker-compose up monolith-api postgres
+
+# Development with microservices
+docker-compose up user-service order-service notification-service api-gateway postgres
+
+# Access through gateway
+curl http://localhost/users
+curl http://localhost/orders
+curl http://localhost/notifications
+```
+
+#### 5. **Kubernetes Deployment**
+
+```yaml
+# k8s/monolith-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monolith-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: monolith-api
+  template:
+    metadata:
+      labels:
+        app: monolith-api
+    spec:
+      containers:
+      - name: monolith-api
+        image: monolith-api:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: url
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: monolith-api-service
+spec:
+  selector:
+    app: monolith-api
+  ports:
+  - port: 80
+    targetPort: 3000
+  type: LoadBalancer
+```
+
+```yaml
+# k8s/microservices-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: user-service:latest
+        ports:
+        - containerPort: 3001
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      containers:
+      - name: order-service
+        image: order-service:latest
+        ports:
+        - containerPort: 3002
+
+# ... similar for notification-service
+```
+
+## Summary: Deployment Patterns
+
+| Pattern | Servers | Ports | Use Case |
+|---------|---------|-------|----------|
+| **True Monolith** | 1 Fastify instance | 1 port (3000) | Simple deployment, shared database |
+| **Microservices** | Multiple Fastify instances | Multiple ports (3001, 3002, 3003) | Independent scaling, separate databases |
+| **Multi-Service Container** | Multiple instances, 1 container | Multiple ports | Development, staging environments |
+| **Gateway + Microservices** | Multiple instances + proxy | 1 external port (80) | Production microservices |
+
+The key difference:
+- **Monolith**: All routes in single HTTP server
+- **Microservices**: Each domain has its own HTTP server 
+- **Multi-Service**: Multiple HTTP servers, but deployed together
 
 This architecture provides a solid foundation for building maintainable, scalable, and testable enterprise applications while maintaining the flexibility to evolve your system architecture over time.
 

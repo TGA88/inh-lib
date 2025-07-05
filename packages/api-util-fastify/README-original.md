@@ -3244,30 +3244,483 @@ describe('User API E2E', () => {
 
 ### Deployment Strategies
 
-#### 1. **Monolith Deployment**
+#### 1. **True Monolith Deployment**
+Single server combining all domains in one Fastify instance:
+
+```typescript
+// apps/monolith-api/src/main.ts
+import { FastifyInstance } from 'fastify';
+import { createFastifyContext } from '@workspace/api-util-fastify';
+import { UserRoutes } from '@workspace/api-service/user';
+import { OrderRoutes } from '@workspace/api-service/order';
+import { NotificationRoutes } from '@workspace/api-service/notification';
+import { ServiceFactory } from './components/service-factory';
+import { loadConfig } from '@workspace/shared-config';
+
+async function createMonolithApp(): Promise<FastifyInstance> {
+  const config = loadConfig();
+  
+  // Initialize all dependencies
+  const components = await ServiceFactory.create(config);
+  
+  // Single Fastify instance for all domains
+  const fastify: FastifyInstance = require('fastify')({ logger: true });
+  
+  // Register CORS and other plugins
+  await fastify.register(require('@fastify/cors'), config.server.cors);
+  
+  // === USER ROUTES ===
+  fastify.post('/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.userRoutes.createUser(context);
+  });
+  
+  fastify.get('/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.userRoutes.getUsers(context);
+  });
+  
+  fastify.get('/users/:id', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.userRoutes.getUserById(context);
+  });
+  
+  // === ORDER ROUTES ===
+  fastify.post('/orders', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.orderRoutes.createOrder(context);
+  });
+  
+  fastify.get('/orders', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.orderRoutes.getOrders(context);
+  });
+  
+  fastify.get('/orders/:id', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.orderRoutes.getOrderById(context);
+  });
+  
+  // === NOTIFICATION ROUTES ===
+  fastify.post('/notifications', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.notificationRoutes.sendNotification(context);
+  });
+  
+  fastify.get('/notifications', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await components.notificationRoutes.getNotifications(context);
+  });
+  
+  // Health check for entire monolith
+  fastify.get('/health', async (request, reply) => {
+    try {
+      // Check all dependencies
+      await components.prisma.$queryRaw`SELECT 1`;
+      
+      return {
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        service: 'monolith-api',
+        domains: ['users', 'orders', 'notifications'],
+        database: 'connected',
+      };
+    } catch (error) {
+      reply.status(503);
+      return {
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        service: 'monolith-api',
+        error: error.message,
+      };
+    }
+  });
+  
+  return fastify;
+}
+
+// Start monolith server
+async function main() {
+  const config = loadConfig();
+  const app = await createMonolithApp();
+  
+  try {
+    await app.listen({ port: config.server.port, host: config.server.host });
+    console.log(`Monolith API listening on ${config.server.host}:${config.server.port}`);
+    console.log('Available endpoints:');
+    console.log('  Users: /users');
+    console.log('  Orders: /orders');
+    console.log('  Notifications: /notifications');
+  } catch (err) {
+    console.error('Failed to start monolith:', err);
+    process.exit(1);
+  }
+}
+
+main();
+```
+
 ```bash
-# Deploy all services together
-nx build user-service order-service notification-service
-docker build -t api-services .
+# Build and deploy single monolith
+nx build monolith-api
+docker build -t monolith-api -f apps/monolith-api/Dockerfile .
+docker run -p 3000:3000 monolith-api
+
+# All domains accessible through single port
+curl http://localhost:3000/users
+curl http://localhost:3000/orders  
+curl http://localhost:3000/notifications
 ```
 
 #### 2. **Microservice Deployment**
+Each domain runs as separate HTTP server:
+
+```typescript
+// apps/user-service/src/main.ts (Port 3001)
+const fastify = require('fastify')({ logger: true });
+
+fastify.post('/users', async (request, reply) => {
+  const context = createFastifyContext(request, reply);
+  await userRoutes.createUser(context);
+});
+
+await fastify.listen({ port: 3001 });
+
+// apps/order-service/src/main.ts (Port 3002)  
+const fastify = require('fastify')({ logger: true });
+
+fastify.post('/orders', async (request, reply) => {
+  const context = createFastifyContext(request, reply);
+  await orderRoutes.createOrder(context);
+});
+
+await fastify.listen({ port: 3002 });
+
+// apps/notification-service/src/main.ts (Port 3003)
+const fastify = require('fastify')({ logger: true });
+
+fastify.post('/notifications', async (request, reply) => {
+  const context = createFastifyContext(request, reply);
+  await notificationRoutes.sendNotification(context);
+});
+
+await fastify.listen({ port: 3003 });
+```
+
 ```bash
-# Deploy services independently  
+# Build and deploy each service independently
 nx build user-service
 docker build -t user-service -f apps/user-service/Dockerfile .
+docker run -p 3001:3001 user-service
 
 nx build order-service  
 docker build -t order-service -f apps/order-service/Dockerfile .
+docker run -p 3002:3002 order-service
+
+nx build notification-service
+docker build -t notification-service -f apps/notification-service/Dockerfile .
+docker run -p 3003:3003 notification-service
+
+# Each service runs on different port
+curl http://localhost:3001/users
+curl http://localhost:3002/orders
+curl http://localhost:3003/notifications
 ```
 
-#### 3. **Package Publishing**
-```bash
-# Publish shared packages to npm
-nx build api-contract && cd packages/api-contract && npm publish
-nx build api-core && cd packages/api-core && npm publish
-nx build api-client && cd packages/api-client && npm publish
+#### 3. **Multi-Service Container Deployment**
+Multiple services in single container (still microservices, but co-located):
+
+```dockerfile
+# Dockerfile.multi-service
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy built applications
+COPY dist/apps/user-service ./user-service
+COPY dist/apps/order-service ./order-service  
+COPY dist/apps/notification-service ./notification-service
+
+# Copy startup script
+COPY scripts/start-all-services.sh .
+RUN chmod +x start-all-services.sh
+
+EXPOSE 3001 3002 3003
+
+CMD ["./start-all-services.sh"]
 ```
+
+```bash
+#!/bin/bash
+# scripts/start-all-services.sh
+
+# Start all services in background
+cd /app/user-service && node main.js &
+cd /app/order-service && node main.js &
+cd /app/notification-service && node main.js &
+
+# Wait for all background processes
+wait
+```
+
+```bash
+# Deploy multiple services in single container
+nx build user-service order-service notification-service
+docker build -t multi-service-api -f Dockerfile.multi-service .
+docker run -p 3001:3001 -p 3002:3002 -p 3003:3003 multi-service-api
+
+# Still separate services, just co-located
+curl http://localhost:3001/users
+curl http://localhost:3002/orders  
+curl http://localhost:3003/notifications
+```
+
+#### 4. **Docker Compose for Development**
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # True Monolith Option
+  monolith-api:
+    build:
+      context: .
+      dockerfile: apps/monolith-api/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/db
+    depends_on:
+      - postgres
+
+  # Microservices Option
+  user-service:
+    build:
+      context: .
+      dockerfile: apps/user-service/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/userdb
+    depends_on:
+      - postgres
+
+  order-service:
+    build:
+      context: .
+      dockerfile: apps/order-service/Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/orderdb
+    depends_on:
+      - postgres
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: apps/notification-service/Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/notificationdb
+    depends_on:
+      - postgres
+
+  # API Gateway for microservices
+  api-gateway:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - user-service
+      - order-service
+      - notification-service
+
+  postgres:
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+```
+
+```nginx
+# nginx.conf - API Gateway configuration
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream user_service {
+        server user-service:3001;
+    }
+    
+    upstream order_service {
+        server order-service:3002;
+    }
+    
+    upstream notification_service {
+        server notification-service:3003;
+    }
+
+    server {
+        listen 80;
+        
+        # Route to appropriate service
+        location /users {
+            proxy_pass http://user_service;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+        
+        location /orders {
+            proxy_pass http://order_service;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+        
+        location /notifications {
+            proxy_pass http://notification_service;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+    }
+}
+```
+
+```bash
+# Development with monolith
+docker-compose up monolith-api postgres
+
+# Development with microservices
+docker-compose up user-service order-service notification-service api-gateway postgres
+
+# Access through gateway
+curl http://localhost/users
+curl http://localhost/orders
+curl http://localhost/notifications
+```
+
+#### 5. **Kubernetes Deployment**
+
+```yaml
+# k8s/monolith-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monolith-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: monolith-api
+  template:
+    metadata:
+      labels:
+        app: monolith-api
+    spec:
+      containers:
+      - name: monolith-api
+        image: monolith-api:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: url
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: monolith-api-service
+spec:
+  selector:
+    app: monolith-api
+  ports:
+  - port: 80
+    targetPort: 3000
+  type: LoadBalancer
+```
+
+```yaml
+# k8s/microservices-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: user-service:latest
+        ports:
+        - containerPort: 3001
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      containers:
+      - name: order-service
+        image: order-service:latest
+        ports:
+        - containerPort: 3002
+
+# ... similar for notification-service
+```
+
+## Summary: Deployment Patterns
+
+| Pattern | Servers | Ports | Use Case |
+|---------|---------|-------|----------|
+| **True Monolith** | 1 Fastify instance | 1 port (3000) | Simple deployment, shared database |
+| **Microservices** | Multiple Fastify instances | Multiple ports (3001, 3002, 3003) | Independent scaling, separate databases |
+| **Multi-Service Container** | Multiple instances, 1 container | Multiple ports | Development, staging environments |
+| **Gateway + Microservices** | Multiple instances + proxy | 1 external port (80) | Production microservices |
+
+The key difference:
+- **Monolith**: All routes in single HTTP server
+- **Microservices**: Each domain has its own HTTP server 
+- **Multi-Service**: Multiple HTTP servers, but deployed together
 
 This architecture provides a solid foundation for building maintainable, scalable, and testable enterprise applications while maintaining the flexibility to evolve your system architecture over time.
 
