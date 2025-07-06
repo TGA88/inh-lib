@@ -105,10 +105,12 @@ Production configuration examples
 
     Table of Contents
 
+    Part1
     Validation Architecture Patterns
     Advanced Zod Patterns
     Business Validation Strategies
     Custom Validation Decorators
+    Part2
     Performance & UX Optimization
     Enterprise Validation Requirements
     Testing Validation Logic
