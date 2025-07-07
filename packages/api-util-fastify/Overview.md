@@ -26,14 +26,14 @@ Testing strategies
 🆓 Part 4: Free Edition - เหมาะสำหรับ startup และ mid-size teams
 
 Table of Content
+Enterprise Patterns (Free Edition) for @inh-lib/api-util-fastify provides:
 ✅ CQRS Pattern - Separate Commands (write) and Queries (read) for focused operations
-✅ Validation Layers - Clear separation between Schema, Business, Rules, and Side Effects
+✅ Simple Route Modules - Framework-agnostic route functions with reusable commands/queries
 ✅ Basic DI Container - Automatic dependency management for enterprise applications
-✅ Route Libraries - Systematic route organization with middleware composition
 ✅ Repository Interfaces - Clean data access abstraction for testing & flexibility
+✅ Validation Layers - Clear separation between Schema, Business, Rules, and Side Effects
 ✅ Decision Framework - Know when to use enterprise vs simple patterns
 ✅ Gradual Migration - Start simple, add patterns as complexity grows
-
 
 💎 Advanced DI Container: Premium Edition - สำหรับ large enterprise teams
 1. Service Lifecycles
@@ -115,6 +115,16 @@ Production configuration examples
     Enterprise Validation Requirements
     Testing Validation Logic
     Real-World Implementation
+
+
+💎 Advanced Route Management (Premium Enterprise Features):
+
+Table of Contents
+Advanced Route Library Architecture
+Automatic route discovery
+OpenAPI generation
+Dynamic middleware composition
+Advanced DI Container features
 
 Part 5: Package Architecture & Configuration
 

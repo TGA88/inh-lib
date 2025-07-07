@@ -1,6 +1,6 @@
 # Part 4: Enterprise Patterns (Free Edition)
 
-Core enterprise patterns: CQRS, DI Container, Route Libraries, and Repository Interfaces for complex applications.
+Core enterprise patterns: CQRS, Simple Route Modules, Basic DI Container, and Repository Interfaces for complex applications.
 
 ## 📚 Series Navigation
 
@@ -9,6 +9,9 @@ Core enterprise patterns: CQRS, DI Container, Route Libraries, and Repository In
 - [Part 3: Framework-Agnostic Architecture](03-framework-agnostic.md)
 - [Part 4: Enterprise Patterns](04-enterprise-patterns.md) ← You are here
 - [Part 5: Package Architecture & Configuration](05-package-architecture.md)
+- [Part 6: Testing Strategies](06-testing-strategies.md)
+- [Part 7: Build & Deployment](07-build-deployment.md)
+- [Part 8: Logging & Production](08-logging-production.md)
 
 ## Why Enterprise Patterns?
 
@@ -31,6 +34,7 @@ class UserService {
 // 2. Too many dependencies to manage manually
 // 3. Mixed read/write concerns with different optimization needs
 // 4. Hard to test complex business operations
+// 5. Route duplication when same logic needs different validation
 ```
 
 ### Enterprise Patterns Solve These Problems
@@ -38,8 +42,8 @@ class UserService {
 ```typescript
 // ✅ Enterprise Solution: Focused, scalable patterns
 // 1. CQRS: Separate Commands (write) and Queries (read)
-// 2. DI Container: Automatic dependency management
-// 3. Route Libraries: Systematic route organization
+// 2. Simple Route Modules: Reusable route functions with different validation
+// 3. Basic DI Container: Automatic dependency management
 // 4. Repository Interfaces: Clean data access abstraction
 ```
 
@@ -76,18 +80,19 @@ class UserService {
     await this.emailService.sendWelcome(user.email);
     await this.eventBus.publish('user.created', user);
     
-    // 5. Response formatting
+    // 5. Send response
     sendResponse(context, user, 201);
-    
-    // Total: 60+ lines, multiple responsibilities!
   }
 }
 ```
 
+### CQRS Solution: Focused Commands & Queries
+
 ```typescript
-// ✅ Solution: CQRS separates concerns
-// Commands handle write operations with business logic
-class CreateUserCommand {
+// ✅ Solution: Separate Commands (write) and Queries (read)
+
+// commands/user/create-user.command.ts - Write operations
+export class CreateUserCommand {
   constructor(
     private userRepository: UserRepository,
     private emailService: EmailService,
@@ -95,11 +100,17 @@ class CreateUserCommand {
   ) {}
 
   async execute(input: CreateUserInput): Promise<User> {
-    // Focused only on user creation business logic
-    this.validateBusinessRules(input);
-    await this.checkEmailUniqueness(input.email);
+    // Business validation
+    await this.validateBusinessRules(input);
     
-    const user = await this.userRepository.create(input);
+    // Business logic
+    const user = await this.userRepository.create({
+      id: generateId(),
+      email: input.email,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      createdAt: new Date(),
+    });
     
     // Side effects
     await this.emailService.sendWelcome(user.email);
@@ -107,48 +118,53 @@ class CreateUserCommand {
     
     return user;
   }
+
+  private async validateBusinessRules(input: CreateUserInput): Promise<void> {
+    const existing = await this.userRepository.findByEmail(input.email);
+    if (existing) {
+      throw new Error('Email already exists');
+    }
+  }
 }
 
-// Queries handle read operations with optimizations
-class GetUsersQuery {
-  constructor(
-    private userRepository: UserRepository,
-    private cacheService: CacheService
-  ) {}
+// queries/user/get-users.query.ts - Read operations
+export class GetUsersQuery {
+  constructor(private userRepository: UserRepository) {}
 
   async execute(input: GetUsersInput): Promise<GetUsersResult> {
-    // Focused only on data retrieval with caching
-    const cacheKey = this.buildCacheKey(input);
-    const cached = await this.cacheService.get(cacheKey);
-    if (cached) return cached;
-    
-    const result = await this.userRepository.findMany(input);
-    await this.cacheService.set(cacheKey, result, 300);
-    
-    return result;
-  }
-}
+    const users = await this.userRepository.findMany({
+      where: {
+        ...(input.search && { 
+          OR: [
+            { firstName: { contains: input.search } },
+            { lastName: { contains: input.search } },
+            { email: { contains: input.search } }
+          ]
+        }),
+        ...(input.status && { status: input.status })
+      },
+      skip: (input.page - 1) * input.limit,
+      take: input.limit,
+      orderBy: { [input.sort]: input.order }
+    });
 
-// Routes orchestrate Commands and Queries
-class UserRoutes {
-  constructor(
-    private createUserCommand: CreateUserCommand,
-    private getUsersQuery: GetUsersQuery
-  ) {}
-  
-  async createUser(context: UnifiedHttpContext): Promise<void> {
-    const input = getRequestBody<CreateUserInput>(context);
-    const result = await this.createUserCommand.execute(input);
-    sendResponse(context, result, 201);
-  }
-  
-  async getUsers(context: UnifiedHttpContext): Promise<void> {
-    const input = getQuery(context);
-    const result = await this.getUsersQuery.execute(input);
-    sendResponse(context, result);
+    const total = await this.userRepository.count({
+      where: { /* same where conditions */ }
+    });
+
+    return {
+      users,
+      pagination: {
+        page: input.page,
+        limit: input.limit,
+        total,
+        pages: Math.ceil(total / input.limit)
+      }
+    };
   }
 }
 ```
+
 
 ### Understanding Validation Layers in CQRS
 
@@ -340,6 +356,8 @@ private async sendWelcomeEmail(user: User): Promise<void> {
 | **Business Rules** | Commands/Queries | System constraints | Uniqueness, limits, blacklists | Database checks |
 | **Side Effects** | Commands | Additional actions | Emails, events, logging | Background tasks |
 
+
+
 ### Complete CQRS Example
 
 ```typescript
@@ -399,563 +417,477 @@ export class CreateUserCommand {
 }
 ```
 
-## Basic DI Container Pattern
+## Simple Route Modules
 
-### Why DI Container?
+### Why Simple Route Modules?
 
 ```typescript
-// ❌ Problem: Manual dependency management becomes difficult
-function createUserService() {
-  const prisma = new PrismaClient();
-  const userRepository = new PrismaUserRepository(prisma);
-  const emailService = new EmailService(process.env.EMAIL_API_KEY!);
-  const cacheService = new RedisCache(process.env.REDIS_URL!);
-  const eventBus = new EventBus();
+// ❌ Problem: Duplicate route logic
+fastify.post('/register', async (request, reply) => {
+  // Same business logic as admin creation
+  const userData = validateRequestBodyOrError(context, PublicUserSchema);
+  if (!userData) return;
   
-  const createUserCommand = new CreateUserCommand(
-    userRepository, 
-    emailService, 
-    eventBus
-  );
+  const result = await createUserCommand.execute(userData);
+  sendResponse(context, result, 201);
+});
+
+fastify.post('/admin/users', async (request, reply) => {
+  // Same business logic as public registration
+  const userData = validateRequestBodyOrError(context, AdminUserSchema);
+  if (!userData) return;
   
-  const getUsersQuery = new GetUsersQuery(
-    userRepository, 
-    cacheService
-  );
+  const result = await createUserCommand.execute(userData); // Same command!
+  sendResponse(context, result, 201);
+});
+```
+
+```typescript
+// ✅ Solution: Framework-agnostic route functions with reusable commands
+// routes/user/public-routes.ts - Framework-agnostic functions
+export async function createPublicUserRoute(
+  context: UnifiedHttpContext,
+  createUserCommand: CreateUserCommand
+): Promise<void> {
+  // Public registration - minimal validation
+  const userData = validateRequestBodyOrError(context, PublicUserRegistrationSchema);
+  if (!userData) return;
   
-  return new UserRoutes(createUserCommand, getUsersQuery);
+  const result = await createUserCommand.execute(userData);
+  sendResponse(context, { message: 'Registration successful' }, 201);
 }
-```
 
-```typescript
-// ✅ Solution: DI Container manages dependencies automatically
-class DIContainer {
-  private services = new Map();
+export async function getPublicUsersRoute(
+  context: UnifiedHttpContext,
+  getUsersQuery: GetUsersQuery
+): Promise<void> {
+  // Public listing - limited data
+  const query = validateQueryOrError(context, PublicUserQuerySchema);
+  if (!query) return;
   
-  register<T>(name: string, factory: () => T): void {
-    this.services.set(name, { factory, instance: null });
+  const result = await getUsersQuery.execute(query);
+  sendResponse(context, result);
+}
+```
+
+### Framework-Agnostic Route Functions
+
+```typescript
+// routes/user/admin-routes.ts - Framework-agnostic
+export async function createAdminUserRoute(
+  context: UnifiedHttpContext,
+  createUserCommand: CreateUserCommand
+): Promise<void> {
+  // Admin creation - more fields and permissions
+  const userData = validateRequestBodyOrError(context, AdminUserCreationSchema);
+  if (!userData) return;
+  
+  const result = await createUserCommand.execute(userData); // Same command!
+  sendResponse(context, result, 201);
+}
+
+export async function getAdminUsersRoute(
+  context: UnifiedHttpContext,
+  getUsersQuery: GetUsersQuery
+): Promise<void> {
+  // Admin listing - full data access
+  const query = validateQueryOrError(context, AdminUserQuerySchema);
+  if (!query) return;
+  
+  const result = await getUsersQuery.execute(query); // Same query!
+  sendResponse(context, result);
+}
+
+// routes/user/api-routes.ts - External API routes
+export async function createApiUserRoute(
+  context: UnifiedHttpContext,
+  createUserCommand: CreateUserCommand
+): Promise<void> {
+  // API creation - different format, rate limiting
+  const userData = validateRequestBodyOrError(context, ApiUserCreationSchema);
+  if (!userData) return;
+  
+  const result = await createUserCommand.execute(userData); // Same command!
+  sendResponse(context, result, 201);
+}
+```
+
+### Different Schemas for Same Commands
+
+```typescript
+// schemas/user-schemas.ts
+
+// Public registration - minimal fields
+export const PublicUserRegistrationSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+});
+
+// Admin creation - more fields + permissions
+export const AdminUserCreationSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  role: z.enum(['admin', 'manager', 'employee']),
+  department: z.string().min(1),
+  permissions: z.array(z.string()),
+  status: z.enum(['active', 'inactive']).default('active'),
+});
+
+// API creation - external system format
+export const ApiUserCreationSchema = z.object({
+  user_email: z.string().email().transform(val => ({ email: val })),
+  user_name: z.object({
+    first: z.string().min(1),
+    last: z.string().min(1),
+  }).transform(val => ({ firstName: val.first, lastName: val.last })),
+  external_id: z.string().min(1),
+});
+
+// Query schemas with different access levels
+export const PublicUserQuerySchema = z.object({
+  page: z.string().transform(Number).default('1'),
+  limit: z.string().transform(Number).max(10).default('5'), // Limited for public
+});
+
+export const AdminUserQuerySchema = z.object({
+  page: z.string().transform(Number).default('1'),
+  limit: z.string().transform(Number).max(100).default('20'), // More for admin
+  search: z.string().optional(),
+  department: z.string().optional(),
+  role: z.string().optional(),
+  status: z.enum(['active', 'inactive', 'suspended']).optional(),
+});
+```
+
+### API Versioning with Simple Route Modules
+
+The power of Simple Route Modules really shines when managing API versions. You can reuse the same Commands/Queries with different route versions, or gradually migrate business logic while maintaining backward compatibility.
+
+#### Scenario 1: New Route Version + Same Command/Query + Different Validation
+
+```typescript
+// routes/user/v1-routes.ts - Original version
+export async function createUserV1Route(
+  context: UnifiedHttpContext,
+  createUserCommand: CreateUserCommand // Same command
+): Promise<void> {
+  // V1: Basic validation only
+  const userData = validateRequestBodyOrError(context, CreateUserV1Schema);
+  if (!userData) return;
+  
+  const result = await createUserCommand.execute(userData);
+  sendResponse(context, result, 201);
+}
+
+// routes/user/v2-routes.ts - Enhanced version
+export async function createUserV2Route(
+  context: UnifiedHttpContext,
+  createUserCommand: CreateUserCommand // Same command!
+): Promise<void> {
+  // V2: Enhanced validation + preprocessing
+  const userData = validateRequestBodyOrError(context, CreateUserV2Schema);
+  if (!userData) return;
+  
+  // V2: Additional preprocessing
+  if (userData.company) {
+    userData.companyDomain = extractDomainFromCompany(userData.company);
   }
   
-  get<T>(name: string): T {
-    const service = this.services.get(name);
-    if (!service.instance) {
-      service.instance = service.factory();
-    }
-    return service.instance;
+  if (userData.phoneNumber) {
+    userData.phoneNumber = normalizePhoneNumber(userData.phoneNumber);
   }
+  
+  // Same business logic through same command
+  const result = await createUserCommand.execute(userData);
+  
+  // V2: Enhanced response format
+  sendResponse(context, {
+    user: result,
+    apiVersion: 'v2',
+    features: ['enhanced-validation', 'company-domain-extraction']
+  }, 201);
 }
 
-// Setup once
-const container = new DIContainer();
-container.register('userRoutes', () => /* all dependencies resolved automatically */);
+// schemas/user-v1.schemas.ts - V1 schemas
+export const CreateUserV1Schema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+});
 
-// Use anywhere
-const userRoutes = container.get('userRoutes'); // ✨ Magic!
+// schemas/user-v2.schemas.ts - V2 enhanced schemas
+export const CreateUserV2Schema = z.object({
+  email: z.string().email(),
+  password: z.string().min(12), // Stronger password requirement
+  firstName: z.string().min(1).max(50),
+  lastName: z.string().min(1).max(50),
+  company: z.string().min(1).optional(), // New field
+  phoneNumber: z.string().optional(), // New field
+  preferredLanguage: z.enum(['en', 'th', 'ja']).default('en'), // New field
+  marketingConsent: z.boolean().default(false), // New field
+});
 ```
 
-### Basic DI Container Implementation
+#### Scenario 2: Same Preprocessing + New Command/Query Version
 
 ```typescript
-// foundations/di-container.ts
-export class DIContainer {
-  private services = new Map<string, ServiceDefinition>();
-  private instances = new Map<string, any>();
-
-  register<T>(
-    name: string, 
-    factory: (container: DIContainer) => T,
-    singleton: boolean = true
-  ): void {
-    this.services.set(name, { factory, singleton });
-  }
-
-  get<T>(name: string): T {
-    // Return cached instance if singleton
-    if (this.instances.has(name)) {
-      return this.instances.get(name);
-    }
-
-    const service = this.services.get(name);
-    if (!service) {
-      throw new Error(`Service '${name}' not registered`);
-    }
-
-    // Create instance
-    const instance = service.factory(this);
-
-    // Cache if singleton
-    if (service.singleton) {
-      this.instances.set(name, instance);
-    }
-
-    return instance;
-  }
-
-  // For testing - clear all instances
-  clearInstances(): void {
-    this.instances.clear();
-  }
-}
-
-interface ServiceDefinition {
-  factory: (container: DIContainer) => any;
-  singleton: boolean;
-}
-```
-
-### Basic DI Container Setup
-
-```typescript
-// foundations/container-setup.ts
-export function setupContainer(): DIContainer {
-  const container = new DIContainer();
-
-  // Infrastructure
-  container.register('config', () => ({
-    database: { url: process.env.DATABASE_URL! },
-    email: { apiKey: process.env.EMAIL_API_KEY! },
-    redis: { url: process.env.REDIS_URL! },
-  }));
-
-  container.register('prisma', (c) => {
-    const config = c.get('config');
-    return new PrismaClient({
-      datasources: { db: { url: config.database.url } }
-    });
-  });
-
-  // Repositories
-  container.register('userRepository', (c) =>
-    new PrismaUserRepository(c.get('prisma'))
-  );
-
-  // Services
-  container.register('emailService', (c) => {
-    const config = c.get('config');
-    return new EmailService(config.email.apiKey);
-  });
-
-  container.register('cacheService', (c) => {
-    const config = c.get('config');
-    return new CacheService(config.redis.url);
-  });
-
-  container.register('eventBus', () => new EventBus());
-
-  // Commands
-  container.register('createUserCommand', (c) =>
-    new CreateUserCommand(
-      c.get('userRepository'),
-      c.get('emailService'),
-      c.get('eventBus')
-    )
-  );
-
-  // Queries
-  container.register('getUsersQuery', (c) =>
-    new GetUsersQuery(
-      c.get('userRepository'),
-      c.get('cacheService')
-    )
-  );
-
-  // Routes
-  container.register('userRoutes', (c) =>
-    new UserRoutes(
-      c.get('createUserCommand'),
-      c.get('getUsersQuery')
-    )
-  );
-
-  return container;
-}
-
-// For testing
-export function setupTestContainer(): DIContainer {
-  const container = new DIContainer();
-
-  // Mock implementations for testing
-  container.register('userRepository', () => new MockUserRepository());
-  container.register('emailService', () => new MockEmailService());
-  container.register('cacheService', () => new MockCacheService());
-  container.register('eventBus', () => new MockEventBus());
-
-  // Same commands/queries but with mock dependencies
-  container.register('createUserCommand', (c) =>
-    new CreateUserCommand(
-      c.get('userRepository'),
-      c.get('emailService'),
-      c.get('eventBus')
-    )
-  );
-
-  container.register('userRoutes', (c) =>
-    new UserRoutes(
-      c.get('createUserCommand'),
-      c.get('getUsersQuery')
-    )
-  );
-
-  return container;
-}
-```
-
-## Route Libraries Pattern
-
-### Why Route Libraries?
-
-```typescript
-// ❌ Problem: Route registration becomes messy
-fastify.post('/users', createUserHandler);
-fastify.get('/users', getUsersHandler);
-fastify.get('/users/:id', getUserByIdHandler);
-fastify.put('/users/:id', updateUserHandler);
-fastify.delete('/users/:id', deleteUserHandler);
-
-fastify.post('/orders', createOrderHandler);
-fastify.get('/orders', getOrdersHandler);
-// ... 100+ more routes manually registered
-```
-
-```typescript
-// ✅ Solution: Organized route libraries
-class UserRouteLibrary {
-  getRoutes(): RouteDefinition[] {
-    return [
-      {
-        method: 'POST',
-        path: '/users',
-        handler: this.userRoutes.createUser,
-        middleware: [authMiddleware],
-      },
-      {
-        method: 'GET', 
-        path: '/users',
-        handler: this.userRoutes.getUsers,
-        middleware: [authMiddleware, rateLimitMiddleware],
-      },
-      // ... all user routes organized
-    ];
-  }
-}
-
-// Auto-register all routes
-const routeLibrary = new UserRouteLibrary();
-registerRoutes(fastify, routeLibrary.getRoutes());
-```
-
-### Route Library Implementation
-
-```typescript
-// foundations/route-library.ts
-export interface RouteDefinition {
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  path: string;
-  handler: RouteHandler;
-  middleware?: RouteHandler[];
-  auth?: {
-    required: boolean;
-    roles?: string[];
+// Shared preprocessing function
+async function preprocessOrderData(orderData: any): Promise<any> {
+  // Common preprocessing logic
+  const processed = {
+    ...orderData,
+    normalizedCustomerId: normalizeCustomerId(orderData.customerId),
+    calculatedTaxes: await calculateTaxes(orderData.items, orderData.location),
+    validatedInventory: await validateInventoryAvailability(orderData.items)
   };
+  
+  return processed;
 }
 
-export type RouteHandler = (context: UnifiedHttpContext) => Promise<void>;
-
-export interface RouteLibrary {
-  getRoutes(): RouteDefinition[];
+// routes/order/v1-routes.ts - Original business logic
+export async function createOrderV1Route(
+  context: UnifiedHttpContext,
+  createOrderCommand: CreateOrderCommand // V1 command
+): Promise<void> {
+  const orderData = validateRequestBodyOrError(context, CreateOrderSchema);
+  if (!orderData) return;
+  
+  // Same preprocessing logic
+  const processedData = await preprocessOrderData(orderData);
+  
+  // V1 business logic
+  const result = await createOrderCommand.execute(processedData);
+  sendResponse(context, result, 201);
 }
 
-export function registerRoutes(
-  fastify: FastifyInstance,
-  routes: RouteDefinition[],
-  globalMiddleware: RouteHandler[] = []
-): void {
-  routes.forEach(route => {
-    const method = route.method.toLowerCase() as any;
+// routes/order/v2-routes.ts - Enhanced business logic
+export async function createOrderV2Route(
+  context: UnifiedHttpContext,
+  createOrderV2Command: CreateOrderV2Command // V2 command with new features!
+): Promise<void> {
+  const orderData = validateRequestBodyOrError(context, CreateOrderSchema);
+  if (!orderData) return;
+  
+  // Same preprocessing logic
+  const processedData = await preprocessOrderData(orderData);
+  
+  // V2 business logic with enhanced features
+  const result = await createOrderV2Command.execute(processedData);
+  sendResponse(context, result, 201);
+}
+
+// commands/order/create-order.command.ts - Original command
+export class CreateOrderCommand {
+  async execute(input: CreateOrderInput): Promise<Order> {
+    // V1: Basic order creation
+    const order = await this.orderRepository.create(input);
+    await this.emailService.sendOrderConfirmation(order);
     
-    fastify[method](route.path, async (request: any, reply: any) => {
-      const context = createFastifyContext(request, reply);
-      
-      try {
-        // Apply global middleware
-        for (const middleware of globalMiddleware) {
-          await middleware(context);
-          if (reply.sent) return;
-        }
-        
-        // Apply route-specific middleware
-        if (route.middleware) {
-          for (const middleware of route.middleware) {
-            await middleware(context);
-            if (reply.sent) return;
-          }
-        }
-        
-        // Execute handler
-        await route.handler(context);
-      } catch (error) {
-        console.error('Route error:', error);
-        if (!reply.sent) {
-          sendError(context, 'Internal server error', 500);
-        }
-      }
-    });
+    return order;
+  }
+}
+
+// commands/order/create-order-v2.command.ts - Enhanced command
+export class CreateOrderV2Command {
+  async execute(input: CreateOrderInput): Promise<Order> {
+    // V2: Enhanced order creation with new features
+    const order = await this.orderRepository.create(input);
+    
+    // V2: Enhanced features
+    await this.inventoryService.reserveItems(order.items);
+    await this.loyaltyService.awardPoints(order.customerId, order.total);
+    await this.emailService.sendOrderConfirmation(order);
+    await this.smsService.sendOrderSMS(order.customer.phone, order.id);
+    
+    // V2: Advanced analytics
+    await this.analyticsService.trackOrderCreated(order, 'v2');
+    
+    return order;
+  }
+}
+```
+
+#### Scenario 3: Infrastructure Migration with Same Route
+
+```typescript
+// routes/product/product-routes.ts - Same route function, different implementation
+export async function getProductsRoute(
+  context: UnifiedHttpContext,
+  getProductsQuery: GetProductsQuery // Same interface, different implementation
+): Promise<void> {
+  const query = validateQueryOrError(context, GetProductsQuerySchema);
+  if (!query) return;
+  
+  const result = await getProductsQuery.execute(query);
+  sendResponse(context, result);
+}
+
+// apps/main.ts - Configuration-based dependency injection
+async function createApp(): Promise<FastifyInstance> {
+  const container = setupContainer();
+  const fastify = require('fastify')({ logger: true });
+
+  // Get query implementation based on environment/config
+  const getProductsQuery = container.get('getProductsQuery'); // Could be SQL or NoSQL
+
+  // Same URL, same route function
+  fastify.get('/products', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await getProductsRoute(context, getProductsQuery); // Same route!
   });
+
+  return fastify;
 }
-```
 
-### Domain Route Libraries
+// foundations/container-setup.ts - Feature flag or environment-based setup
+export function setupContainer(): BasicDIContainer {
+  const container = new BasicDIContainer();
 
-```typescript
-// api-service/user/route-libraries/user-routes.library.ts
-export class UserRouteLibrary implements RouteLibrary {
-  constructor(private userRoutes: UserRoutes) {}
+  // Configuration-based implementation selection
+  if (process.env.DATABASE_TYPE === 'mongodb') {
+    // NoSQL implementation
+    container.registerSingleton('productRepository', () => 
+      new MongoProductRepository(container.get('mongoClient'))
+    );
+    container.register('getProductsQuery', () => 
+      new GetProductsNoSQLQuery(container.get('productRepository'))
+    );
+  } else {
+    // SQL implementation (default)
+    container.registerSingleton('productRepository', () => 
+      new PrismaProductRepository(container.get('prisma'))
+    );
+    container.register('getProductsQuery', () => 
+      new GetProductsSQLQuery(container.get('productRepository'))
+    );
+  }
 
-  getRoutes(): RouteDefinition[] {
-    return [
-      // Commands (Write operations)
-      {
-        method: 'POST',
-        path: '/users',
-        handler: (context) => this.userRoutes.createUser(context),
-        auth: { required: false }, // Public registration
-      },
-      {
-        method: 'PUT',
-        path: '/users/:id',
-        handler: (context) => this.userRoutes.updateUser(context),
-        auth: { required: true },
-      },
-      {
-        method: 'DELETE',
-        path: '/users/:id',
-        handler: (context) => this.userRoutes.deleteUser(context),
-        auth: { required: true, roles: ['admin'] },
-      },
+  return container;
+}
 
-      // Queries (Read operations)
-      {
-        method: 'GET',
-        path: '/users',
-        handler: (context) => this.userRoutes.getUsers(context),
-        auth: { required: true },
-        middleware: [rateLimitMiddleware(100, '1h')], // 100 requests per hour
-      },
-      {
-        method: 'GET',
-        path: '/users/:id', 
-        handler: (context) => this.userRoutes.getUserById(context),
-        auth: { required: true },
-      },
-    ];
+// Both implementations satisfy the same interface
+export interface GetProductsQuery {
+  execute(input: GetProductsInput): Promise<GetProductsResult>;
+}
+
+export class GetProductsSQLQuery implements GetProductsQuery {
+  constructor(private repository: PrismaProductRepository) {}
+
+  async execute(input: GetProductsInput): Promise<GetProductsResult> {
+    // SQL implementation
+    return this.repository.findMany(input);
+  }
+}
+
+export class GetProductsNoSQLQuery implements GetProductsQuery {
+  constructor(private repository: MongoProductRepository) {}
+
+  async execute(input: GetProductsInput): Promise<GetProductsResult> {
+    // NoSQL implementation with same result format
+    return this.repository.findMany(input);
   }
 }
 ```
 
-## Repository Interfaces & Implementations
+### Benefits of API Versioning with Simple Route Modules
 
-### Why Repository Pattern?
+**✅ Code Reuse:**
+- Same Commands/Queries with different validation schemas
+- Same preprocessing logic with different business logic
+- Gradual migration without breaking existing clients
 
-```typescript
-// ❌ Problem: Commands/Queries directly coupled to database
-class CreateUserCommand {
-  constructor(private prisma: PrismaClient) {} // ❌ Tied to Prisma
-  
-  async execute(input: CreateUserInput): Promise<User> {
-    // ❌ Can't test without real database
-    const user = await this.prisma.user.create({ data: input });
-    return user;
-  }
-}
-```
+**✅ Backward Compatibility:**
+- Keep old routes working while adding new features
+- Clear deprecation path for legacy endpoints
+- Independent testing of each version
 
-```typescript
-// ✅ Solution: Repository interfaces decouple data access
-interface UserRepository {
-  create(userData: CreateUserInput): Promise<User>;
-  findById(id: string): Promise<User | null>;
-  findByEmail(email: string): Promise<User | null>;
-}
+**✅ Clear Separation:**
+- Route-level concerns (validation, preprocessing) vs Business logic (commands/queries)
+- Version-specific logic contained in specific route modules
+- Easy to remove deprecated versions when ready
 
-class CreateUserCommand {
-  constructor(private userRepository: UserRepository) {} // ✅ Interface, not implementation
-  
-  async execute(input: CreateUserInput): Promise<User> {
-    // ✅ Can test with mock repository
-    const existing = await this.userRepository.findByEmail(input.email);
-    if (existing) throw new ConflictError('Email exists');
-    
-    return await this.userRepository.create(input);
-  }
-}
-```
+**✅ Development Flexibility:**
+- Add new validation rules without changing business logic
+- Enhance business logic without affecting validation
+- Mix and match components across versions
 
-### Core Repository Interfaces
+### Apps Layer: Thin Framework Adapters
 
 ```typescript
-// api-core/user/user.repository.ts
-export interface UserRepository {
-  // Commands (write operations)
-  create(userData: CreateUserInput): Promise<User>;
-  update(id: string, userData: UpdateUserInput): Promise<User | null>;
-  delete(id: string): Promise<boolean>;
-  
-  // Queries (read operations)
-  findById(id: string): Promise<User | null>;
-  findByEmail(email: string): Promise<User | null>;
-  findMany(options: FindUsersOptions): Promise<FindUsersResult>;
-  count(filters: UserFilters): Promise<number>;
-}
-
-export interface FindUsersOptions {
-  page?: number;
-  limit?: number;
-  search?: string;
-  sortBy?: 'email' | 'firstName' | 'lastName' | 'createdAt';
-  sortOrder?: 'asc' | 'desc';
-  filters?: UserFilters;
-}
-
-export interface UserFilters {
-  ageMin?: number;
-  ageMax?: number;
-  verified?: boolean;
-  status?: UserStatus;
-}
-
-export interface FindUsersResult {
-  users: User[];
-  total: number;
-}
-
-// Domain types
-export interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  age?: number;
-  status: UserStatus;
-  verified: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export enum UserStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive', 
-  SUSPENDED = 'suspended'
-}
-```
-
-## Migration Strategy: Simple → Enterprise
-
-### When to Migrate Each Pattern
-
-```typescript
-// Stage 1: CQRS - When business logic becomes complex
-// Before: Everything in one method (50+ lines)
-class UserService {
-  async createUser(context: UnifiedHttpContext) {
-    // 50+ lines of complex validation, business rules, side effects
-  }
-}
-
-// After: Focused Commands & Queries
-class CreateUserCommand {
-  async execute(input: CreateUserInput): Promise<User> {
-    // Focused business logic only
-  }
-}
-
-// Stage 2: DI Container - When dependencies become numerous
-// Before: Manual wiring becomes painful
-const userService = new UserService(repo, email, cache, events, audit, logger);
-
-// After: Container-managed
-const container = new DIContainer();
-const userService = container.get('userService'); // All dependencies resolved
-
-// Stage 3: Route Libraries - When routes become numerous  
-// Before: Manual registration (20+ routes)
-fastify.post('/users', handler1);
-fastify.get('/users', handler2);
-// ... 20+ more routes
-
-// After: Systematic organization
-const routeLibrary = new UserRouteLibrary();
-registerRoutes(fastify, routeLibrary.getRoutes());
-
-// Stage 4: Repository Interfaces - For testing & flexibility
-// Before: Direct database coupling
-class CreateUserCommand {
-  constructor(private prisma: PrismaClient) {} // Hard to test
-}
-
-// After: Interface-based approach
-class CreateUserCommand {
-  constructor(private userRepository: UserRepository) {} // Easy to test with mocks
-}
-```
-
-## Decision Framework: When to Use Enterprise Patterns
-
-### 🏃‍♂️ **Simple Service Pattern** (Part 3) - Use when:
-- Team size: 1-5 developers  
-- Domains: < 5 business domains
-- Business logic: Simple CRUD operations
-- Timeline: < 6 months development
-- Maintenance: < 2 years
-
-### 🏗️ **Enterprise Patterns** (Part 4) - Use when:
-- Team size: 5+ developers
-- Domains: 5+ business domains  
-- Business logic: Complex business rules
-- Timeline: 6+ months development
-- Maintenance: 2+ years
-
-```typescript
-// Quick decision check
-function shouldUseEnterprisePatterns(project: ProjectProfile): boolean {
-  return project.teamSize > 5 || 
-         project.domains > 5 || 
-         project.businessLogic === 'complex';
-}
-```
-
-## Complete Example: Putting It All Together
-
-### Application Setup
-
-```typescript
-// main.ts - Complete enterprise application setup
+// apps/user-service/src/main.ts - Fastify adapter layer
 import { FastifyInstance } from 'fastify';
-import { setupContainer } from './foundations/container-setup';
-import { UserRouteLibrary } from './api-service/user/route-libraries/user-routes.library';
-import { registerRoutes } from './foundations/route-library';
+import { createFastifyContext } from '@inh-lib/api-util-fastify';
+import { 
+  createPublicUserRoute, 
+  getPublicUsersRoute 
+} from '@workspace/routes/user/public-routes';
+import { 
+  createAdminUserRoute, 
+  getAdminUsersRoute 
+} from '@workspace/routes/user/admin-routes';
+import {
+  createUserV1Route,
+  createUserV2Route
+} from '@workspace/routes/user/versioned-routes';
 
 async function createApp(): Promise<FastifyInstance> {
-  // 1. Setup DI Container with all dependencies
   const container = setupContainer();
-  
-  // 2. Create Fastify instance
   const fastify: FastifyInstance = require('fastify')({ logger: true });
+
+  // Get commands/queries from container
+  const createUserCommand = container.get('createUserCommand');
+  const getUsersQuery = container.get('getUsersQuery');
+
+  // 🎯 Apps layer: Thin adapters only!
   
-  // 3. Setup middleware
-  await fastify.register(require('@fastify/cors'), { origin: true });
-  
-  // 4. Get route handlers from container
-  const userRoutes = container.get('userRoutes');
-  
-  // 5. Setup route libraries
-  const userRouteLibrary = new UserRouteLibrary(userRoutes);
-  
-  // 6. Register all routes systematically
-  registerRoutes(fastify, userRouteLibrary.getRoutes());
-  
-  // 7. Health check
+  // Public routes
+  fastify.post('/register', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await createPublicUserRoute(context, createUserCommand);
+  });
+
+  fastify.get('/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await getPublicUsersRoute(context, getUsersQuery);
+  });
+
+  // Admin routes
+  fastify.post('/admin/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await createAdminUserRoute(context, createUserCommand);
+  });
+
+  fastify.get('/admin/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await getAdminUsersRoute(context, getUsersQuery);
+  });
+
+  // Versioned API routes
+  fastify.post('/v1/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await createUserV1Route(context, createUserCommand);
+  });
+
+  fastify.post('/v2/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await createUserV2Route(context, createUserCommand);
+  });
+
+  // Health check
   fastify.get('/health', async (request, reply) => {
-    return { status: 'healthy', timestamp: new Date() };
+    try {
+      const prisma = container.get('prisma');
+      await prisma.$queryRaw`SELECT 1`;
+      return { status: 'healthy', timestamp: new Date() };
+    } catch (error) {
+      reply.status(503);
+      return { status: 'unhealthy', error: error.message };
+    }
   });
   
   return fastify;
@@ -968,8 +900,9 @@ async function main() {
     await app.listen({ port: 3000, host: '0.0.0.0' });
     console.log('🚀 Enterprise app running on port 3000');
     console.log('✅ CQRS: Commands & Queries separated');
-    console.log('✅ DI Container: Dependencies managed automatically');
-    console.log('✅ Route Libraries: Routes organized systematically');
+    console.log('✅ Simple Route Modules: Framework-agnostic route functions');
+    console.log('✅ API Versioning: Multiple versions with code reuse');
+    console.log('✅ Basic DI Container: Dependencies managed automatically');
     console.log('✅ Repository Pattern: Data access abstracted');
   } catch (err) {
     app.log.error(err);
@@ -980,71 +913,540 @@ async function main() {
 main().catch(console.error);
 ```
 
+## Basic DI Container
+
+### Why Dependency Injection?
+
+```typescript
+// ❌ Problem: Manual dependency management
+class CreateUserCommand {
+  constructor(
+    private userRepository: UserRepository,
+    private emailService: EmailService,
+    private eventBus: EventBus,
+    private logger: Logger,
+    private hashService: HashService
+  ) {}
+}
+
+// Manual wiring - gets complex quickly
+const userRepository = new PrismaUserRepository(prisma);
+const emailService = new EmailService(config.email);
+const eventBus = new EventBus(config.eventBus);
+const logger = new Logger();
+const hashService = new HashService();
+
+const createUserCommand = new CreateUserCommand(
+  userRepository,
+  emailService, 
+  eventBus,
+  logger,
+  hashService
+);
+```
+
+### Basic DI Container Solution
+
+```typescript
+// ✅ Solution: Automatic dependency resolution
+
+// foundations/di-container.ts
+export class BasicDIContainer {
+  private instances = new Map<string, any>();
+  private factories = new Map<string, () => any>();
+
+  register<T>(name: string, factory: () => T): void {
+    this.factories.set(name, factory);
+  }
+
+  registerSingleton<T>(name: string, factory: () => T): void {
+    this.register(name, () => {
+      if (!this.instances.has(name)) {
+        this.instances.set(name, factory());
+      }
+      return this.instances.get(name);
+    });
+  }
+
+  get<T>(name: string): T {
+    const factory = this.factories.get(name);
+    if (!factory) {
+      throw new Error(`No registration found for: ${name}`);
+    }
+    return factory();
+  }
+
+  clear(): void {
+    this.instances.clear();
+    this.factories.clear();
+  }
+}
+
+// foundations/container-setup.ts - Centralized configuration
+export function setupContainer(): BasicDIContainer {
+  const container = new BasicDIContainer();
+
+  // Infrastructure - Singletons
+  container.registerSingleton('prisma', () => 
+    new PrismaClient({
+      datasources: { db: { url: process.env.DATABASE_URL } }
+    })
+  );
+
+  container.registerSingleton('logger', () => 
+    new Logger({ level: process.env.LOG_LEVEL || 'info' })
+  );
+
+  container.registerSingleton('eventBus', () => 
+    new EventBus({ 
+      redis: { url: process.env.REDIS_URL }
+    })
+  );
+
+  // Services - Singletons
+  container.registerSingleton('emailService', () => 
+    new EmailService({
+      apiKey: process.env.EMAIL_API_KEY,
+      logger: container.get('logger')
+    })
+  );
+
+  container.registerSingleton('hashService', () => 
+    new HashService({ rounds: 12 })
+  );
+
+  // Repositories - Singletons
+  container.registerSingleton('userRepository', () => 
+    new PrismaUserRepository(container.get('prisma'))
+  );
+
+  // Commands - New instances (can be singletons too)
+  container.register('createUserCommand', () => 
+    new CreateUserCommand(
+      container.get('userRepository'),
+      container.get('emailService'),
+      container.get('eventBus'),
+      container.get('logger'),
+      container.get('hashService')
+    )
+  );
+
+  // Queries - New instances
+  container.register('getUsersQuery', () => 
+    new GetUsersQuery(
+      container.get('userRepository'),
+      container.get('logger')
+    )
+  );
+
+  return container;
+}
+```
+
+## Repository Interfaces
+
+### Why Repository Pattern?
+
+```typescript
+// ❌ Problem: Direct database coupling
+class CreateUserCommand {
+  constructor(private prisma: PrismaClient) {}
+
+  async execute(input: CreateUserInput): Promise<User> {
+    // Tightly coupled to Prisma
+    const user = await this.prisma.user.create({
+      data: {
+        id: generateId(),
+        email: input.email,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        createdAt: new Date(),
+      }
+    });
+    
+    return user;
+  }
+}
+```
+
+### Repository Interface Solution
+
+```typescript
+// ✅ Solution: Abstract data access
+
+// repositories/user.repository.ts - Interface
+export interface UserRepository {
+  create(user: CreateUserData): Promise<User>;
+  findById(id: string): Promise<User | null>;
+  findByEmail(email: string): Promise<User | null>;
+  findMany(options: FindUsersOptions): Promise<User[]>;
+  count(options: CountUsersOptions): Promise<number>;
+  update(id: string, data: UpdateUserData): Promise<User>;
+  delete(id: string): Promise<void>;
+}
+
+export interface FindUsersOptions {
+  where?: {
+    email?: string;
+    status?: UserStatus;
+    createdAt?: {
+      gte?: Date;
+      lte?: Date;
+    };
+    OR?: Array<{
+      firstName?: { contains: string };
+      lastName?: { contains: string };
+      email?: { contains: string };
+    }>;
+  };
+  skip?: number;
+  take?: number;
+  orderBy?: {
+    [key: string]: 'asc' | 'desc';
+  };
+}
+
+// repositories/prisma-user.repository.ts - Implementation
+export class PrismaUserRepository implements UserRepository {
+  constructor(private prisma: PrismaClient) {}
+
+  async create(user: CreateUserData): Promise<User> {
+    return this.prisma.user.create({
+      data: user
+    });
+  }
+
+  async findById(id: string): Promise<User | null> {
+    return this.prisma.user.findUnique({
+      where: { id }
+    });
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.prisma.user.findUnique({
+      where: { email }
+    });
+  }
+
+  async findMany(options: FindUsersOptions): Promise<User[]> {
+    return this.prisma.user.findMany({
+      where: options.where,
+      skip: options.skip,
+      take: options.take,
+      orderBy: options.orderBy
+    });
+  }
+
+  async count(options: CountUsersOptions): Promise<number> {
+    return this.prisma.user.count({
+      where: options.where
+    });
+  }
+
+  async update(id: string, data: UpdateUserData): Promise<User> {
+    return this.prisma.user.update({
+      where: { id },
+      data
+    });
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.user.delete({
+      where: { id }
+    });
+  }
+}
+```
+
+## Complete Example: Putting It All Together
+
+### Project Structure
+
+```
+src/
+├── routes/                          # 🚀 Framework-agnostic route functions
+│   ├── user/
+│   │   ├── public-routes.ts         # Public user operations
+│   │   ├── admin-routes.ts          # Admin user operations
+│   │   ├── api-routes.ts            # External API operations
+│   │   └── versioned-routes.ts      # API version management
+│   ├── order/
+│   │   ├── customer-routes.ts       # Customer order operations
+│   │   └── admin-routes.ts          # Admin order operations
+│   └── shared/
+│       └── middleware.ts            # Framework-agnostic middleware
+├── commands/                        # 📝 Write operations (CQRS)
+│   ├── user/
+│   │   ├── create-user.command.ts
+│   │   ├── update-user.command.ts
+│   │   └── delete-user.command.ts
+│   └── order/
+│       ├── create-order.command.ts
+│       ├── create-order-v2.command.ts
+│       └── update-order.command.ts
+├── queries/                         # 📖 Read operations (CQRS)
+│   ├── user/
+│   │   ├── get-users.query.ts
+│   │   ├── get-users-v2.query.ts
+│   │   └── get-user.query.ts
+│   └── order/
+│       ├── get-orders.query.ts
+│       └── get-order.query.ts
+├── repositories/                    # 🗄️ Data access interfaces
+│   ├── user.repository.ts           # Interface
+│   ├── prisma-user.repository.ts    # Implementation
+│   ├── order.repository.ts          # Interface
+│   └── prisma-order.repository.ts   # Implementation
+├── schemas/                         # 📋 Validation schemas
+│   ├── user-schemas.ts
+│   ├── user-v1.schemas.ts
+│   ├── user-v2.schemas.ts
+│   └── order-schemas.ts
+├── foundations/                     # 🏗️ Core infrastructure
+│   ├── di-container.ts
+│   └── container-setup.ts
+└── __tests__/                       # 🧪 Tests
+    ├── commands/
+    ├── queries/
+    ├── routes/
+    └── integration/
+```
+
+### Application Setup
+
+```typescript
+// main.ts - Complete enterprise application setup
+import { FastifyInstance } from 'fastify';
+import { setupContainer } from './foundations/container-setup';
+import { 
+  createPublicUserRoute, 
+  getPublicUsersRoute 
+} from './routes/user/public-routes';
+import { 
+  createAdminUserRoute, 
+  getAdminUsersRoute 
+} from './routes/user/admin-routes';
+import {
+  createUserV1Route,
+  createUserV2Route
+} from './routes/user/versioned-routes';
+
+async function createApp(): Promise<FastifyInstance> {
+  // 1. Setup DI Container with all dependencies
+  const container = setupContainer();
+  
+  // 2. Create Fastify instance
+  const fastify: FastifyInstance = require('fastify')({ logger: true });
+  
+  // 3. Setup middleware
+  await fastify.register(require('@fastify/cors'), { origin: true });
+  
+  // 4. Get commands/queries from container
+  const createUserCommand = container.get('createUserCommand');
+  const getUsersQuery = container.get('getUsersQuery');
+  
+  // 5. Register routes - just thin adapters
+  
+  // Public API
+  fastify.post('/register', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await createPublicUserRoute(context, createUserCommand);
+  });
+
+  fastify.get('/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await getPublicUsersRoute(context, getUsersQuery);
+  });
+
+  // Admin API
+  fastify.post('/admin/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await createAdminUserRoute(context, createUserCommand);
+  });
+
+  fastify.get('/admin/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await getAdminUsersRoute(context, getUsersQuery);
+  });
+
+  // Versioned API
+  fastify.post('/v1/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await createUserV1Route(context, createUserCommand);
+  });
+
+  fastify.post('/v2/users', async (request, reply) => {
+    const context = createFastifyContext(request, reply);
+    await createUserV2Route(context, createUserCommand);
+  });
+
+  // Health check
+  fastify.get('/health', async (request, reply) => {
+    try {
+      const prisma = container.get('prisma');
+      await prisma.$queryRaw`SELECT 1`;
+      return { status: 'healthy', timestamp: new Date() };
+    } catch (error) {
+      reply.status(503);
+      return { status: 'unhealthy', error: error.message };
+    }
+  });
+  
+  return fastify;
+}
+
+async function main() {
+  const app = await createApp();
+  
+  try {
+    await app.listen({ port: 3000, host: '0.0.0.0' });
+    console.log('🚀 Enterprise app running on port 3000');
+    console.log('✅ CQRS: Commands & Queries separated');
+    console.log('✅ Simple Route Modules: Framework-agnostic route functions');
+    console.log('✅ API Versioning: Multiple versions with code reuse');
+    console.log('✅ Basic DI Container: Dependencies managed automatically');
+    console.log('✅ Repository Pattern: Data access abstracted');
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+}
+
+main().catch(console.error);
+```
+
+## Migration Strategy: Simple → Enterprise
+
+### When to Migrate Each Pattern
+
+```typescript
+// Stage 1: CQRS - When business logic becomes complex (5+ service methods with 20+ lines each)
+// Before: Everything in one method (50+ lines)
+class UserService {
+  async createUser(context: UnifiedHttpContext) {
+    // 50+ lines of complex validation, business rules, side effects
+  }
+}
+
+// After: Focused Commands & Queries
+class CreateUserCommand {
+  async execute(input: CreateUserInput): Promise<User> {
+    // Focused business logic only (10-20 lines)
+  }
+}
+
+// Stage 2: Simple Route Modules - When you need route reuse (same command, different validation)
+// Before: Duplicate logic in multiple routes
+fastify.post('/register', handler1);
+fastify.post('/admin/users', handler2); // Same logic, different validation
+
+// After: Reusable route functions
+await createUserRoute(context, command); // Different schemas per context
+
+// Stage 3: Basic DI Container - When dependencies become numerous (5+ constructor params)
+// Before: Manual wiring
+const createUserCommand = new CreateUserCommand(repo, email, event, log, hash);
+
+// After: Automatic resolution
+const createUserCommand = container.get('createUserCommand');
+
+// Stage 4: Repository Interfaces - When you need database flexibility or better testing
+// Before: Direct database coupling
+class CreateUserCommand {
+  constructor(private prisma: PrismaClient) {}
+}
+
+// After: Interface abstraction
+class CreateUserCommand {
+  constructor(private userRepository: UserRepository) {}
+}
+```
+
+### Gradual Adoption
+
+```typescript
+// Week 1-2: Start with CQRS for new features
+export class CreatePostCommand { /* ... */ }
+export class GetPostsQuery { /* ... */ }
+
+// Week 3-4: Convert existing complex service methods
+// Old: 50-line service method → New: Focused command + query
+
+// Week 5-6: Add route modules for code reuse
+export async function createUserRoute(context, command) { /* ... */ }
+
+// Week 7-8: Implement basic DI container
+const container = setupContainer();
+const command = container.get('createUserCommand');
+```
+
+### Decision Framework
+
+```typescript
+function shouldUseEnterprisePatterns(project: ProjectProfile): boolean {
+  return project.teamSize > 5 || 
+         project.serviceCount > 10 || 
+         project.businessLogic === 'complex' ||
+         project.maintenanceYears > 2;
+}
+```
+
+### 📊 **Pattern Adoption Roadmap**
+
+| Week | Pattern | Focus | Team Size |
+|------|---------|-------|-----------|
+| **1-2** | CQRS | Separate read/write concerns | 3+ devs |
+| **3-4** | Simple Route Modules | Reusable route functions | 5+ devs |
+| **5-6** | Basic DI Container | Dependency management | 5+ devs |
+| **7-8** | Repository Interfaces | Data access abstraction | 5+ devs |
+
+## Benefits of Enterprise Patterns (Free Edition)
+
+### ✅ **CQRS Pattern Benefits:**
+- **Focused Logic**: Each command/query has single responsibility
+- **Better Testing**: Small, focused units are easier to test
+- **Performance**: Different optimization strategies for reads vs writes
+- **Scalability**: Can scale read/write operations independently
+
+### ✅ **Simple Route Modules Benefits:**
+- **Framework Independence**: Same route functions work with any HTTP framework
+- **Code Reuse**: Same commands/queries with different validation schemas
+- **API Versioning**: Easy management of multiple API versions
+- **Easy Testing**: Test route logic without HTTP framework
+- **Clear Organization**: Route functions organized by domain and access level
+
+### ✅ **Basic DI Container Benefits:**
+- **Automatic Dependency Resolution**: No manual wiring
+- **Singleton Management**: Shared instances where appropriate
+- **Testing Support**: Easy to substitute mock implementations
+- **Configuration Centralization**: All dependencies defined in one place
+
+### ✅ **Repository Pattern Benefits:**
+- **Database Independence**: Switch databases without changing business logic
+- **Easy Testing**: Mock repositories for unit tests
+- **Query Abstraction**: Complex queries hidden behind simple interfaces
+- **Separation of Concerns**: Data access separated from business logic
+
 ## What's Next?
 
-### 🆓 Free Content Continues
+### 🆓 **Free Edition Covers:**
+- ✅ **CQRS Pattern**: Separate commands and queries
+- ✅ **Simple Route Modules**: Framework-agnostic route functions with API versioning
+- ✅ **Basic DI Container**: Automatic dependency resolution
+- ✅ **Repository Interfaces**: Clean data access abstraction
 
-- **[Part 5: Package Architecture & Configuration](05-package-architecture.md)** - Mono-repo structure and package organization
-- **[Part 6: Testing Strategies](06-testing-strategies.md)** - Testing enterprise patterns comprehensively
+### 💎 **Premium Features** (Advanced Route Management):
+- 🚀 **UnifiedRoute System**: Automatic route discovery and registration
+- 📚 **OpenAPI Generation**: Automatic documentation from route decorators
+- 🔒 **Systematic Security**: Declarative auth, rate limiting, CORS management
+- 📊 **Performance Monitoring**: Built-in route performance tracking
+- 🏗️ **Advanced DI Features**: Conditional registration, environment-specific config
+- 🧪 **Auto-Test Generation**: Automated test scaffolding from route definitions
 
-### 💎 Premium Content Available
-
-For teams needing **advanced validation strategies** and **sophisticated enterprise patterns**:
-
-**[🚀 Advanced Validation Patterns (Premium)](advanced-validation-patterns-premium.md)**
-- Sophisticated Validation Architecture & Pipelines
-- Performance-Optimized Validation with Caching
-- Custom Validation Decorators & Middleware
-- Enterprise-Grade Error Handling & User Experience
-- Advanced Testing Patterns for Complex Validation
-- Multi-tenant Validation & Audit Requirements
-
-**[🏗️ Advanced DI Container Patterns (Premium)](advanced-di-container-premium.md)**
-- Service Lifecycles (Singleton, Scoped, Transient)
-- Environment-Specific & Conditional Registration
-- Module-Based Architecture with Health Checks
-- Request-Scoped Services & HTTP Integration
-- Service Decorators (Logging, Caching, Retry, Monitoring)
-
-## Summary
-
-Enterprise Patterns (Free Edition) for @inh-lib/api-util-fastify provides:
-
-✅ **CQRS Pattern** - Separate Commands (write) and Queries (read) for focused operations  
-✅ **Validation Layers** - Clear separation between Schema, Business, Rules, and Side Effects  
-✅ **Basic DI Container** - Automatic dependency management for enterprise applications  
-✅ **Route Libraries** - Systematic route organization with middleware composition  
-✅ **Repository Interfaces** - Clean data access abstraction for testing & flexibility  
-✅ **Decision Framework** - Know when to use enterprise vs simple patterns  
-✅ **Gradual Migration** - Start simple, add patterns as complexity grows
-
-### Key Decision Points:
-
-🎯 **Use Enterprise Patterns when you have:**
-- 5+ developers working together
-- 5+ business domains  
-- Complex business logic beyond CRUD
-- 6+ months development timeline
-- 2+ years maintenance lifecycle
-
-🏃‍♂️ **Stick with Simple Patterns when you have:**
-- Small team (< 5 developers)
-- Simple CRUD operations
-- Short timeline (< 6 months) 
-- Limited maintenance needs
-
-### Foundation Knowledge Included:
-
-🧠 **Understanding Validation Layers** - The critical foundation for proper CQRS implementation:
-- **Schema Validation** (HTTP Layer with Zod) vs **Business Validation** (Command Layer with custom logic)
-- **Business Rules** (system constraints) vs **Side Effects** (additional actions)
-- Clear examples of what belongs in each layer
-- Common mistakes and how to avoid them
-
-The enterprise patterns provide a scalable foundation that grows with your application and team, while maintaining the framework-agnostic benefits from earlier parts of this series! 🏗️🚀
+The free enterprise patterns provide everything needed for complex applications with multiple developers and long-term maintenance requirements! 🏗️🚀
 
 ---
 
-> 💡 **Next Steps**: The foundation knowledge in this free edition gives you everything needed to implement enterprise patterns correctly. For advanced optimization, sophisticated validation pipelines, and cutting-edge DI container features, explore our premium content series.
+> 💡 **Next Steps**: The foundation knowledge in this free edition gives you everything needed to implement enterprise patterns correctly. For advanced systematic route management, sophisticated DI features, and cutting-edge validation pipelines, explore our premium content series.
 
 > 📧 **Questions?** Join our community discussions or reach out for guidance on implementing these patterns in your specific use case.
