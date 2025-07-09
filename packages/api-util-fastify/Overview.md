@@ -23,7 +23,7 @@ Business logic separation
 Reusability patterns
 Testing strategies
 
-🆓 Part 4: Free Edition - เหมาะสำหรับ startup และ mid-size teams
+🆓 Part 4.1: Free Edition - เหมาะสำหรับ startup และ mid-size teams
 
 Table of Content
 Enterprise Patterns (Free Edition) for @inh-lib/api-util-fastify provides:
@@ -95,7 +95,75 @@ Database connection factories
 Analytics query caching
 Production configuration examples
 
-💎 Advanced Validation Patterns (Premium)
+---
+
+# Part 4.2: Enterprise Middleware System 🔗
+
+## 📖 **Course Overview**
+
+**Goal**: สร้าง enterprise-grade middleware system ที่สามารถจัดการ cross-cutting concerns อย่างเป็นระบบ พร้อมด้วย comprehensive logging, schema validation, และ framework independence
+
+**Learning Outcome**: 
+- เขียน reusable middleware ที่ทำงานได้กับทุก HTTP framework
+- ใช้ schema validation middleware เพื่อลด boilerplate code 90%
+- สร้าง individual route classes ที่มี custom middleware ต่าง ๆ กัน
+- ใช้ logger injection เพื่อ complete observability
+- เขียน comprehensive tests สำหรับ middleware และ routes
+- ออกแบบ middleware architecture ที่ scalable สำหรับ enterprise applications
+
+**Time Investment**: 2-3 สัปดาห์ (8-12 ชั่วโมง total)
+- **Week 1**: อ่านทฤษฎี + ลองเขียน basic middleware (3-4 ชม.)
+- **Week 2**: ลงมือสร้าง validation middleware + route classes (4-5 ชม.) 
+- **Week 3**: เขียน tests + ปรับแต่ง production setup (2-3 ชม.)
+
+---
+
+## 📋 **Table of Contents**
+
+### **Part 1: Foundation & Problem Analysis**
+- [The Problem Without Middleware](#the-problem-without-middleware)
+- [Solution: Simple Middleware Pattern](#-solution-simple-middleware-pattern)
+- [Core Types & Middleware Composer](#simple-middleware-composer)
+
+### **Part 2: Essential Built-in Middlewares**
+- [📊 Logging Middleware](#-logging-middleware)
+- [🌍 CORS Middleware](#-cors-middleware)
+- [🛡️ Error Handling Middleware](#️-error-handling-middleware)
+- [⚡ Rate Limiting Middleware](#-rate-limiting-middleware)
+- [🛡️ Schema Validation Middleware](#️-schema-validation-middleware)
+- [🗄️ Cache Middleware](#️-cache-middleware)
+
+### **Part 3: Schema-Driven Development**
+- [Zod Schemas & Type Safety](#zod-schemas)
+- [Validation Schemas Configuration](#schemas--validation)
+- [Middleware Stacks & Composition](#middleware-stacks)
+
+### **Part 4: Clean Architecture Implementation**
+- [Setup with Fastify Logger](#setup-with-fastify-logger)
+- [Clean Route Classes (Individual Routes)](#clean-route-classes-using-schema-validation-middleware)
+- [HTTP Route Handlers with Custom Middleware](#http-route-handlers-with-schema-validation-middleware)
+- [Framework Integration](#framework-integration)
+
+### **Part 5: Testing & Quality Assurance**
+- [Testing Schema Validation Middleware](#testing-schema-validation-middleware)
+- [Testing Route Classes](#testing-route-classes-with-schema-validation)
+- [Testing Individual Middlewares](#testing-middleware)
+- [Integration Testing Strategies](#testing-individual-route-classes)
+
+### **Part 6: Enterprise Benefits & Best Practices**
+- [Benefits of Logger in Every Middleware](#-benefits-of-logger-in-every-middleware)
+- [Benefits of Schema Validation Middleware](#-benefits-of-schema-validation-middleware)
+- [Individual Route Classes Benefits](#-benefits-of-individual-route-classes-with-complete-logging)
+- [Production Considerations](#-complete-architecture-benefits)
+
+### **Part 7: Framework Independence**
+- [Cross-Framework Compatibility](#framework-independence-maintained-with-universal-logging)
+- [Logger Injection Benefits](#benefits-of-logger-injection)
+- [Production Deployment](#-universal-middleware-logging)
+
+---
+
+# Part 4.3: 💎 Advanced Validation Patterns (Premium)
 📚 Prerequisites
     This guide assumes you've read:
 
@@ -116,8 +184,9 @@ Production configuration examples
     Testing Validation Logic
     Real-World Implementation
 
+---
 
-💎 Advanced Route Management (Premium Enterprise Features):
+# Part 4.4: 💎 Advanced Route Management (Premium Enterprise Features):
 
 Table of Contents
 Advanced Route Library Architecture
@@ -125,6 +194,8 @@ Automatic route discovery
 OpenAPI generation
 Dynamic middleware composition
 Advanced DI Container features
+
+---
 
 Part 5: Package Architecture & Configuration
 

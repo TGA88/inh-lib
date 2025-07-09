@@ -1,0 +1,42 @@
+import { UnifiedHttpContext } from "../../type/unified/unified-context";
+import { UnifiedMiddlewareEntry, UnifiedMiddleware, UnifiedMiddlewareOptions, UnifiedRouteHandler, UnifiedMiddlewareContext } from "../../type/unified/unified-middleware";
+import { sortMiddlewaresByOrder, attachMiddlewareContext, createMiddlewareDispatcher } from "./utils";
+
+// foundations/middleware/composer.ts
+export class UnifiedMiddlewareComposer {
+  private readonly middlewares: UnifiedMiddlewareEntry[] = [];
+
+  add(middleware: UnifiedMiddleware, options: UnifiedMiddlewareOptions = {}): this {
+    this.middlewares.push({ middleware, options });
+    return this;
+  }
+
+  compose(): (handler: UnifiedRouteHandler) => UnifiedRouteHandler {
+    const sortedMiddlewares = sortMiddlewaresByOrder([...this.middlewares]);
+
+    return (handler: UnifiedRouteHandler): UnifiedRouteHandler => {
+      return async (context: UnifiedHttpContext) => {
+        const middlewareContext: UnifiedMiddlewareContext = {
+          startTime: Date.now(),
+          metadata: {}
+        };
+
+        const enhancedContext = attachMiddlewareContext(context, middlewareContext);
+        const dispatch = createMiddlewareDispatcher(sortedMiddlewares, handler, middlewareContext);
+        
+        await dispatch(enhancedContext);
+      };
+    };
+  }
+
+  // Exposed for testing
+  getMiddlewares(): UnifiedMiddlewareEntry[] {
+    return [...this.middlewares];
+  }
+
+  // Exposed for testing
+  getSortedMiddlewares(): UnifiedMiddlewareEntry[] {
+    return sortMiddlewaresByOrder([...this.middlewares]);
+  }
+}
+

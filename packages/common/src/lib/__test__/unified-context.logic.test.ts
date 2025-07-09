@@ -7,7 +7,7 @@ import {
   sendResponse,
   sendError
 } from '../unified-context.logic';
-import { UnifiedHttpContext } from '../type/endpoint/unified-context';
+import { UnifiedHttpContext } from '../type/unified/unified-context';
 // __tests__/services/unified-base-service.test.ts
 describe('Unified Base Service Functions', () => {
   let mockContext: UnifiedHttpContext;

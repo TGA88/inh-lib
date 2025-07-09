@@ -1,4 +1,4 @@
-import { UnifiedHttpContext } from "./type/endpoint/unified-context";
+import { UnifiedHttpContext } from "./type/unified/unified-context";
 
 // services/unified-base-service.ts
 export function getRequestBody<T = Record<string, unknown>>(context: UnifiedHttpContext): T {
