@@ -17,6 +17,7 @@
     "baseUrl": ".",
     "paths": {
       "@inh-lib/common": ["packages/common/src/index.ts"],
+      "@inh-lib/inh-logger": ["packages/inh-logger/src/index.ts"],
       "@inh-lib/ddd": ["packages/ddd/src/index.ts"],
       "@inh-lib/ui-router": ["packages/ui-router/src/index.ts"],
       "@inh-lib/api-util-fastify": ["packages/api-util-fastify/src/index.ts"]
