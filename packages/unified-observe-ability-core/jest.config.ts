@@ -12,7 +12,7 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/packages/unified-observe-ability-core',
-   setupFilesAfterEnv: ['<rootDir>/src/unified-observe-ability-core/tests/test-setup.ts'],
+   setupFilesAfterEnv: ['<rootDir>/src/tests/test-setup.ts'],
     testMatch: [
     '<rootDir>/src/**/__tests__/**/*.[jt]s?(x)',
     '<rootDir>/src/**/+(*.)+(spec|test).[jt]s?(x)'
@@ -21,6 +21,17 @@ export default {
     'src/**/*.ts',
     '!src/**/*.spec.ts',
     '!src/**/*.test.ts',
-    '!src/**/test-setup.ts'
+    '!src/**/index.ts',
+    '!src/**/test-setup.ts',
+    '!src/**/test-utils.ts',
+
   ],
+    coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
+    }
+  }
 };

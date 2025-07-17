@@ -38,7 +38,10 @@
       "outputs": ["{workspaceRoot}/coverage/packages/unified-observe-ability-core"],
       "options": {
         "jestConfig": "packages/unified-observe-ability-core/jest.config.ts",
-        "passWithNoTests": true
+        "passWithNoTests": true,
+        "codeCoverage": true,
+        "verbose": false,
+        "coverageReporters": ["text"]
       }
     },
     "version": {

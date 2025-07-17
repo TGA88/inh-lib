@@ -1,0 +1,159 @@
+import { UnifiedCounter, CounterValue } from '../types/metrics/counter';
+import { UnifiedHistogram, HistogramValue } from '../types/metrics/histogram';
+import { UnifiedGauge, GaugeValue } from '../types/metrics/gauge';
+import { UnifiedSpan, SpanEvent,SpanStatus } from '../types/tracing/span';
+import { UnifiedMetricProvider } from '../types/providers/metric-provider';
+import { UnifiedTraceProvider } from '../types/providers/trace-provider';
+import { UnifiedLogProvider } from '../types/providers/log-provider';
+
+import { AttributeValue } from '../utils/type.utils';
+
+// ✅ Import Jest types for TypeScript
+/// <reference types="jest" />
+
+export interface TestableMetricProvider extends UnifiedMetricProvider {
+  _getInternalMetrics(): Map<string, TestableMetric>;
+  _getMetricByName(name: string): UnifiedCounter | UnifiedHistogram | UnifiedGauge | undefined;
+  _reset(): void;
+  _getMetricCount(): number;
+}
+
+export interface TestableMetric {
+  readonly type: 'counter' | 'histogram' | 'gauge';
+  readonly counter?: TestableCounterData;
+  readonly histogram?: TestableHistogramData;
+  readonly gauge?: TestableGaugeData;
+}
+
+export interface TestableCounterData {
+  readonly values: CounterValue[];
+  readonly totalValue: number;
+}
+
+export interface TestableHistogramData {
+  readonly values: HistogramValue[];
+  readonly totalCount: number;
+  readonly totalSum: number;
+}
+
+export interface TestableGaugeData {
+  readonly values: GaugeValue[];
+  readonly currentValue: number;
+}
+
+export interface TestableSpan extends UnifiedSpan {
+  _getAttributes(): Record<string, AttributeValue>;
+  _getEvents(): SpanEvent[];
+  _getStatus(): SpanStatus;
+  _isEnded(): boolean;
+  _getDuration(): number | undefined;
+  _getChildSpans(): TestableSpan[];
+}
+
+export interface TestableTraceProvider extends UnifiedTraceProvider {
+  _getActiveSpans(): Map<string, TestableSpan>;
+  _getCompletedSpans(): TestableSpan[];
+  _getSpanCount(): number;
+  _reset(): void;
+}
+
+export interface TestableLogProvider extends UnifiedLogProvider {
+  _getLogEntries(): TestLogEntry[];
+  _getLogEntriesForLogger(name: string): TestLogEntry[];
+  _reset(): void;
+}
+
+export interface TestLogEntry {
+  readonly level: string;
+  readonly message: string;
+  readonly timestamp: number;
+  readonly logger: string;
+  readonly metadata?: Record<string, unknown>;
+  readonly traceId?: string;
+  readonly spanId?: string;
+}
+
+// Testing utilities
+export function createTestMetricProvider(): TestableMetricProvider {
+  const metrics = new Map<string, TestableMetric>();
+  
+  return {
+    name: 'test-metric-provider',
+    isInitialized: true,
+    
+    createCounter: jest.fn(),
+    createHistogram: jest.fn(),
+    createGauge: jest.fn(),
+    getCounter: jest.fn(),
+    getHistogram: jest.fn(),
+    getGauge: jest.fn(),
+    getAllMetrics: jest.fn(),
+    shutdown: jest.fn().mockResolvedValue(undefined),
+    
+    _getInternalMetrics: () => new Map(metrics),
+    _getMetricByName: (name: string) => undefined,
+    _reset: () => metrics.clear(),
+    _getMetricCount: () => metrics.size
+  } as TestableMetricProvider;
+}
+
+export function createTestSpan(name: string): TestableSpan {
+  const attributes = new Map<string, AttributeValue>();
+  const events: SpanEvent[] = [];
+  let status: SpanStatus = { code: 'UNSET' };
+  let ended = false;
+  let endTime: number | undefined;
+  const startTime = Date.now();
+  
+  return {
+    traceId: 'test-trace-id',
+    spanId: 'test-span-id',
+    name,
+    kind: 'INTERNAL',
+    startTime,
+    isRecording: true,
+    
+    setAttributes: jest.fn().mockReturnThis(),
+    setAttribute: jest.fn().mockReturnThis(),
+    setStatus: jest.fn().mockImplementation((newStatus: SpanStatus) => {
+      status = newStatus;
+      return this;
+    }),
+    setName: jest.fn().mockReturnThis(),
+    addEvent: jest.fn().mockImplementation((eventName: string, eventAttributes?: Record<string, AttributeValue>, timestamp?: number) => {
+      events.push({
+        name: eventName,
+        timestamp: timestamp || Date.now(),
+        attributes: eventAttributes
+      });
+      return this;
+    }),
+    end: jest.fn().mockImplementation((time?: number) => {
+      ended = true;
+      endTime = time || Date.now();
+    }),
+    
+    _getAttributes: () => Object.fromEntries(attributes),
+    _getEvents: () => [...events],
+    _getStatus: () => status,
+    _isEnded: () => ended,
+    _getDuration: () => endTime ? endTime - startTime : undefined,
+    _getChildSpans: () => []
+  } as TestableSpan;
+}
+
+export function createMockValidationResult(isValid: boolean, errors: string[] = []) {
+  return { isValid, errors: [...errors] };
+}
+
+export function assertValidationPassed(result: { isValid: boolean; errors: string[] }): void {
+  if (!result.isValid) {
+    throw new Error(`Validation failed: ${result.errors.join(', ')}`);
+  }
+}
+
+export function assertValidationFailed(result: { isValid: boolean; errors: string[] }): void {
+  if (result.isValid) {
+    throw new Error('Expected validation to fail, but it passed');
+  }
+}
