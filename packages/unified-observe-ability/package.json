@@ -1,0 +1,8 @@
+{
+  "name": "@inh-lib/unified-observe-ability",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -5,6 +5,9 @@
     "common": "packages/common",
     "ddd": "packages/ddd",
     "inh-logger": "packages/inh-logger",
+    "unified-observe-ability-core": "packages/unified-observe-ability-core",
+    "unified-observe-ability": "packages/unified-observe-ability",
+    
     "ui-router": "packages/ui-router",
     "api-util-fastify": "packages/api-util-fastify"
   }
