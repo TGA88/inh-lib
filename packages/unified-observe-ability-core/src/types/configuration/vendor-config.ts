@@ -1,29 +1,29 @@
 import { 
-  MetricsVendorType,
-  TracingVendorType, 
-  LoggingVendorType,
-  AuthType
+  UnifiedMetricsVendorType,
+  UnifiedTracingVendorType, 
+  UnifiedLoggingVendorType,
+  UnifiedAuthType
 } from '../../constants/vendor-types';
 
-export interface VendorEndpointConfig {
+export interface UnifiedVendorEndpointConfig {
   readonly url: string;
   readonly timeout?: number;
   readonly headers?: Record<string, string>;
-  readonly retryConfig?: RetryConfig;
+  readonly retryConfig?: UnifiedRetryConfig;
 }
 
-export interface RetryConfig {
+export interface UnifiedRetryConfig {
   readonly maxRetries: number;
   readonly retryDelay: number;
   readonly exponentialBackoff?: boolean;
 }
 
-export interface AuthConfig {
-  readonly type: AuthType;
-  readonly credentials: AuthCredentials;
+export interface UnifiedAuthConfig {
+  readonly type: UnifiedAuthType;
+  readonly credentials: UnifiedAuthCredentials;
 }
 
-export interface AuthCredentials {
+export interface UnifiedAuthCredentials {
   readonly apiKey?: string;
   readonly bearerToken?: string;
   readonly username?: string;
@@ -37,4 +37,4 @@ export interface AuthCredentials {
 }
 
 // Re-export types for convenience
-export type { MetricsVendorType, TracingVendorType, LoggingVendorType, AuthType };
+export type { UnifiedMetricsVendorType, UnifiedTracingVendorType, UnifiedLoggingVendorType, UnifiedAuthType };

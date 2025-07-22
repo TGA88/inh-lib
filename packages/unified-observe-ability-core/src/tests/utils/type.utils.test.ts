@@ -1,135 +1,135 @@
 import {
-  isPrimitive,
-  isValidLabelValue,
-  isValidAttributeValue,
+  isUnifiedPrimitive,
+  isValidUnifiedLabelValue,
+  isValidUnifiedAttributeValue,
   ensureStringMap
 } from '../../utils/type.utils';
 
 describe('type.utils', () => {
-  describe('isPrimitive', () => {
+  describe('isUnifiedPrimitive', () => {
     it('should return true for primitive types', () => {
-      expect(isPrimitive('string')).toBe(true);
-      expect(isPrimitive(123)).toBe(true);
-      expect(isPrimitive(true)).toBe(true);
-      expect(isPrimitive(false)).toBe(true);
-      expect(isPrimitive(0)).toBe(true);
-      expect(isPrimitive('')).toBe(true);
-      expect(isPrimitive(-42)).toBe(true);
-      expect(isPrimitive(3.14)).toBe(true);
+      expect(isUnifiedPrimitive('string')).toBe(true);
+      expect(isUnifiedPrimitive(123)).toBe(true);
+      expect(isUnifiedPrimitive(true)).toBe(true);
+      expect(isUnifiedPrimitive(false)).toBe(true);
+      expect(isUnifiedPrimitive(0)).toBe(true);
+      expect(isUnifiedPrimitive('')).toBe(true);
+      expect(isUnifiedPrimitive(-42)).toBe(true);
+      expect(isUnifiedPrimitive(3.14)).toBe(true);
     });
 
     it('should return false for non-primitive types', () => {
-      expect(isPrimitive(null)).toBe(false);
-      expect(isPrimitive(undefined)).toBe(false);
-      expect(isPrimitive({})).toBe(false);
-      expect(isPrimitive([])).toBe(false);
-      expect(isPrimitive(new Date())).toBe(false);
-      expect(isPrimitive(/regex/)).toBe(false);
-      expect(isPrimitive(() => 'test')).toBe(false);
-      expect(isPrimitive(Symbol('test'))).toBe(false);
-      expect(isPrimitive(new Map())).toBe(false);
-      expect(isPrimitive(new Set())).toBe(false);
+      expect(isUnifiedPrimitive(null)).toBe(false);
+      expect(isUnifiedPrimitive(undefined)).toBe(false);
+      expect(isUnifiedPrimitive({})).toBe(false);
+      expect(isUnifiedPrimitive([])).toBe(false);
+      expect(isUnifiedPrimitive(new Date())).toBe(false);
+      expect(isUnifiedPrimitive(/regex/)).toBe(false);
+      expect(isUnifiedPrimitive(() => 'test')).toBe(false);
+      expect(isUnifiedPrimitive(Symbol('test'))).toBe(false);
+      expect(isUnifiedPrimitive(new Map())).toBe(false);
+      expect(isUnifiedPrimitive(new Set())).toBe(false);
     });
 
     it('should handle special number values', () => {
-      expect(isPrimitive(Infinity)).toBe(true);
-      expect(isPrimitive(-Infinity)).toBe(true);
-      expect(isPrimitive(NaN)).toBe(true);
-      expect(isPrimitive(Number.MAX_VALUE)).toBe(true);
-      expect(isPrimitive(Number.MIN_VALUE)).toBe(true);
+      expect(isUnifiedPrimitive(Infinity)).toBe(true);
+      expect(isUnifiedPrimitive(-Infinity)).toBe(true);
+      expect(isUnifiedPrimitive(NaN)).toBe(true);
+      expect(isUnifiedPrimitive(Number.MAX_VALUE)).toBe(true);
+      expect(isUnifiedPrimitive(Number.MIN_VALUE)).toBe(true);
     });
 
     it('should handle edge cases', () => {
-      expect(isPrimitive(BigInt(123))).toBe(false); // BigInt is not primitive in this context
-      expect(isPrimitive(Object('string'))).toBe(false); // String object, not primitive
-      expect(isPrimitive(Object(123))).toBe(false); // Number object, not primitive  
-      expect(isPrimitive(Object(true))).toBe(false); // Boolean object, not primitive
+      expect(isUnifiedPrimitive(BigInt(123))).toBe(false); // BigInt is not primitive in this context
+      expect(isUnifiedPrimitive(Object('string'))).toBe(false); // String object, not primitive
+      expect(isUnifiedPrimitive(Object(123))).toBe(false); // Number object, not primitive  
+      expect(isUnifiedPrimitive(Object(true))).toBe(false); // Boolean object, not primitive
     });
   });
 
-  describe('isValidLabelValue', () => {
+  describe('isValidUnifiedLabelValue', () => {
     it('should return true for valid label values', () => {
-      expect(isValidLabelValue('GET')).toBe(true);
-      expect(isValidLabelValue('200')).toBe(true);
-      expect(isValidLabelValue('api/users')).toBe(true);
-      expect(isValidLabelValue('a')).toBe(true);
-      expect(isValidLabelValue('special-chars_123')).toBe(true);
-      expect(isValidLabelValue('unicode-测试')).toBe(true);
-      expect(isValidLabelValue('with spaces')).toBe(true);
-      expect(isValidLabelValue('special@chars#ok')).toBe(true);
+      expect(isValidUnifiedLabelValue('GET')).toBe(true);
+      expect(isValidUnifiedLabelValue('200')).toBe(true);
+      expect(isValidUnifiedLabelValue('api/users')).toBe(true);
+      expect(isValidUnifiedLabelValue('a')).toBe(true);
+      expect(isValidUnifiedLabelValue('special-chars_123')).toBe(true);
+      expect(isValidUnifiedLabelValue('unicode-测试')).toBe(true);
+      expect(isValidUnifiedLabelValue('with spaces')).toBe(true);
+      expect(isValidUnifiedLabelValue('special@chars#ok')).toBe(true);
     });
 
     it('should return false for invalid label values', () => {
-      expect(isValidLabelValue('')).toBe(false);
-      expect(isValidLabelValue(123)).toBe(false);
-      expect(isValidLabelValue(true)).toBe(false);
-      expect(isValidLabelValue(false)).toBe(false);
-      expect(isValidLabelValue(null)).toBe(false);
-      expect(isValidLabelValue(undefined)).toBe(false);
-      expect(isValidLabelValue({})).toBe(false);
-      expect(isValidLabelValue([])).toBe(false);
-      expect(isValidLabelValue(new Date())).toBe(false);
-      expect(isValidLabelValue(function testFunction() { return 'test'; })).toBe(false);
-      expect(isValidLabelValue(Symbol('test'))).toBe(false);
+      expect(isValidUnifiedLabelValue('')).toBe(false);
+      expect(isValidUnifiedLabelValue(123)).toBe(false);
+      expect(isValidUnifiedLabelValue(true)).toBe(false);
+      expect(isValidUnifiedLabelValue(false)).toBe(false);
+      expect(isValidUnifiedLabelValue(null)).toBe(false);
+      expect(isValidUnifiedLabelValue(undefined)).toBe(false);
+      expect(isValidUnifiedLabelValue({})).toBe(false);
+      expect(isValidUnifiedLabelValue([])).toBe(false);
+      expect(isValidUnifiedLabelValue(new Date())).toBe(false);
+      expect(isValidUnifiedLabelValue(function testFunction() { return 'test'; })).toBe(false);
+      expect(isValidUnifiedLabelValue(Symbol('test'))).toBe(false);
     });
 
     it('should handle special string values', () => {
-      expect(isValidLabelValue('0')).toBe(true);
-      expect(isValidLabelValue('false')).toBe(true);
-      expect(isValidLabelValue('null')).toBe(true);
-      expect(isValidLabelValue('undefined')).toBe(true);
-      expect(isValidLabelValue('NaN')).toBe(true);
-      expect(isValidLabelValue('Infinity')).toBe(true);
+      expect(isValidUnifiedLabelValue('0')).toBe(true);
+      expect(isValidUnifiedLabelValue('false')).toBe(true);
+      expect(isValidUnifiedLabelValue('null')).toBe(true);
+      expect(isValidUnifiedLabelValue('undefined')).toBe(true);
+      expect(isValidUnifiedLabelValue('NaN')).toBe(true);
+      expect(isValidUnifiedLabelValue('Infinity')).toBe(true);
     });
 
     it('should handle whitespace-only strings', () => {
-      expect(isValidLabelValue(' ')).toBe(true);
-      expect(isValidLabelValue('  ')).toBe(true);
-      expect(isValidLabelValue('\t')).toBe(true);
-      expect(isValidLabelValue('\n')).toBe(true);
-      expect(isValidLabelValue('\r')).toBe(true);
+      expect(isValidUnifiedLabelValue(' ')).toBe(true);
+      expect(isValidUnifiedLabelValue('  ')).toBe(true);
+      expect(isValidUnifiedLabelValue('\t')).toBe(true);
+      expect(isValidUnifiedLabelValue('\n')).toBe(true);
+      expect(isValidUnifiedLabelValue('\r')).toBe(true);
     });
   });
 
-  describe('isValidAttributeValue', () => {
+  describe('isValidUnifiedAttributeValue', () => {
     it('should return true for valid attribute values', () => {
-      expect(isValidAttributeValue('string')).toBe(true);
-      expect(isValidAttributeValue(123)).toBe(true);
-      expect(isValidAttributeValue(true)).toBe(true);
-      expect(isValidAttributeValue(false)).toBe(true);
-      expect(isValidAttributeValue(0)).toBe(true);
-      expect(isValidAttributeValue('')).toBe(true);
-      expect(isValidAttributeValue(-42)).toBe(true);
-      expect(isValidAttributeValue(3.14)).toBe(true);
+      expect(isValidUnifiedAttributeValue('string')).toBe(true);
+      expect(isValidUnifiedAttributeValue(123)).toBe(true);
+      expect(isValidUnifiedAttributeValue(true)).toBe(true);
+      expect(isValidUnifiedAttributeValue(false)).toBe(true);
+      expect(isValidUnifiedAttributeValue(0)).toBe(true);
+      expect(isValidUnifiedAttributeValue('')).toBe(true);
+      expect(isValidUnifiedAttributeValue(-42)).toBe(true);
+      expect(isValidUnifiedAttributeValue(3.14)).toBe(true);
     });
 
     it('should return false for invalid attribute values', () => {
-      expect(isValidAttributeValue(null)).toBe(false);
-      expect(isValidAttributeValue(undefined)).toBe(false);
-      expect(isValidAttributeValue({})).toBe(false);
-      expect(isValidAttributeValue([])).toBe(false);
-      expect(isValidAttributeValue(new Date())).toBe(false);
-      expect(isValidAttributeValue(() => 'test')).toBe(false);
-      expect(isValidAttributeValue(Symbol('test'))).toBe(false);
-      expect(isValidAttributeValue(new Map())).toBe(false);
-      expect(isValidAttributeValue(new Set())).toBe(false);
+      expect(isValidUnifiedAttributeValue(null)).toBe(false);
+      expect(isValidUnifiedAttributeValue(undefined)).toBe(false);
+      expect(isValidUnifiedAttributeValue({})).toBe(false);
+      expect(isValidUnifiedAttributeValue([])).toBe(false);
+      expect(isValidUnifiedAttributeValue(new Date())).toBe(false);
+      expect(isValidUnifiedAttributeValue(() => 'test')).toBe(false);
+      expect(isValidUnifiedAttributeValue(Symbol('test'))).toBe(false);
+      expect(isValidUnifiedAttributeValue(new Map())).toBe(false);
+      expect(isValidUnifiedAttributeValue(new Set())).toBe(false);
     });
 
     it('should handle special number values', () => {
-      expect(isValidAttributeValue(Infinity)).toBe(true);
-      expect(isValidAttributeValue(-Infinity)).toBe(true);
-      expect(isValidAttributeValue(NaN)).toBe(true);
-      expect(isValidAttributeValue(Number.MAX_VALUE)).toBe(true);
-      expect(isValidAttributeValue(Number.MIN_VALUE)).toBe(true);
-      expect(isValidAttributeValue(Number.MAX_SAFE_INTEGER)).toBe(true);
-      expect(isValidAttributeValue(Number.MIN_SAFE_INTEGER)).toBe(true);
+      expect(isValidUnifiedAttributeValue(Infinity)).toBe(true);
+      expect(isValidUnifiedAttributeValue(-Infinity)).toBe(true);
+      expect(isValidUnifiedAttributeValue(NaN)).toBe(true);
+      expect(isValidUnifiedAttributeValue(Number.MAX_VALUE)).toBe(true);
+      expect(isValidUnifiedAttributeValue(Number.MIN_VALUE)).toBe(true);
+      expect(isValidUnifiedAttributeValue(Number.MAX_SAFE_INTEGER)).toBe(true);
+      expect(isValidUnifiedAttributeValue(Number.MIN_SAFE_INTEGER)).toBe(true);
     });
 
     it('should handle edge cases', () => {
-      expect(isValidAttributeValue(BigInt(123))).toBe(false);
-      expect(isValidAttributeValue(Object('string'))).toBe(false);
-      expect(isValidAttributeValue(Object(123))).toBe(false);
-      expect(isValidAttributeValue(Object(true))).toBe(false);
+      expect(isValidUnifiedAttributeValue(BigInt(123))).toBe(false);
+      expect(isValidUnifiedAttributeValue(Object('string'))).toBe(false);
+      expect(isValidUnifiedAttributeValue(Object(123))).toBe(false);
+      expect(isValidUnifiedAttributeValue(Object(true))).toBe(false);
     });
   });
 
@@ -378,8 +378,8 @@ describe('type.utils', () => {
       ];
 
       primitives.forEach(primitive => {
-        expect(isPrimitive(primitive)).toBe(true);
-        expect(isValidAttributeValue(primitive)).toBe(true);
+        expect(isUnifiedPrimitive(primitive)).toBe(true);
+        expect(isValidUnifiedAttributeValue(primitive)).toBe(true);
       });
     });
 
@@ -402,8 +402,8 @@ describe('type.utils', () => {
       ];
 
       nonPrimitives.forEach(nonPrimitive => {
-        expect(isPrimitive(nonPrimitive)).toBe(false);
-        expect(isValidAttributeValue(nonPrimitive)).toBe(false);
+        expect(isUnifiedPrimitive(nonPrimitive)).toBe(false);
+        expect(isValidUnifiedAttributeValue(nonPrimitive)).toBe(false);
       });
     });
 
@@ -426,7 +426,7 @@ describe('type.utils', () => {
       ];
 
       validStrings.forEach(str => {
-        expect(isValidLabelValue(str)).toBe(str !== ''); // Empty string is not valid for labels
+        expect(isValidUnifiedLabelValue(str)).toBe(str !== ''); // Empty string is not valid for labels
       });
     });
 

@@ -1,8 +1,8 @@
-export const MetricType = {
+export const UnifiedMetricType = {
   COUNTER: 'counter',
   HISTOGRAM: 'histogram',
   GAUGE: 'gauge',
   SUMMARY: 'summary'
 } as const;
 
-export type MetricType = typeof MetricType[keyof typeof MetricType];
+export type UnifiedMetricType = typeof UnifiedMetricType[keyof typeof UnifiedMetricType];

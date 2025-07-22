@@ -1,16 +1,16 @@
-import { LabelValue } from '../../utils/type.utils';
-import { LabelMatchOperator } from '../../constants/vendor-types';
+import { UnifiedLabelValue } from '../../utils/type.utils';
+import { UnifiedLabelMatchOperator } from '../../constants/vendor-types';
 
-export interface LabelSet {
-  readonly [key: string]: LabelValue;
+export interface UnifiedLabelSet {
+  readonly [key: string]: UnifiedLabelValue;
 }
 
-export interface LabelMatcher {
+export interface UnifiedLabelMatcher {
   readonly key: string;
-  readonly value: LabelValue;
-  readonly operator: LabelMatchOperator;
+  readonly value: UnifiedLabelValue;
+  readonly operator: UnifiedLabelMatchOperator;
 }
 
-export interface LabelSelector {
-  readonly matchers: LabelMatcher[];
+export interface UnifiedLabelSelector {
+  readonly matchers: UnifiedLabelMatcher[];
 }

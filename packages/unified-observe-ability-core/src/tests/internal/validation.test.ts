@@ -1,27 +1,27 @@
 import {
-  validateCounterOptions,
-  validateHistogramOptions,
-  validateGaugeOptions,
-  validateObservabilityConfig,
-  validateLoggerOptions,
-  validateSpanOptions,
-  validateSpanContext,
+  validateUnifiedCounterOptions,
+  validateUnifiedHistogramOptions,
+  validateUnifiedGaugeOptions,
+  validateUnifiedObservabilityConfig,
+  validateUnifiedLoggerOptions,
+  validateUnifiedSpanOptions,
+  validateUnifiedSpanContext,
   validateTraceState,
   assertValid
 } from '../../internal/validation';
-import { ValidationError } from '../../errors/configuration-error';
-import { LogLevel } from '../../constants/log-level';
-import { SpanKind } from '../../constants/span-kind';
+import { UnifiedValidationError } from '../../errors/configuration-error';
+import { UnifiedLogLevel } from '../../constants/log-level';
+import { UnifiedSpanKind } from '../../constants/span-kind';
 import { 
-  ObservabilityConfig, 
-  MetricsConfig, 
-  TracingConfig, 
-  LoggingConfig 
+  UnifiedObservabilityConfig, 
+  UnifiedMetricsConfig, 
+  UnifiedTracingConfig, 
+  UnifiedLoggingConfig 
 } from '../../types/configuration/observability-config';
-import { SpanContext } from '../../types/tracing/context';
+import { UnifiedSpanContext } from '../../types/tracing/context';
 
 describe('internal/validation', () => {
-  describe('validateCounterOptions', () => {
+  describe('validateUnifiedCounterOptions', () => {
     it('should validate correct counter options', () => {
       const options = {
         name: 'http_requests_total',
@@ -30,7 +30,7 @@ describe('internal/validation', () => {
         labelKeys: ['method', 'status_code']
       };
 
-      const result = validateCounterOptions(options);
+      const result = validateUnifiedCounterOptions(options);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
@@ -42,7 +42,7 @@ describe('internal/validation', () => {
         labelKeys: ['123invalid']
       };
 
-      const result = validateCounterOptions(options);
+      const result = validateUnifiedCounterOptions(options);
       expect(result.isValid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
     });
@@ -54,7 +54,7 @@ describe('internal/validation', () => {
         labelKeys: ['method']
       };
 
-      const result = validateCounterOptions(options);
+      const result = validateUnifiedCounterOptions(options);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Metric name must start with letter, underscore, or colon and contain only alphanumeric characters, underscores, and colons');
     });
@@ -66,7 +66,7 @@ describe('internal/validation', () => {
         labelKeys: ['method']
       };
 
-      const result = validateCounterOptions(options);
+      const result = validateUnifiedCounterOptions(options);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Counter description is required and must be a string');
     });
@@ -78,7 +78,7 @@ describe('internal/validation', () => {
         labelKeys: ['method']
       };
 
-      const result = validateCounterOptions(options);
+      const result = validateUnifiedCounterOptions(options);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Counter description is required and must be a string');
     });
@@ -89,13 +89,13 @@ describe('internal/validation', () => {
         description: 'Simple counter without labels'
       };
 
-      const result = validateCounterOptions(options);
+      const result = validateUnifiedCounterOptions(options);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
   });
 
-  describe('validateHistogramOptions', () => {
+  describe('validateUnifiedHistogramOptions', () => {
     it('should validate correct histogram options', () => {
       const options = {
         name: 'request_duration_seconds',
@@ -105,7 +105,7 @@ describe('internal/validation', () => {
         labelKeys: ['method', 'route']
       };
 
-      const result = validateHistogramOptions(options);
+      const result = validateUnifiedHistogramOptions(options);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
@@ -118,7 +118,7 @@ describe('internal/validation', () => {
         labelKeys: ['__reserved']
       };
 
-      const result = validateHistogramOptions(options);
+      const result = validateUnifiedHistogramOptions(options);
       expect(result.isValid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
     });
@@ -130,7 +130,7 @@ describe('internal/validation', () => {
         boundaries: [0.5, 0.3, 1.0] // Not sorted
       };
 
-      const result = validateHistogramOptions(options);
+      const result = validateUnifiedHistogramOptions(options);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Histogram boundaries must be in strictly increasing order');
     });
@@ -142,7 +142,7 @@ describe('internal/validation', () => {
         boundaries: [0.1, 0.5, 1.0]
       };
 
-      const result = validateHistogramOptions(options);
+      const result = validateUnifiedHistogramOptions(options);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Histogram description is required and must be a string');
     });
@@ -153,13 +153,13 @@ describe('internal/validation', () => {
         description: 'Simple histogram without custom boundaries'
       };
 
-      const result = validateHistogramOptions(options);
+      const result = validateUnifiedHistogramOptions(options);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
   });
 
-  describe('validateGaugeOptions', () => {
+  describe('validateUnifiedGaugeOptions', () => {
     it('should validate correct gauge options', () => {
       const options = {
         name: 'memory_usage_bytes',
@@ -168,7 +168,7 @@ describe('internal/validation', () => {
         labelKeys: ['service', 'instance']
       };
 
-      const result = validateGaugeOptions(options);
+      const result = validateUnifiedGaugeOptions(options);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
@@ -180,7 +180,7 @@ describe('internal/validation', () => {
         labelKeys: ['invalid-key']
       };
 
-      const result = validateGaugeOptions(options);
+      const result = validateUnifiedGaugeOptions(options);
       expect(result.isValid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
     });
@@ -191,7 +191,7 @@ describe('internal/validation', () => {
         description: 'Test gauge'
       };
 
-      const result = validateGaugeOptions(options);
+      const result = validateUnifiedGaugeOptions(options);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Metric name must start with letter, underscore, or colon and contain only alphanumeric characters, underscores, and colons');
     });
@@ -202,7 +202,7 @@ describe('internal/validation', () => {
         description: ''
       };
 
-      const result = validateGaugeOptions(options);
+      const result = validateUnifiedGaugeOptions(options);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Gauge description is required and must be a string');
     });
@@ -213,33 +213,33 @@ describe('internal/validation', () => {
         description: 'Simple gauge without labels'
       };
 
-      const result = validateGaugeOptions(options);
+      const result = validateUnifiedGaugeOptions(options);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
   });
 
-  describe('validateObservabilityConfig', () => {
+  describe('validateUnifiedObservabilityConfig', () => {
     it('should validate correct observability config', () => {
-      const config: ObservabilityConfig = {
+      const config: UnifiedObservabilityConfig = {
         serviceName: 'api-service',
         serviceVersion: '1.0.0',
         environment: 'production',
         metrics: {
           enabled: true,
           vendor: 'prometheus'
-        } as MetricsConfig,
+        } as UnifiedMetricsConfig,
         tracing: {
           enabled: true,
           vendor: 'jaeger'
-        } as TracingConfig,
+        } as UnifiedTracingConfig,
         logging: {
           enabled: true,
           vendor: 'winston'
-        } as LoggingConfig
+        } as UnifiedLoggingConfig
       };
 
-      const result = validateObservabilityConfig(config);
+      const result = validateUnifiedObservabilityConfig(config);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
@@ -252,14 +252,14 @@ describe('internal/validation', () => {
         metrics: {
           enabled: true,
           vendor: 'prometheus'
-        } as MetricsConfig,
+        } as UnifiedMetricsConfig,
         tracing: {
           enabled: true,
           vendor: 'jaeger'
-        } as TracingConfig
-      } as ObservabilityConfig;
+        } as UnifiedTracingConfig
+      } as UnifiedObservabilityConfig;
 
-      const result = validateObservabilityConfig(config);
+      const result = validateUnifiedObservabilityConfig(config);
       expect(result.isValid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
     });
@@ -269,9 +269,9 @@ describe('internal/validation', () => {
         serviceName: '',
         serviceVersion: '1.0.0',
         environment: 'production'
-      } as ObservabilityConfig;
+      } as UnifiedObservabilityConfig;
 
-      const result = validateObservabilityConfig(config);
+      const result = validateUnifiedObservabilityConfig(config);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Service name must be a non-empty string');
     });
@@ -281,9 +281,9 @@ describe('internal/validation', () => {
         serviceName: '123invalid',
         serviceVersion: '1.0.0',
         environment: 'production'
-      } as ObservabilityConfig;
+      } as UnifiedObservabilityConfig;
 
-      const result = validateObservabilityConfig(config);
+      const result = validateUnifiedObservabilityConfig(config);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Service name must start with letter and contain only alphanumeric characters, dots, underscores, and hyphens');
     });
@@ -293,9 +293,9 @@ describe('internal/validation', () => {
         serviceName: 'api-service',
         serviceVersion: '',
         environment: 'production'
-      } as ObservabilityConfig;
+      } as UnifiedObservabilityConfig;
 
-      const result = validateObservabilityConfig(config);
+      const result = validateUnifiedObservabilityConfig(config);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Service version is required and must be a string');
     });
@@ -305,9 +305,9 @@ describe('internal/validation', () => {
         serviceName: 'api-service',
         serviceVersion: '1.0.0',
         environment: ''
-      } as ObservabilityConfig;
+      } as UnifiedObservabilityConfig;
 
-      const result = validateObservabilityConfig(config);
+      const result = validateUnifiedObservabilityConfig(config);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Environment is required and must be a string');
     });
@@ -320,10 +320,10 @@ describe('internal/validation', () => {
         metrics: {
           enabled: true
           // Missing vendor
-        } as MetricsConfig
-      } as ObservabilityConfig;
+        } as UnifiedMetricsConfig
+      } as UnifiedObservabilityConfig;
 
-      const result = validateObservabilityConfig(config);
+      const result = validateUnifiedObservabilityConfig(config);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('metrics.vendor is required when metrics are enabled');
     });
@@ -336,10 +336,10 @@ describe('internal/validation', () => {
         tracing: {
           enabled: true
           // Missing vendor
-        } as TracingConfig
-      } as ObservabilityConfig;
+        } as UnifiedTracingConfig
+      } as UnifiedObservabilityConfig;
 
-      const result = validateObservabilityConfig(config);
+      const result = validateUnifiedObservabilityConfig(config);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('tracing.vendor is required when tracing are enabled');
     });
@@ -352,60 +352,60 @@ describe('internal/validation', () => {
         logging: {
           enabled: true
           // Missing vendor
-        } as LoggingConfig
-      } as ObservabilityConfig;
+        } as UnifiedLoggingConfig
+      } as UnifiedObservabilityConfig;
 
-      const result = validateObservabilityConfig(config);
+      const result = validateUnifiedObservabilityConfig(config);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('logging.vendor is required when logging are enabled');
     });
 
     it('should validate config with disabled observability components', () => {
-      const config: ObservabilityConfig = {
+      const config: UnifiedObservabilityConfig = {
         serviceName: 'api-service',
         serviceVersion: '1.0.0',
         environment: 'production',
         metrics: {
           enabled: false,
           vendor: 'prometheus'
-        } as MetricsConfig,
+        } as UnifiedMetricsConfig,
         tracing: {
           enabled: false,
           vendor: 'jaeger'
-        } as TracingConfig,
+        } as UnifiedTracingConfig,
         logging: {
           enabled: false,
           vendor: 'winston'
-        } as LoggingConfig
+        } as UnifiedLoggingConfig
       };
 
-      const result = validateObservabilityConfig(config);
+      const result = validateUnifiedObservabilityConfig(config);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
 
     it('should validate minimal config', () => {
-      const config: ObservabilityConfig = {
+      const config: UnifiedObservabilityConfig = {
         serviceName: 'minimal-service',
         serviceVersion: '1.0.0',
         environment: 'development'
       };
 
-      const result = validateObservabilityConfig(config);
+      const result = validateUnifiedObservabilityConfig(config);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
   });
 
-  describe('validateLoggerOptions', () => {
+  describe('validateUnifiedLoggerOptions', () => {
     it('should validate correct logger options', () => {
       const options = {
         name: 'api-logger',
-        level: LogLevel.INFO,
+        level: UnifiedLogLevel.INFO,
         format: 'json' as const
       };
 
-      const result = validateLoggerOptions(options);
+      const result = validateUnifiedLoggerOptions(options);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
@@ -413,10 +413,10 @@ describe('internal/validation', () => {
     it('should reject invalid logger options', () => {
       const options = {
         name: '',
-        level: LogLevel.DEBUG
+        level: UnifiedLogLevel.DEBUG
       };
 
-      const result = validateLoggerOptions(options);
+      const result = validateUnifiedLoggerOptions(options);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Logger name is required and must be a string');
     });
@@ -424,10 +424,10 @@ describe('internal/validation', () => {
     it('should reject logger options with non-string name', () => {
       const options = {
         name: null as unknown as string,
-        level: LogLevel.INFO
+        level: UnifiedLogLevel.INFO
       };
 
-      const result = validateLoggerOptions(options);
+      const result = validateUnifiedLoggerOptions(options);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Logger name is required and must be a string');
     });
@@ -435,10 +435,10 @@ describe('internal/validation', () => {
     it('should reject logger options with undefined name', () => {
       const options = {
         name: undefined as unknown as string,
-        level: LogLevel.INFO
+        level: UnifiedLogLevel.INFO
       };
 
-      const result = validateLoggerOptions(options);
+      const result = validateUnifiedLoggerOptions(options);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Logger name is required and must be a string');
     });
@@ -448,41 +448,41 @@ describe('internal/validation', () => {
         name: 'simple-logger'
       };
 
-      const result = validateLoggerOptions(options);
+      const result = validateUnifiedLoggerOptions(options);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
   });
 
-  describe('validateSpanOptions', () => {
+  describe('validateUnifiedSpanOptions', () => {
     it('should validate correct span options', () => {
       const options = {
-        kind: SpanKind.SERVER,
+        kind: UnifiedSpanKind.SERVER,
         attributes: {
           'http.method': 'GET',
           'http.status_code': 200
         }
       };
 
-      const result = validateSpanOptions('test-span', options);
+      const result = validateUnifiedSpanOptions('test-span', options);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
 
     it('should reject invalid span name', () => {
-      const result = validateSpanOptions('');
+      const result = validateUnifiedSpanOptions('');
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Span name is required and must be a string');
     });
 
     it('should reject null span name', () => {
-      const result = validateSpanOptions(null as unknown as string);
+      const result = validateUnifiedSpanOptions(null as unknown as string);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Span name is required and must be a string');
     });
 
     it('should reject undefined span name', () => {
-      const result = validateSpanOptions(undefined as unknown as string);
+      const result = validateUnifiedSpanOptions(undefined as unknown as string);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Span name is required and must be a string');
     });
@@ -495,13 +495,13 @@ describe('internal/validation', () => {
         }
       };
 
-      const result = validateSpanOptions('test-span', options);
+      const result = validateUnifiedSpanOptions('test-span', options);
       expect(result.isValid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
     });
 
     it('should validate span options without options parameter', () => {
-      const result = validateSpanOptions('valid-span');
+      const result = validateUnifiedSpanOptions('valid-span');
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
@@ -516,100 +516,100 @@ describe('internal/validation', () => {
         }
       };
 
-      const result = validateSpanOptions('api-request', options);
+      const result = validateUnifiedSpanOptions('api-request', options);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
   });
 
-  describe('validateSpanContext', () => {
+  describe('validateUnifiedSpanContext', () => {
     it('should validate correct span context', () => {
-      const context: SpanContext = {
+      const context: UnifiedSpanContext = {
         traceId: '12345678901234567890123456789012',
         spanId: '1234567890123456',
         traceFlags: 1,
         isValid: true
       };
 
-      const result = validateSpanContext(context);
+      const result = validateUnifiedSpanContext(context);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
 
     it('should reject invalid trace ID format', () => {
-      const context: SpanContext = {
+      const context: UnifiedSpanContext = {
         traceId: 'invalid-trace-id',
         spanId: '1234567890123456',
         traceFlags: 1,
         isValid: true
       };
 
-      const result = validateSpanContext(context);
+      const result = validateUnifiedSpanContext(context);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Trace ID must be 32 hexadecimal characters');
     });
 
     it('should reject invalid span ID format', () => {
-      const context: SpanContext = {
+      const context: UnifiedSpanContext = {
         traceId: '12345678901234567890123456789012',
         spanId: 'invalid-span-id',
         traceFlags: 1,
         isValid: true
       };
 
-      const result = validateSpanContext(context);
+      const result = validateUnifiedSpanContext(context);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Span ID must be 16 hexadecimal characters');
     });
 
     it('should reject all-zero trace ID', () => {
-      const context: SpanContext = {
+      const context: UnifiedSpanContext = {
         traceId: '00000000000000000000000000000000',
         spanId: '1234567890123456',
         traceFlags: 1,
         isValid: true
       };
 
-      const result = validateSpanContext(context);
+      const result = validateUnifiedSpanContext(context);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Trace ID cannot be all zeros');
     });
 
     it('should reject all-zero span ID', () => {
-      const context: SpanContext = {
+      const context: UnifiedSpanContext = {
         traceId: '12345678901234567890123456789012',
         spanId: '0000000000000000',
         traceFlags: 1,
         isValid: true
       };
 
-      const result = validateSpanContext(context);
+      const result = validateUnifiedSpanContext(context);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Span ID cannot be all zeros');
     });
 
     it('should reject invalid trace flags', () => {
-      const context: SpanContext = {
+      const context: UnifiedSpanContext = {
         traceId: '12345678901234567890123456789012',
         spanId: '1234567890123456',
         traceFlags: 256,
         isValid: true
       };
 
-      const result = validateSpanContext(context);
+      const result = validateUnifiedSpanContext(context);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Trace flags must be between 0 and 255');
     });
 
     it('should reject negative trace flags', () => {
-      const context: SpanContext = {
+      const context: UnifiedSpanContext = {
         traceId: '12345678901234567890123456789012',
         spanId: '1234567890123456',
         traceFlags: -1,
         isValid: true
       };
 
-      const result = validateSpanContext(context);
+      const result = validateUnifiedSpanContext(context);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Trace flags must be between 0 and 255');
     });
@@ -620,9 +620,9 @@ describe('internal/validation', () => {
         spanId: '1234567890123456',
         traceFlags: 1,
         isValid: true
-      } as SpanContext;
+      } as UnifiedSpanContext;
 
-      const result = validateSpanContext(context);
+      const result = validateUnifiedSpanContext(context);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Trace ID is required and must be a string');
     });
@@ -633,9 +633,9 @@ describe('internal/validation', () => {
         spanId: '',
         traceFlags: 1,
         isValid: true
-      } as SpanContext;
+      } as UnifiedSpanContext;
 
-      const result = validateSpanContext(context);
+      const result = validateUnifiedSpanContext(context);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Span ID is required and must be a string');
     });
@@ -646,9 +646,9 @@ describe('internal/validation', () => {
         spanId: '1234567890123456',
         traceFlags: 1,
         isValid: true
-      } as SpanContext;
+      } as UnifiedSpanContext;
 
-      const result = validateSpanContext(context);
+      const result = validateUnifiedSpanContext(context);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Trace ID is required and must be a string');
     });
@@ -659,9 +659,9 @@ describe('internal/validation', () => {
         spanId: 123 as unknown as string,
         traceFlags: 1,
         isValid: true
-      } as SpanContext;
+      } as UnifiedSpanContext;
 
-      const result = validateSpanContext(context);
+      const result = validateUnifiedSpanContext(context);
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Span ID is required and must be a string');
     });
@@ -670,14 +670,14 @@ describe('internal/validation', () => {
       const validFlags = [0, 1, 255];
       
       validFlags.forEach(flag => {
-        const context: SpanContext = {
+        const context: UnifiedSpanContext = {
           traceId: '12345678901234567890123456789012',
           spanId: '1234567890123456',
           traceFlags: flag,
           isValid: true
         };
 
-        const result = validateSpanContext(context);
+        const result = validateUnifiedSpanContext(context);
         expect(result.isValid).toBe(true);
         expect(result.errors).toEqual([]);
       });
@@ -786,9 +786,9 @@ describe('internal/validation', () => {
       expect(() => assertValid(validResult, 'test')).not.toThrow();
     });
 
-    it('should throw ValidationError for invalid validation result', () => {
+    it('should throw UnifiedValidationError for invalid validation result', () => {
       const invalidResult = { isValid: false, errors: ['Error 1', 'Error 2'] };
-      expect(() => assertValid(invalidResult, 'test')).toThrow(ValidationError);
+      expect(() => assertValid(invalidResult, 'test')).toThrow(UnifiedValidationError);
     });
 
     it('should include context in error message', () => {
@@ -803,10 +803,10 @@ describe('internal/validation', () => {
       
       try {
         assertValid(invalidResult, 'test context');
-        fail('Expected ValidationError to be thrown');
+        fail('Expected UnifiedValidationError to be thrown');
       } catch (error) {
-        expect(error).toBeInstanceOf(ValidationError);
-        const validationError = error as ValidationError;
+        expect(error).toBeInstanceOf(UnifiedValidationError);
+        const validationError = error as UnifiedValidationError;
         expect(validationError.validationErrors).toEqual(['Error 1', 'Error 2', 'Error 3']);
         expect(validationError.message).toBe('Validation failed for test context');
       }
@@ -817,10 +817,10 @@ describe('internal/validation', () => {
       
       try {
         assertValid(invalidResult, 'empty errors');
-        fail('Expected ValidationError to be thrown');
+        fail('Expected UnifiedValidationError to be thrown');
       } catch (error) {
-        expect(error).toBeInstanceOf(ValidationError);
-        const validationError = error as ValidationError;
+        expect(error).toBeInstanceOf(UnifiedValidationError);
+        const validationError = error as UnifiedValidationError;
         expect(validationError.validationErrors).toEqual([]);
       }
     });
@@ -835,7 +835,7 @@ describe('internal/validation', () => {
         labelKeys: ['method', 'status_code', 'route', 'user_tier', 'region']
       };
 
-      const result = validateCounterOptions(complexOptions);
+      const result = validateUnifiedCounterOptions(complexOptions);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
@@ -849,13 +849,13 @@ describe('internal/validation', () => {
         labelKeys: ['method', 'endpoint', 'status_code', 'user_type', 'region', 'service_version']
       };
 
-      const result = validateHistogramOptions(complexOptions);
+      const result = validateUnifiedHistogramOptions(complexOptions);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
 
     it('should handle complex observability config validation', () => {
-      const complexConfig: ObservabilityConfig = {
+      const complexConfig: UnifiedObservabilityConfig = {
         serviceName: 'complex-microservice-api',
         serviceVersion: '2.1.0-beta.3',
         environment: 'staging',
@@ -866,22 +866,22 @@ describe('internal/validation', () => {
           vendor: 'prometheus',
           interval: 15000,
           batchSize: 1000
-        } as MetricsConfig,
+        } as UnifiedMetricsConfig,
         tracing: {
           enabled: true,
           vendor: 'awsxray',
           sampleRate: 0.1,
           maxSpansPerTrace: 10000
-        } as TracingConfig,
+        } as UnifiedTracingConfig,
         logging: {
           enabled: true,
           vendor: 'winston',
-          level: LogLevel.INFO,
+          level: UnifiedLogLevel.INFO,
           format: 'json'
-        } as LoggingConfig
+        } as UnifiedLoggingConfig
       };
 
-      const result = validateObservabilityConfig(complexConfig);
+      const result = validateUnifiedObservabilityConfig(complexConfig);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
@@ -894,14 +894,14 @@ describe('internal/validation', () => {
         metrics: {
           enabled: true
           // Missing vendor
-        } as MetricsConfig,
+        } as UnifiedMetricsConfig,
         tracing: {
           enabled: true
           // Missing vendor
-        } as TracingConfig
-      } as ObservabilityConfig;
+        } as UnifiedTracingConfig
+      } as UnifiedObservabilityConfig;
 
-      const result = validateObservabilityConfig(invalidConfig);
+      const result = validateUnifiedObservabilityConfig(invalidConfig);
       expect(result.isValid).toBe(false);
       expect(result.errors.length).toBeGreaterThanOrEqual(4);
       expect(result.errors).toContain('Service name must start with letter and contain only alphanumeric characters, dots, underscores, and hyphens');
@@ -920,7 +920,7 @@ describe('internal/validation', () => {
             spanId: 'abcdef1234567890',
             traceFlags: 0,
             isValid: true
-          } as SpanContext,
+          } as UnifiedSpanContext,
           shouldBeValid: true
         },
         {
@@ -930,7 +930,7 @@ describe('internal/validation', () => {
             spanId: 'ABCDEF1234567890',
             traceFlags: 255,
             isValid: true
-          } as SpanContext,
+          } as UnifiedSpanContext,
           shouldBeValid: true
         },
         {
@@ -940,13 +940,13 @@ describe('internal/validation', () => {
             spanId: 'AbCdEf1234567890',
             traceFlags: 128,
             isValid: true
-          } as SpanContext,
+          } as UnifiedSpanContext,
           shouldBeValid: true
         }
       ];
 
-      edgeCases.forEach(({ name, context, shouldBeValid }) => {
-        const result = validateSpanContext(context);
+      edgeCases.forEach(({  context, shouldBeValid }) => {
+        const result = validateUnifiedSpanContext(context);
         expect(result.isValid).toBe(shouldBeValid);
         if (shouldBeValid) {
           expect(result.errors).toEqual([]);

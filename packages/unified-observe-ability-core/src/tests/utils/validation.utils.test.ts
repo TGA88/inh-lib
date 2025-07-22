@@ -5,27 +5,27 @@ import {
   validateAttributes,
   validateHistogramBoundaries,
   validateServiceName,
-  createValidationResult
+  createUnifiedValidationResult
 } from '../../utils/validation.utils';
 
 describe('validation.utils', () => {
-  describe('createValidationResult', () => {
+  describe('createUnifiedValidationResult', () => {
     it('should create valid result with no errors', () => {
-      const result = createValidationResult(true);
+      const result = createUnifiedValidationResult(true);
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
     });
 
     it('should create invalid result with errors', () => {
       const errors = ['error1', 'error2'];
-      const result = createValidationResult(false, errors);
+      const result = createUnifiedValidationResult(false, errors);
       expect(result.isValid).toBe(false);
       expect(result.errors).toEqual(errors);
     });
 
     it('should create a copy of errors array', () => {
       const errors = ['error1'];
-      const result = createValidationResult(false, errors);
+      const result = createUnifiedValidationResult(false, errors);
       errors.push('error2');
       expect(result.errors).toEqual(['error1']);
     });

@@ -1,4 +1,4 @@
-import { LabelSet } from './labels';
+import { UnifiedLabelSet } from './labels';
 
 export interface UnifiedGauge {
   readonly name: string;
@@ -6,21 +6,21 @@ export interface UnifiedGauge {
   readonly unit?: string;
   readonly labelKeys: string[];
   
-  set(value: number, labels?: LabelSet): void;
-  add(value: number, labels?: LabelSet): void;
-  subtract(value: number, labels?: LabelSet): void;
-  get(labels?: LabelSet): number;
+  set(value: number, labels?: UnifiedLabelSet): void;
+  add(value: number, labels?: UnifiedLabelSet): void;
+  subtract(value: number, labels?: UnifiedLabelSet): void;
+  get(labels?: UnifiedLabelSet): number;
 }
 
-export interface GaugeOptions {
+export interface UnifiedGaugeOptions {
   readonly name: string;
   readonly description: string;
   readonly unit?: string;
   readonly labelKeys?: string[];
 }
 
-export interface GaugeValue {
-  readonly labels: LabelSet;
+export interface UnifiedGaugeValue {
+  readonly labels: UnifiedLabelSet;
   readonly value: number;
   readonly timestamp: number;
 }

@@ -1,73 +1,73 @@
-import { LogLevel, LogFormat, LogTransportType, ResourceDetectorType } from '../../constants';
+import { UnifiedLogLevel, UnifiedLogFormat, UnifiedLogTransportType, UnifiedResourceDetectorType } from '../../constants';
 import { 
-  MetricsVendorType, 
-  TracingVendorType, 
-  LoggingVendorType,
-  VendorEndpointConfig,
-  AuthConfig 
+  UnifiedMetricsVendorType, 
+  UnifiedTracingVendorType, 
+  UnifiedLoggingVendorType,
+  UnifiedVendorEndpointConfig,
+  UnifiedAuthConfig 
 } from './vendor-config';
 
-export interface ObservabilityConfig {
+export interface UnifiedObservabilityConfig {
   readonly serviceName: string;
   readonly serviceVersion: string;
   readonly environment: string;
   readonly serviceNamespace?: string;
   readonly serviceInstanceId?: string;
   
-  readonly metrics?: MetricsConfig;
-  readonly tracing?: TracingConfig;
-  readonly logging?: LoggingConfig;
-  readonly instrumentation?: InstrumentationConfig;
-  readonly resource?: ResourceConfig;
+  readonly metrics?: UnifiedMetricsConfig;
+  readonly tracing?: UnifiedTracingConfig;
+  readonly logging?: UnifiedLoggingConfig;
+  readonly instrumentation?: UnifiedInstrumentationConfig;
+  readonly resource?: UnifiedResourceConfig;
 }
 
-export interface MetricsConfig {
+export interface UnifiedMetricsConfig {
   readonly enabled: boolean;
-  readonly vendor: MetricsVendorType;
-  readonly endpoint?: VendorEndpointConfig;
+  readonly vendor: UnifiedMetricsVendorType;
+  readonly endpoint?: UnifiedVendorEndpointConfig;
   readonly interval?: number;
   readonly batchSize?: number;
-  readonly auth?: AuthConfig;
+  readonly auth?: UnifiedAuthConfig;
   readonly customRegistry?: unknown;
-  readonly exporterConfig?: MetricsExporterConfig;
+  readonly exporterConfig?: UnifiedMetricsExporterConfig;
 }
 
-export interface MetricsExporterConfig {
+export interface UnifiedMetricsExporterConfig {
   readonly prefix?: string;
   readonly includeTimestamp?: boolean;
   readonly includeMetadata?: boolean;
   readonly compressionEnabled?: boolean;
 }
 
-export interface TracingConfig {
+export interface UnifiedTracingConfig {
   readonly enabled: boolean;
-  readonly vendor: TracingVendorType;
-  readonly endpoint?: VendorEndpointConfig;
+  readonly vendor: UnifiedTracingVendorType;
+  readonly endpoint?: UnifiedVendorEndpointConfig;
   readonly sampleRate?: number;
   readonly maxSpansPerTrace?: number;
-  readonly auth?: AuthConfig;
-  readonly exporterConfig?: TracingExporterConfig;
+  readonly auth?: UnifiedAuthConfig;
+  readonly exporterConfig?: UnifiedTracingExporterConfig;
 }
 
-export interface TracingExporterConfig {
+export interface UnifiedTracingExporterConfig {
   readonly batchSize?: number;
   readonly batchTimeout?: number;
   readonly compressionEnabled?: boolean;
   readonly includeResourceAttributes?: boolean;
 }
 
-export interface LoggingConfig {
+export interface UnifiedLoggingConfig {
   readonly enabled: boolean;
-  readonly vendor: LoggingVendorType;
-  readonly level?: LogLevel;
-  readonly endpoint?: VendorEndpointConfig;
-  readonly format?: LogFormat;
-  readonly auth?: AuthConfig;
-  readonly transports?: LogTransportConfig[];
-  readonly exporterConfig?: LoggingExporterConfig;
+  readonly vendor: UnifiedLoggingVendorType;
+  readonly level?: UnifiedLogLevel;
+  readonly endpoint?: UnifiedVendorEndpointConfig;
+  readonly format?: UnifiedLogFormat;
+  readonly auth?: UnifiedAuthConfig;
+  readonly transports?: UnifiedLogTransportConfig[];
+  readonly exporterConfig?: UnifiedLoggingExporterConfig;
 }
 
-export interface LoggingExporterConfig {
+export interface UnifiedLoggingExporterConfig {
   readonly batchSize?: number;
   readonly batchTimeout?: number;
   readonly includeTimestamp?: boolean;
@@ -75,20 +75,20 @@ export interface LoggingExporterConfig {
   readonly compressionEnabled?: boolean;
 }
 
-export interface LogTransportConfig {
-  readonly type: LogTransportType;
+export interface UnifiedLogTransportConfig {
+  readonly type: UnifiedLogTransportType;
   readonly options?: Record<string, unknown>;
-  readonly level?: LogLevel;
-  readonly format?: LogFormat;
+  readonly level?: UnifiedLogLevel;
+  readonly format?: UnifiedLogFormat;
 }
 
-export interface InstrumentationConfig {
-  readonly http?: HttpInstrumentationConfig;
-  readonly database?: DatabaseInstrumentationConfig;
-  readonly custom?: CustomInstrumentationConfig;
+export interface UnifiedInstrumentationConfig {
+  readonly http?: HttpUnifiedInstrumentationConfig;
+  readonly database?: DatabaseUnifiedInstrumentationConfig;
+  readonly custom?: CustomUnifiedInstrumentationConfig;
 }
 
-export interface HttpInstrumentationConfig {
+export interface HttpUnifiedInstrumentationConfig {
   readonly enabled: boolean;
   readonly collectRequestBody?: boolean;
   readonly collectResponseBody?: boolean;
@@ -99,7 +99,7 @@ export interface HttpInstrumentationConfig {
   readonly ignoreUserAgents?: string[];
 }
 
-export interface DatabaseInstrumentationConfig {
+export interface DatabaseUnifiedInstrumentationConfig {
   readonly enabled: boolean;
   readonly collectQueries?: boolean;
   readonly slowQueryThreshold?: number;
@@ -107,31 +107,31 @@ export interface DatabaseInstrumentationConfig {
   readonly maxQueryLength?: number;
 }
 
-export interface CustomInstrumentationConfig {
+export interface CustomUnifiedInstrumentationConfig {
   readonly enabled: boolean;
   readonly modules?: string[];
-  readonly plugins?: InstrumentationPlugin[];
+  readonly plugins?: UnifiedInstrumentationPlugin[];
 }
 
-export interface InstrumentationPlugin {
+export interface UnifiedInstrumentationPlugin {
   readonly name: string;
   readonly enabled: boolean;
   readonly config?: Record<string, unknown>;
 }
 
-export interface ResourceConfig {
+export interface UnifiedResourceConfig {
   readonly attributes?: Record<string, string>;
-  readonly detectors?: ResourceDetectorConfig[];
+  readonly detectors?: UnifiedResourceDetectorConfig[];
 }
 
-export interface ResourceDetectorConfig {
-  readonly type: ResourceDetectorType;
+export interface UnifiedResourceDetectorConfig {
+  readonly type: UnifiedResourceDetectorType;
   readonly enabled: boolean;
   readonly timeout?: number;
 }
 
-export interface MixedVendorConfig extends ObservabilityConfig {
-  readonly metrics: MetricsConfig & { vendor: 'prometheus' };
-  readonly tracing: TracingConfig & { vendor: 'awsxray' };
-  readonly logging: LoggingConfig & { vendor: 'winston' };
+export interface UnifiedMixedVendorConfig extends UnifiedObservabilityConfig {
+  readonly metrics: UnifiedMetricsConfig & { vendor: 'prometheus' };
+  readonly tracing: UnifiedTracingConfig & { vendor: 'awsxray' };
+  readonly logging: UnifiedLoggingConfig & { vendor: 'winston' };
 }

@@ -1,25 +1,25 @@
-export type Primitive = string | number | boolean;
-export type LabelValue = string;
-export type AttributeValue = string | number | boolean;
+export type UnifiedPrimitive = string | number | boolean;
+export type UnifiedLabelValue = string;
+export type UnifiedAttributeValue = string | number | boolean;
 
-export interface KeyValuePair<T = string> {
+export interface UnifiedKeyValuePair<T = string> {
   readonly key: string;
   readonly value: T;
 }
 
 export type ReadonlyRecord<K extends string | number | symbol, V> = Readonly<Record<K, V>>;
 
-export function isPrimitive(value: unknown): value is Primitive {
+export function isUnifiedPrimitive(value: unknown): value is UnifiedPrimitive {
   const type = typeof value;
   return type === 'string' || type === 'number' || type === 'boolean';
 }
 
-export function isValidLabelValue(value: unknown): value is LabelValue {
+export function isValidUnifiedLabelValue(value: unknown): value is UnifiedLabelValue {
   return typeof value === 'string' && value.length > 0;
 }
 
-export function isValidAttributeValue(value: unknown): value is AttributeValue {
-  return isPrimitive(value);
+export function isValidUnifiedAttributeValue(value: unknown): value is UnifiedAttributeValue {
+  return isUnifiedPrimitive(value);
 }
 
 export function ensureStringMap(input: Record<string, unknown>): Record<string, string> {

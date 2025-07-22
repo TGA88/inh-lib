@@ -1,4 +1,4 @@
-export const MetricsVendorType = {
+export const UnifiedMetricsVendorType = {
   PROMETHEUS: 'prometheus',
   DATADOG: 'datadog',
   NEWRELIC: 'newrelic',
@@ -6,9 +6,9 @@ export const MetricsVendorType = {
   OPENTELEMETRY: 'opentelemetry'
 } as const;
 
-export type MetricsVendorType = typeof MetricsVendorType[keyof typeof MetricsVendorType];
+export type UnifiedMetricsVendorType = typeof UnifiedMetricsVendorType[keyof typeof UnifiedMetricsVendorType];
 
-export const TracingVendorType = {
+export const UnifiedTracingVendorType = {
   JAEGER: 'jaeger',
   AWSXRAY: 'awsxray',
   DATADOG: 'datadog',
@@ -17,9 +17,9 @@ export const TracingVendorType = {
   OPENTELEMETRY: 'opentelemetry'
 } as const;
 
-export type TracingVendorType = typeof TracingVendorType[keyof typeof TracingVendorType];
+export type UnifiedTracingVendorType = typeof UnifiedTracingVendorType[keyof typeof UnifiedTracingVendorType];
 
-export const LoggingVendorType = {
+export const UnifiedLoggingVendorType = {
   WINSTON: 'winston',
   PINO: 'pino',
   BUNYAN: 'bunyan',
@@ -28,9 +28,9 @@ export const LoggingVendorType = {
   OPENTELEMETRY: 'opentelemetry'
 } as const;
 
-export type LoggingVendorType = typeof LoggingVendorType[keyof typeof LoggingVendorType];
+export type UnifiedLoggingVendorType = typeof UnifiedLoggingVendorType[keyof typeof UnifiedLoggingVendorType];
 
-export const AuthType = {
+export const UnifiedAuthType = {
   API_KEY: 'api_key',
   BEARER_TOKEN: 'bearer_token',
   BASIC: 'basic',
@@ -38,17 +38,17 @@ export const AuthType = {
   OAUTH: 'oauth'
 } as const;
 
-export type AuthType = typeof AuthType[keyof typeof AuthType];
+export type UnifiedAuthType = typeof UnifiedAuthType[keyof typeof UnifiedAuthType];
 
-export const LogFormat = {
+export const UnifiedLogFormat = {
   JSON: 'json',
   TEXT: 'text',
   STRUCTURED: 'structured'
 } as const;
 
-export type LogFormat = typeof LogFormat[keyof typeof LogFormat];
+export type UnifiedLogFormat = typeof UnifiedLogFormat[keyof typeof UnifiedLogFormat];
 
-export const LogTransportType = {
+export const UnifiedLogTransportType = {
   CONSOLE: 'console',
   FILE: 'file',
   HTTP: 'http',
@@ -58,9 +58,9 @@ export const LogTransportType = {
   CUSTOM: 'custom'
 } as const;
 
-export type LogTransportType = typeof LogTransportType[keyof typeof LogTransportType];
+export type UnifiedLogTransportType = typeof UnifiedLogTransportType[keyof typeof UnifiedLogTransportType];
 
-export const ResourceDetectorType = {
+export const UnifiedResourceDetectorType = {
   ENV: 'env',
   HOST: 'host',
   OS: 'os',
@@ -74,13 +74,13 @@ export const ResourceDetectorType = {
   AZURE: 'azure'
 } as const;
 
-export type ResourceDetectorType = typeof ResourceDetectorType[keyof typeof ResourceDetectorType];
+export type UnifiedResourceDetectorType = typeof UnifiedResourceDetectorType[keyof typeof UnifiedResourceDetectorType];
 
-export const LabelMatchOperator = {
+export const UnifiedLabelMatchOperator = {
   EQUAL: '=',
   NOT_EQUAL: '!=',
   REGEX_MATCH: '=~',
   REGEX_NOT_MATCH: '!~'
 } as const;
 
-export type LabelMatchOperator = typeof LabelMatchOperator[keyof typeof LabelMatchOperator];
+export type UnifiedLabelMatchOperator = typeof UnifiedLabelMatchOperator[keyof typeof UnifiedLabelMatchOperator];

@@ -1,26 +1,26 @@
-import { UnifiedTracer, TracerOptions } from '../tracing/tracer';
+import { UnifiedTracer, UnifiedTracerOptions } from '../tracing/tracer';
 
 export interface UnifiedTraceProvider {
   readonly name: string;
   readonly isInitialized: boolean;
   
   getTracer(name: string, version?: string): UnifiedTracer;
-  getTracer(options: TracerOptions): UnifiedTracer;
+  getTracer(options: UnifiedTracerOptions): UnifiedTracer;
   getActiveTracer(): UnifiedTracer;
   
-  getAllTracers(): TracersList;
+  getAllTracers(): UnifiedTracersList;
   shutdown(): Promise<void>;
 }
 
-export interface TracersList {
+export interface UnifiedTracersList {
   readonly tracers: UnifiedTracer[];
 }
 
-export interface TraceExporter {
-  export(): Promise<TracesExportResult>;
+export interface UnifiedTraceExporter {
+  export(): Promise<UnifiedTracesExportResult>;
 }
 
-export interface TracesExportResult {
+export interface UnifiedTracesExportResult {
   readonly success: boolean;
   readonly error?: Error;
   readonly tracesCount: number;

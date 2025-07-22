@@ -1,34 +1,34 @@
-import { UnifiedCounter, CounterOptions } from '../metrics/counter';
-import { UnifiedHistogram, HistogramOptions } from '../metrics/histogram';
-import { UnifiedGauge, GaugeOptions } from '../metrics/gauge';
+import { UnifiedCounter, UnifiedCounterOptions } from '../metrics/counter';
+import { UnifiedHistogram, UnifiedHistogramOptions } from '../metrics/histogram';
+import { UnifiedGauge, UnifiedGaugeOptions } from '../metrics/gauge';
 
 export interface UnifiedMetricProvider {
   readonly name: string;
   readonly isInitialized: boolean;
   
-  createCounter(options: CounterOptions): UnifiedCounter;
-  createHistogram(options: HistogramOptions): UnifiedHistogram;
-  createGauge(options: GaugeOptions): UnifiedGauge;
+  createCounter(options: UnifiedCounterOptions): UnifiedCounter;
+  createHistogram(options: UnifiedHistogramOptions): UnifiedHistogram;
+  createGauge(options: UnifiedGaugeOptions): UnifiedGauge;
   
   getCounter(name: string): UnifiedCounter | undefined;
   getHistogram(name: string): UnifiedHistogram | undefined;
   getGauge(name: string): UnifiedGauge | undefined;
   
-  getAllMetrics(): MetricsList;
+  getAllMetrics(): UnifiedMetricsList;
   shutdown(): Promise<void>;
 }
 
-export interface MetricsList {
+export interface UnifiedMetricsList {
   readonly counters: UnifiedCounter[];
   readonly histograms: UnifiedHistogram[];
   readonly gauges: UnifiedGauge[];
 }
 
-export interface MetricExporter {
-  export(): Promise<MetricsExportResult>;
+export interface UnifiedMetricExporter {
+  export(): Promise<UnifiedMetricsExportResult>;
 }
 
-export interface MetricsExportResult {
+export interface UnifiedMetricsExportResult {
   readonly success: boolean;
   readonly error?: Error;
   readonly metricsCount: number;

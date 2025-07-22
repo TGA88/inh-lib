@@ -1,25 +1,25 @@
-import { UnifiedLogger, LoggerOptions } from '../logging/logger';
+import { UnifiedLogger, UnifiedLoggerOptions } from '../logging/logger';
 
 export interface UnifiedLogProvider {
   readonly name: string;
   readonly isInitialized: boolean;
   
-  getLogger(options: LoggerOptions): UnifiedLogger;
+  getLogger(options: UnifiedLoggerOptions): UnifiedLogger;
   getLogger(name: string): UnifiedLogger;
   
-  getAllLoggers(): LoggersList;
+  getAllLoggers(): UnifiedLoggersList;
   shutdown(): Promise<void>;
 }
 
-export interface LoggersList {
+export interface UnifiedLoggersList {
   readonly loggers: UnifiedLogger[];
 }
 
-export interface LogExporter {
-  export(): Promise<LogsExportResult>;
+export interface UnifiedLogExporter {
+  export(): Promise<UnifiedLogsExportResult>;
 }
 
-export interface LogsExportResult {
+export interface UnifiedLogsExportResult {
   readonly success: boolean;
   readonly error?: Error;
   readonly logsCount: number;

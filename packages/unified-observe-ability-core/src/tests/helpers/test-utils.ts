@@ -1,14 +1,14 @@
 
 
 // Test utilities
-import { ValidationResult } from '../../utils/validation.utils';
+import { UnifiedValidationResult } from '../../utils/validation.utils';
 
-export function expectValidationToPass(result: ValidationResult): void {
+export function expectValidationToPass(result: UnifiedValidationResult): void {
   expect(result.isValid).toBe(true);
   expect(result.errors).toEqual([]);
 }
 
-export function expectValidationToFail(result: ValidationResult, expectedErrors?: string[]): void {
+export function expectValidationToFail(result: UnifiedValidationResult, expectedErrors?: string[]): void {
   expect(result.isValid).toBe(false);
   expect(result.errors.length).toBeGreaterThan(0);
   
@@ -25,7 +25,7 @@ export function createMockError(message = 'Mock error'): Error {
   return error;
 }
 
-export function createMockValidationResult(isValid: boolean, errors: string[] = []): ValidationResult {
+export function createMockValidationResult(isValid: boolean, errors: string[] = []): UnifiedValidationResult {
   return { isValid, errors: [...errors] };
 }
 

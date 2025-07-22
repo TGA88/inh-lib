@@ -1,14 +1,16 @@
-import { ValidationResult, validateMetricName, validateLabelKeys, validateAttributes, validateServiceName } from '../utils/validation.utils';
-import { CounterOptions } from '../types/metrics/counter';
-import { HistogramOptions } from '../types/metrics/histogram';
-import { GaugeOptions } from '../types/metrics/gauge';
-import { ObservabilityConfig } from '../types/configuration/observability-config';
-import { LoggerOptions } from '../types/logging/logger';
-import { SpanOptions } from '../types/tracing/span';
-import { SpanContext } from '../types/tracing/context';
-import { ValidationError } from '../errors';
+import { UnifiedValidationResult, validateMetricName, validateLabelKeys, validateAttributes, validateServiceName ,validateHistogramBoundaries} from '../utils/validation.utils';
+import { UnifiedCounterOptions } from '../types/metrics/counter';
+import { UnifiedHistogramOptions } from '../types/metrics/histogram';
+import { UnifiedGaugeOptions } from '../types/metrics/gauge';
+import { UnifiedObservabilityConfig } from '../types/configuration/observability-config';
+import { UnifiedLoggerOptions } from '../types/logging/logger';
+import { UnifiedSpanOptions } from '../types/tracing/span';
+import { UnifiedSpanContext } from '../types/tracing/context';
+import { UnifiedValidationError } from '../errors';
 
-export function validateCounterOptions(options: CounterOptions): ValidationResult {
+
+
+export function validateUnifiedCounterOptions(options: UnifiedCounterOptions): UnifiedValidationResult {
   const errors: string[] = [];
   
   const nameValidation = validateMetricName(options.name);
@@ -30,7 +32,7 @@ export function validateCounterOptions(options: CounterOptions): ValidationResul
   return { isValid: errors.length === 0, errors };
 }
 
-export function validateHistogramOptions(options: HistogramOptions): ValidationResult {
+export function validateUnifiedHistogramOptions(options: UnifiedHistogramOptions): UnifiedValidationResult {
   const errors: string[] = [];
   
   const nameValidation = validateMetricName(options.name);
@@ -59,7 +61,7 @@ export function validateHistogramOptions(options: HistogramOptions): ValidationR
   return { isValid: errors.length === 0, errors };
 }
 
-export function validateGaugeOptions(options: GaugeOptions): ValidationResult {
+export function validateUnifiedGaugeOptions(options: UnifiedGaugeOptions): UnifiedValidationResult {
   const errors: string[] = [];
   
   const nameValidation = validateMetricName(options.name);
@@ -81,7 +83,7 @@ export function validateGaugeOptions(options: GaugeOptions): ValidationResult {
   return { isValid: errors.length === 0, errors };
 }
 
-export function validateObservabilityConfig(config: ObservabilityConfig): ValidationResult {
+export function validateUnifiedObservabilityConfig(config: UnifiedObservabilityConfig): UnifiedValidationResult {
   const errors: string[] = [];
   
   const serviceNameValidation = validateServiceName(config.serviceName);
@@ -113,7 +115,7 @@ export function validateObservabilityConfig(config: ObservabilityConfig): Valida
   return { isValid: errors.length === 0, errors };
 }
 
-export function validateLoggerOptions(options: LoggerOptions): ValidationResult {
+export function validateUnifiedLoggerOptions(options: UnifiedLoggerOptions): UnifiedValidationResult {
   const errors: string[] = [];
   
   if (!options.name || typeof options.name !== 'string') {
@@ -127,7 +129,7 @@ export function validateLoggerOptions(options: LoggerOptions): ValidationResult 
   return { isValid: errors.length === 0, errors };
 }
 
-export function validateSpanOptions(name: string, options?: SpanOptions): ValidationResult {
+export function validateUnifiedSpanOptions(name: string, options?: UnifiedSpanOptions): UnifiedValidationResult {
   const errors: string[] = [];
   
   if (!name || typeof name !== 'string') {
@@ -148,7 +150,7 @@ export function validateSpanOptions(name: string, options?: SpanOptions): Valida
   return { isValid: errors.length === 0, errors };
 }
 
-export function validateSpanContext(context: SpanContext): ValidationResult {
+export function validateUnifiedSpanContext(context: UnifiedSpanContext): UnifiedValidationResult {
   const errors: string[] = [];
   
   if (!context.traceId || typeof context.traceId !== 'string') {
@@ -190,7 +192,7 @@ export function validateSpanContext(context: SpanContext): ValidationResult {
   return { isValid: errors.length === 0, errors };
 }
 
-export function validateTraceState(traceState?: string): ValidationResult {
+export function validateTraceState(traceState?: string): UnifiedValidationResult {
   const errors: string[] = [];
   
   if (traceState !== undefined) {
@@ -237,15 +239,13 @@ export function validateTraceState(traceState?: string): ValidationResult {
   return { isValid: errors.length === 0, errors };
 }
 
-// Helper function to throw ValidationError if validation fails
-export function assertValid(validation: ValidationResult, context: string): void {
+// Helper function to throw UnifiedValidationError if validation fails
+export function assertValid(validation: UnifiedValidationResult, context: string): void {
   if (!validation.isValid) {
-    throw new ValidationError(
+    throw new UnifiedValidationError(
       `Validation failed for ${context}`,
       validation.errors
     );
   }
 }
 
-// Add missing function import
-import { validateHistogramBoundaries } from '../utils/validation.utils';

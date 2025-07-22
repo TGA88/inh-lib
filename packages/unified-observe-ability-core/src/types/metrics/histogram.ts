@@ -1,4 +1,4 @@
-import { LabelSet } from './labels';
+import { UnifiedLabelSet } from './labels';
 
 export interface UnifiedHistogram {
   readonly name: string;
@@ -7,12 +7,12 @@ export interface UnifiedHistogram {
   readonly labelKeys: string[];
   readonly boundaries: number[];
   
-  record(value: number, labels?: LabelSet): void;
-  getPercentile(percentile: number, labels?: LabelSet): number;
-  getBucketCounts(labels?: LabelSet): HistogramBucketCounts;
+  record(value: number, labels?: UnifiedLabelSet): void;
+  getPercentile(percentile: number, labels?: UnifiedLabelSet): number;
+  getBucketCounts(labels?: UnifiedLabelSet): UnifiedUnifiedHistogramBucketCounts;
 }
 
-export interface HistogramOptions {
+export interface UnifiedHistogramOptions {
   readonly name: string;
   readonly description: string;
   readonly unit?: string;
@@ -20,20 +20,20 @@ export interface HistogramOptions {
   readonly labelKeys?: string[];
 }
 
-export interface HistogramBucketCounts {
-  readonly buckets: HistogramBucket[];
+export interface UnifiedUnifiedHistogramBucketCounts {
+  readonly buckets: UnifiedHistogramBucket[];
   readonly count: number;
   readonly sum: number;
 }
 
-export interface HistogramBucket {
+export interface UnifiedHistogramBucket {
   readonly upperBound: number;
   readonly count: number;
 }
 
-export interface HistogramValue {
-  readonly labels: LabelSet;
-  readonly buckets: HistogramBucket[];
+export interface UnifiedHistogramValue {
+  readonly labels: UnifiedLabelSet;
+  readonly buckets: UnifiedHistogramBucket[];
   readonly count: number;
   readonly sum: number;
   readonly timestamp: number;

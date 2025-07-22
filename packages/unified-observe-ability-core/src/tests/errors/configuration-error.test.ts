@@ -1,64 +1,64 @@
 
 
 import {
-  ConfigurationError,
-  ProviderNotInitializedError,
-  ValidationError,
-  MetricError,
-  TracingError,
-  LoggingError,
+  UnifiedConfigurationError,
+  UnifiedProviderNotInitializedError,
+  UnifiedValidationError,
+  UnifiedMetricError,
+  UnifiedTracingError,
+  UnifiedLoggingError,
   ExportError
 } from '../../errors/configuration-error';
-import { ErrorCodes } from '../../errors/observability-error';
+import { UnifiedErrorCodes } from '../../errors/observability-error';
 
 describe('Configuration Error Classes', () => {
-  describe('ConfigurationError', () => {
+  describe('UnifiedConfigurationError', () => {
     it('should create configuration error with correct properties', () => {
-      const error = new ConfigurationError('Invalid configuration');
+      const error = new UnifiedConfigurationError('Invalid configuration');
 
       expect(error.message).toBe('Invalid configuration');
-      expect(error.code).toBe(ErrorCodes.CONFIGURATION_ERROR);
-      expect(error.name).toBe('ConfigurationError');
-      expect(error).toBeInstanceOf(ConfigurationError);
+      expect(error.code).toBe(UnifiedErrorCodes.CONFIGURATION_ERROR);
+      expect(error.name).toBe('UnifiedConfigurationError');
+      expect(error).toBeInstanceOf(UnifiedConfigurationError);
       expect(error).toBeInstanceOf(Error);
     });
 
     it('should create configuration error with cause', () => {
       const cause = new Error('Underlying error');
-      const error = new ConfigurationError('Invalid configuration', cause);
+      const error = new UnifiedConfigurationError('Invalid configuration', cause);
 
       expect(error.cause).toBe(cause);
     });
   });
 
-  describe('ProviderNotInitializedError', () => {
+  describe('UnifiedProviderNotInitializedError', () => {
     it('should create provider not initialized error', () => {
-      const error = new ProviderNotInitializedError('MetricProvider');
+      const error = new UnifiedProviderNotInitializedError('MetricProvider');
 
       expect(error.message).toBe('MetricProvider provider not initialized');
-      expect(error.code).toBe(ErrorCodes.PROVIDER_NOT_INITIALIZED);
-      expect(error.name).toBe('ProviderNotInitializedError');
+      expect(error.code).toBe(UnifiedErrorCodes.PROVIDER_NOT_INITIALIZED);
+      expect(error.name).toBe('UnifiedProviderNotInitializedError');
       expect(error.providerType).toBe('MetricProvider');
     });
   });
 
-  describe('ValidationError', () => {
+  describe('UnifiedValidationError', () => {
     it('should create validation error with validation errors', () => {
       const validationErrors = ['Error 1', 'Error 2'];
-      const error = new ValidationError(
+      const error = new UnifiedValidationError(
         'Validation failed',
         validationErrors
       );
 
       expect(error.message).toBe('Validation failed');
-      expect(error.code).toBe(ErrorCodes.VALIDATION_FAILED);
-      expect(error.name).toBe('ValidationError');
+      expect(error.code).toBe(UnifiedErrorCodes.VALIDATION_FAILED);
+      expect(error.name).toBe('UnifiedValidationError');
       expect(error.validationErrors).toEqual(validationErrors);
     });
 
     it('should create copy of validation errors', () => {
       const validationErrors = ['Error 1'];
-      const error = new ValidationError(
+      const error = new UnifiedValidationError(
         'Validation failed',
         validationErrors
       );
@@ -69,7 +69,7 @@ describe('Configuration Error Classes', () => {
 
     it('should create validation error with cause', () => {
       const cause = new Error('Validation cause');
-      const error = new ValidationError(
+      const error = new UnifiedValidationError(
         'Validation failed',
         ['Error 1'],
         cause
@@ -79,26 +79,26 @@ describe('Configuration Error Classes', () => {
     });
   });
 
-  describe('MetricError', () => {
+  describe('UnifiedMetricError', () => {
     it('should create metric error with metric name', () => {
-      const error = new MetricError(
+      const error = new UnifiedMetricError(
         'Metric creation failed',
         'http_requests_total',
-        ErrorCodes.INVALID_METRIC_NAME
+        UnifiedErrorCodes.INVALID_METRIC_NAME
       );
 
       expect(error.message).toBe('Metric creation failed');
-      expect(error.code).toBe(ErrorCodes.INVALID_METRIC_NAME);
-      expect(error.name).toBe('MetricError');
+      expect(error.code).toBe(UnifiedErrorCodes.INVALID_METRIC_NAME);
+      expect(error.name).toBe('UnifiedMetricError');
       expect(error.metricName).toBe('http_requests_total');
     });
 
     it('should create metric error with cause', () => {
       const cause = new Error('Metric cause');
-      const error = new MetricError(
+      const error = new UnifiedMetricError(
         'Metric error',
         'test_metric',
-        ErrorCodes.INVALID_METRIC_NAME,
+        UnifiedErrorCodes.INVALID_METRIC_NAME,
         cause
       );
 
@@ -106,26 +106,26 @@ describe('Configuration Error Classes', () => {
     });
   });
 
-  describe('TracingError', () => {
+  describe('UnifiedTracingError', () => {
     it('should create tracing error with optional span info', () => {
-      const error = new TracingError(
+      const error = new UnifiedTracingError(
         'Span creation failed',
-        ErrorCodes.SPAN_ALREADY_ENDED,
+        UnifiedErrorCodes.SPAN_ALREADY_ENDED,
         'test-span',
         'trace-123'
       );
 
       expect(error.message).toBe('Span creation failed');
-      expect(error.code).toBe(ErrorCodes.SPAN_ALREADY_ENDED);
-      expect(error.name).toBe('TracingError');
+      expect(error.code).toBe(UnifiedErrorCodes.SPAN_ALREADY_ENDED);
+      expect(error.name).toBe('UnifiedTracingError');
       expect(error.spanName).toBe('test-span');
       expect(error.traceId).toBe('trace-123');
     });
 
     it('should create tracing error without span info', () => {
-      const error = new TracingError(
+      const error = new UnifiedTracingError(
         'Tracer error',
-        ErrorCodes.TRACER_NOT_AVAILABLE
+        UnifiedErrorCodes.TRACER_NOT_AVAILABLE
       );
 
       expect(error.spanName).toBeUndefined();
@@ -133,17 +133,17 @@ describe('Configuration Error Classes', () => {
     });
   });
 
-  describe('LoggingError', () => {
+  describe('UnifiedLoggingError', () => {
     it('should create logging error with logger name', () => {
-      const error = new LoggingError(
+      const error = new UnifiedLoggingError(
         'Logger creation failed',
         'api-logger',
-        ErrorCodes.LOGGER_NOT_AVAILABLE
+        UnifiedErrorCodes.LOGGER_NOT_AVAILABLE
       );
 
       expect(error.message).toBe('Logger creation failed');
-      expect(error.code).toBe(ErrorCodes.LOGGER_NOT_AVAILABLE);
-      expect(error.name).toBe('LoggingError');
+      expect(error.code).toBe(UnifiedErrorCodes.LOGGER_NOT_AVAILABLE);
+      expect(error.name).toBe('UnifiedLoggingError');
       expect(error.loggerName).toBe('api-logger');
     });
   });
@@ -157,7 +157,7 @@ describe('Configuration Error Classes', () => {
       );
 
       expect(error.message).toBe('Export failed');
-      expect(error.code).toBe(ErrorCodes.EXPORT_FAILED);
+      expect(error.code).toBe(UnifiedErrorCodes.EXPORT_FAILED);
       expect(error.name).toBe('ExportError');
       expect(error.exporterType).toBe('PrometheusExporter');
       expect(error.itemsCount).toBe(100);

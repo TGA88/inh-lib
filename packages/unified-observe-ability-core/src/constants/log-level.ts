@@ -1,4 +1,4 @@
-export const LogLevel = {
+export const UnifiedLogLevel = {
   TRACE: 'trace',
   DEBUG: 'debug',
   INFO: 'info',
@@ -7,21 +7,21 @@ export const LogLevel = {
   FATAL: 'fatal'
 } as const;
 
-export type LogLevel = typeof LogLevel[keyof typeof LogLevel];
+export type UnifiedLogLevel = typeof UnifiedLogLevel[keyof typeof UnifiedLogLevel];
 
 // Helper function for level comparison
-export function getLogLevelPriority(level: LogLevel): number {
+export function getLogLevelPriority(level: UnifiedLogLevel): number {
   const priorities = {
-    [LogLevel.TRACE]: 0,
-    [LogLevel.DEBUG]: 1,
-    [LogLevel.INFO]: 2,
-    [LogLevel.WARN]: 3,
-    [LogLevel.ERROR]: 4,
-    [LogLevel.FATAL]: 5
+    [UnifiedLogLevel.TRACE]: 0,
+    [UnifiedLogLevel.DEBUG]: 1,
+    [UnifiedLogLevel.INFO]: 2,
+    [UnifiedLogLevel.WARN]: 3,
+    [UnifiedLogLevel.ERROR]: 4,
+    [UnifiedLogLevel.FATAL]: 5
   };
   return priorities[level];
 }
 
-export function isLogLevelEnabled(currentLevel: LogLevel, targetLevel: LogLevel): boolean {
+export function isLogLevelEnabled(currentLevel: UnifiedLogLevel, targetLevel: UnifiedLogLevel): boolean {
   return getLogLevelPriority(targetLevel) >= getLogLevelPriority(currentLevel);
 }

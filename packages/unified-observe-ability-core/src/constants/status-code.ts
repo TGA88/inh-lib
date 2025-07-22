@@ -1,36 +1,36 @@
-export const SpanStatusCode = {
+export const UnifiedSpanStatusCode = {
   UNSET: 'UNSET',
   OK: 'OK',
   ERROR: 'ERROR'
 } as const;
 
-export type SpanStatusCode = typeof SpanStatusCode[keyof typeof SpanStatusCode];
+export type UnifiedSpanStatusCode = typeof UnifiedSpanStatusCode[keyof typeof UnifiedSpanStatusCode];
 
-export const HttpStatusCodeRange = {
+export const UnifiedHttpStatusCodeRange = {
   SUCCESS: '2xx',
   CLIENT_ERROR: '4xx',
   SERVER_ERROR: '5xx'
 } as const;
 
-export type HttpStatusCodeRange = typeof HttpStatusCodeRange[keyof typeof HttpStatusCodeRange];
+export type UnifiedHttpStatusCodeRange = typeof UnifiedHttpStatusCodeRange[keyof typeof UnifiedHttpStatusCodeRange];
 
 // Helper functions
-export function getSpanStatusFromHttpCode(statusCode: number): SpanStatusCode {
+export function getSpanStatusFromHttpCode(statusCode: number): UnifiedSpanStatusCode {
   if (statusCode >= 400) {
-    return SpanStatusCode.ERROR;
+    return UnifiedSpanStatusCode.ERROR;
   }
-  return SpanStatusCode.OK;
+  return UnifiedSpanStatusCode.OK;
 }
 
-export function getHttpStatusRange(statusCode: number): HttpStatusCodeRange | undefined {
+export function getHttpStatusRange(statusCode: number): UnifiedHttpStatusCodeRange | undefined {
   if (statusCode >= 200 && statusCode < 300) {
-    return HttpStatusCodeRange.SUCCESS;
+    return UnifiedHttpStatusCodeRange.SUCCESS;
   }
   if (statusCode >= 400 && statusCode < 500) {
-    return HttpStatusCodeRange.CLIENT_ERROR;
+    return UnifiedHttpStatusCodeRange.CLIENT_ERROR;
   }
   if (statusCode >= 500 && statusCode < 600) {
-    return HttpStatusCodeRange.SERVER_ERROR;
+    return UnifiedHttpStatusCodeRange.SERVER_ERROR;
   }
   return undefined;
 }

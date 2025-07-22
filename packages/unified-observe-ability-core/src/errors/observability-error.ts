@@ -1,4 +1,4 @@
-export class ObservabilityError extends Error {
+export class UnifiedObservabilityError extends Error {
   public readonly code: string;
   public readonly cause?: Error;
   public readonly timestamp: number;
@@ -9,16 +9,16 @@ export class ObservabilityError extends Error {
     cause?: Error
   ) {
     super(message);
-    this.name = 'ObservabilityError';
+    this.name = 'UnifiedObservabilityError';
     this.code = code;
     this.cause = cause;
     this.timestamp = Date.now();
     
     // Ensure proper prototype chain
-    Object.setPrototypeOf(this, ObservabilityError.prototype);
+    Object.setPrototypeOf(this, UnifiedObservabilityError.prototype);
   }
 
-  toJSON(): ObservabilityErrorSerialized {
+  toJSON(): UnifiedObservabilityErrorSerialized {
     return {
       name: this.name,
       message: this.message,
@@ -34,7 +34,7 @@ export class ObservabilityError extends Error {
   }
 }
 
-export interface ObservabilityErrorSerialized {
+export interface UnifiedObservabilityErrorSerialized {
   readonly name: string;
   readonly message: string;
   readonly code: string;
@@ -48,7 +48,7 @@ export interface ObservabilityErrorSerialized {
 }
 
 // Error codes
-export const ErrorCodes = {
+export const UnifiedErrorCodes = {
   CONFIGURATION_ERROR: 'CONFIGURATION_ERROR',
   PROVIDER_NOT_INITIALIZED: 'PROVIDER_NOT_INITIALIZED',
   INVALID_METRIC_NAME: 'INVALID_METRIC_NAME',
@@ -62,4 +62,4 @@ export const ErrorCodes = {
   VALIDATION_FAILED: 'VALIDATION_FAILED'
 } as const;
 
-export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
+export type ErrorCode = typeof UnifiedErrorCodes[keyof typeof UnifiedErrorCodes];

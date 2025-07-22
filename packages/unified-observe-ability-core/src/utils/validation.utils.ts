@@ -1,20 +1,20 @@
-import { AttributeValue, LabelValue } from './type.utils';
+import { UnifiedAttributeValue, UnifiedLabelValue } from './type.utils';
 
-export interface ValidationResult {
+export interface UnifiedValidationResult {
   readonly isValid: boolean;
   readonly errors: string[];
 }
 
-export function createValidationResult(isValid: boolean, errors: string[] = []): ValidationResult {
+export function createUnifiedValidationResult(isValid: boolean, errors: string[] = []): UnifiedValidationResult {
   return { isValid, errors: [...errors] };
 }
 
-export function validateMetricName(name: string): ValidationResult {
+export function validateMetricName(name: string): UnifiedValidationResult {
   const errors: string[] = [];
   
   if (!name || typeof name !== 'string') {
     errors.push('Metric name must be a non-empty string');
-    return createValidationResult(false, errors);
+    return createUnifiedValidationResult(false, errors);
   }
   
   if (name.length === 0) {
@@ -31,10 +31,10 @@ export function validateMetricName(name: string): ValidationResult {
     errors.push('Metric name must start with letter, underscore, or colon and contain only alphanumeric characters, underscores, and colons');
   }
   
-  return createValidationResult(errors.length === 0, errors);
+  return createUnifiedValidationResult(errors.length === 0, errors);
 }
 
-export function validateLabelKeys(labelKeys: string[]): ValidationResult {
+export function validateLabelKeys(labelKeys: string[]): UnifiedValidationResult {
   const errors: string[] = [];
   
   for (const key of labelKeys) {
@@ -58,10 +58,10 @@ export function validateLabelKeys(labelKeys: string[]): ValidationResult {
     }
   }
   
-  return createValidationResult(errors.length === 0, errors);
+  return createUnifiedValidationResult(errors.length === 0, errors);
 }
 
-export function validateLabels(labels: Record<string, LabelValue>): ValidationResult {
+export function validateLabels(labels: Record<string, UnifiedLabelValue>): UnifiedValidationResult {
   const errors: string[] = [];
   
   for (const [key, value] of Object.entries(labels)) {
@@ -75,10 +75,10 @@ export function validateLabels(labels: Record<string, LabelValue>): ValidationRe
     }
   }
   
-  return createValidationResult(errors.length === 0, errors);
+  return createUnifiedValidationResult(errors.length === 0, errors);
 }
 
-export function validateAttributes(attributes: Record<string, AttributeValue>): ValidationResult {
+export function validateAttributes(attributes: Record<string, UnifiedAttributeValue>): UnifiedValidationResult {
   const errors: string[] = [];
   
   for (const [key, value] of Object.entries(attributes)) {
@@ -92,15 +92,15 @@ export function validateAttributes(attributes: Record<string, AttributeValue>): 
     }
   }
   
-  return createValidationResult(errors.length === 0, errors);
+  return createUnifiedValidationResult(errors.length === 0, errors);
 }
 
-export function validateHistogramBoundaries(boundaries: number[]): ValidationResult {
+export function validateHistogramBoundaries(boundaries: number[]): UnifiedValidationResult {
   const errors: string[] = [];
   
   if (boundaries.length === 0) {
     errors.push('Histogram boundaries cannot be empty');
-    return createValidationResult(false, errors);
+    return createUnifiedValidationResult(false, errors);
   }
   
   // Check for non-numeric values
@@ -124,15 +124,15 @@ export function validateHistogramBoundaries(boundaries: number[]): ValidationRes
     errors.push('Histogram boundaries must be positive');
   }
   
-  return createValidationResult(errors.length === 0, errors);
+  return createUnifiedValidationResult(errors.length === 0, errors);
 }
 
-export function validateServiceName(serviceName: string): ValidationResult {
+export function validateServiceName(serviceName: string): UnifiedValidationResult {
   const errors: string[] = [];
   
   if (!serviceName || typeof serviceName !== 'string') {
     errors.push('Service name must be a non-empty string');
-    return createValidationResult(false, errors);
+    return createUnifiedValidationResult(false, errors);
   }
   
   if (serviceName.length === 0) {
@@ -148,5 +148,5 @@ export function validateServiceName(serviceName: string): ValidationResult {
     errors.push('Service name must start with letter and contain only alphanumeric characters, dots, underscores, and hyphens');
   }
   
-  return createValidationResult(errors.length === 0, errors);
+  return createUnifiedValidationResult(errors.length === 0, errors);
 }

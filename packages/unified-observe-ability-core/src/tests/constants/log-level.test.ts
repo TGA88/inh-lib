@@ -1,40 +1,40 @@
 
 import {
-  LogLevel,
+  UnifiedLogLevel,
   getLogLevelPriority,
   isLogLevelEnabled
 } from '../../constants/log-level';
 
 describe('log-level', () => {
-  describe('LogLevel constants', () => {
+  describe('UnifiedLogLevel constants', () => {
     it('should have correct log level values', () => {
-      expect(LogLevel.TRACE).toBe('trace');
-      expect(LogLevel.DEBUG).toBe('debug');
-      expect(LogLevel.INFO).toBe('info');
-      expect(LogLevel.WARN).toBe('warn');
-      expect(LogLevel.ERROR).toBe('error');
-      expect(LogLevel.FATAL).toBe('fatal');
+      expect(UnifiedLogLevel.TRACE).toBe('trace');
+      expect(UnifiedLogLevel.DEBUG).toBe('debug');
+      expect(UnifiedLogLevel.INFO).toBe('info');
+      expect(UnifiedLogLevel.WARN).toBe('warn');
+      expect(UnifiedLogLevel.ERROR).toBe('error');
+      expect(UnifiedLogLevel.FATAL).toBe('fatal');
     });
   });
 
   describe('getLogLevelPriority', () => {
     it('should return correct priorities', () => {
-      expect(getLogLevelPriority(LogLevel.TRACE)).toBe(0);
-      expect(getLogLevelPriority(LogLevel.DEBUG)).toBe(1);
-      expect(getLogLevelPriority(LogLevel.INFO)).toBe(2);
-      expect(getLogLevelPriority(LogLevel.WARN)).toBe(3);
-      expect(getLogLevelPriority(LogLevel.ERROR)).toBe(4);
-      expect(getLogLevelPriority(LogLevel.FATAL)).toBe(5);
+      expect(getLogLevelPriority(UnifiedLogLevel.TRACE)).toBe(0);
+      expect(getLogLevelPriority(UnifiedLogLevel.DEBUG)).toBe(1);
+      expect(getLogLevelPriority(UnifiedLogLevel.INFO)).toBe(2);
+      expect(getLogLevelPriority(UnifiedLogLevel.WARN)).toBe(3);
+      expect(getLogLevelPriority(UnifiedLogLevel.ERROR)).toBe(4);
+      expect(getLogLevelPriority(UnifiedLogLevel.FATAL)).toBe(5);
     });
 
     it('should maintain priority order', () => {
       const levels = [
-        LogLevel.TRACE,
-        LogLevel.DEBUG,
-        LogLevel.INFO,
-        LogLevel.WARN,
-        LogLevel.ERROR,
-        LogLevel.FATAL
+        UnifiedLogLevel.TRACE,
+        UnifiedLogLevel.DEBUG,
+        UnifiedLogLevel.INFO,
+        UnifiedLogLevel.WARN,
+        UnifiedLogLevel.ERROR,
+        UnifiedLogLevel.FATAL
       ];
 
       for (let i = 0; i < levels.length - 1; i++) {
@@ -47,35 +47,35 @@ describe('log-level', () => {
 
   describe('isLogLevelEnabled', () => {
     it('should return true when target level is higher or equal to current level', () => {
-      expect(isLogLevelEnabled(LogLevel.INFO, LogLevel.INFO)).toBe(true);
-      expect(isLogLevelEnabled(LogLevel.INFO, LogLevel.WARN)).toBe(true);
-      expect(isLogLevelEnabled(LogLevel.INFO, LogLevel.ERROR)).toBe(true);
-      expect(isLogLevelEnabled(LogLevel.INFO, LogLevel.FATAL)).toBe(true);
+      expect(isLogLevelEnabled(UnifiedLogLevel.INFO, UnifiedLogLevel.INFO)).toBe(true);
+      expect(isLogLevelEnabled(UnifiedLogLevel.INFO, UnifiedLogLevel.WARN)).toBe(true);
+      expect(isLogLevelEnabled(UnifiedLogLevel.INFO, UnifiedLogLevel.ERROR)).toBe(true);
+      expect(isLogLevelEnabled(UnifiedLogLevel.INFO, UnifiedLogLevel.FATAL)).toBe(true);
     });
 
     it('should return false when target level is lower than current level', () => {
-      expect(isLogLevelEnabled(LogLevel.INFO, LogLevel.TRACE)).toBe(false);
-      expect(isLogLevelEnabled(LogLevel.INFO, LogLevel.DEBUG)).toBe(false);
-      expect(isLogLevelEnabled(LogLevel.WARN, LogLevel.INFO)).toBe(false);
-      expect(isLogLevelEnabled(LogLevel.ERROR, LogLevel.WARN)).toBe(false);
+      expect(isLogLevelEnabled(UnifiedLogLevel.INFO, UnifiedLogLevel.TRACE)).toBe(false);
+      expect(isLogLevelEnabled(UnifiedLogLevel.INFO, UnifiedLogLevel.DEBUG)).toBe(false);
+      expect(isLogLevelEnabled(UnifiedLogLevel.WARN, UnifiedLogLevel.INFO)).toBe(false);
+      expect(isLogLevelEnabled(UnifiedLogLevel.ERROR, UnifiedLogLevel.WARN)).toBe(false);
     });
 
     it('should work with all level combinations', () => {
       // When current level is TRACE (lowest), all levels should be enabled
-      expect(isLogLevelEnabled(LogLevel.TRACE, LogLevel.TRACE)).toBe(true);
-      expect(isLogLevelEnabled(LogLevel.TRACE, LogLevel.DEBUG)).toBe(true);
-      expect(isLogLevelEnabled(LogLevel.TRACE, LogLevel.INFO)).toBe(true);
-      expect(isLogLevelEnabled(LogLevel.TRACE, LogLevel.WARN)).toBe(true);
-      expect(isLogLevelEnabled(LogLevel.TRACE, LogLevel.ERROR)).toBe(true);
-      expect(isLogLevelEnabled(LogLevel.TRACE, LogLevel.FATAL)).toBe(true);
+      expect(isLogLevelEnabled(UnifiedLogLevel.TRACE, UnifiedLogLevel.TRACE)).toBe(true);
+      expect(isLogLevelEnabled(UnifiedLogLevel.TRACE, UnifiedLogLevel.DEBUG)).toBe(true);
+      expect(isLogLevelEnabled(UnifiedLogLevel.TRACE, UnifiedLogLevel.INFO)).toBe(true);
+      expect(isLogLevelEnabled(UnifiedLogLevel.TRACE, UnifiedLogLevel.WARN)).toBe(true);
+      expect(isLogLevelEnabled(UnifiedLogLevel.TRACE, UnifiedLogLevel.ERROR)).toBe(true);
+      expect(isLogLevelEnabled(UnifiedLogLevel.TRACE, UnifiedLogLevel.FATAL)).toBe(true);
 
       // When current level is FATAL (highest), only FATAL should be enabled
-      expect(isLogLevelEnabled(LogLevel.FATAL, LogLevel.TRACE)).toBe(false);
-      expect(isLogLevelEnabled(LogLevel.FATAL, LogLevel.DEBUG)).toBe(false);
-      expect(isLogLevelEnabled(LogLevel.FATAL, LogLevel.INFO)).toBe(false);
-      expect(isLogLevelEnabled(LogLevel.FATAL, LogLevel.WARN)).toBe(false);
-      expect(isLogLevelEnabled(LogLevel.FATAL, LogLevel.ERROR)).toBe(false);
-      expect(isLogLevelEnabled(LogLevel.FATAL, LogLevel.FATAL)).toBe(true);
+      expect(isLogLevelEnabled(UnifiedLogLevel.FATAL, UnifiedLogLevel.TRACE)).toBe(false);
+      expect(isLogLevelEnabled(UnifiedLogLevel.FATAL, UnifiedLogLevel.DEBUG)).toBe(false);
+      expect(isLogLevelEnabled(UnifiedLogLevel.FATAL, UnifiedLogLevel.INFO)).toBe(false);
+      expect(isLogLevelEnabled(UnifiedLogLevel.FATAL, UnifiedLogLevel.WARN)).toBe(false);
+      expect(isLogLevelEnabled(UnifiedLogLevel.FATAL, UnifiedLogLevel.ERROR)).toBe(false);
+      expect(isLogLevelEnabled(UnifiedLogLevel.FATAL, UnifiedLogLevel.FATAL)).toBe(true);
     });
   });
 });

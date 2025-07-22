@@ -1,4 +1,4 @@
-export const SpanKind = {
+export const UnifiedSpanKind = {
   INTERNAL: 'INTERNAL',
   SERVER: 'SERVER',
   CLIENT: 'CLIENT',
@@ -6,4 +6,4 @@ export const SpanKind = {
   CONSUMER: 'CONSUMER'
 } as const;
 
-export type SpanKind = typeof SpanKind[keyof typeof SpanKind];
+export type UnifiedSpanKind = typeof UnifiedSpanKind[keyof typeof UnifiedSpanKind];
