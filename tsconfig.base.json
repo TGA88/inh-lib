@@ -20,7 +20,9 @@
       "@inh-lib/inh-logger": ["packages/inh-logger/src/index.ts"],
       "@inh-lib/ddd": ["packages/ddd/src/index.ts"],
       "@inh-lib/ui-router": ["packages/ui-router/src/index.ts"],
-      "@inh-lib/api-util-fastify": ["packages/api-util-fastify/src/index.ts"]
+      "@inh-lib/api-util-fastify": ["packages/api-util-fastify/src/index.ts"],
+      "@inh-lib/unified-observe-ability-core": ["packages/unified-observe-ability-core/src/index.ts"],
+      "@inh-lib/unified-util-otel": ["packages/unified-util-otel/src/index.ts"],
     }
   },
   "exclude": ["node_modules", "tmp"]

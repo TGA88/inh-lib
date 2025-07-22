@@ -61,15 +61,24 @@ src/
 │       ├── index.ts
 │       ├── observability-config.ts
 │       └── vendor-config.ts
-├── enums/
+├── constants/
 │   ├── index.ts
 │   ├── metric-type.ts
 │   ├── log-level.ts
-│   └── status-code.ts
+│   ├── status-code.ts
+│   ├── span-kind.ts
+│   └── vendor-types.ts
 ├── errors/
 │   ├── index.ts
 │   ├── observability-error.ts
 │   └── configuration-error.ts
+├── utils/
+│   ├── index.ts
+│   ├── validation.utils.ts
+│   └── type.utils.ts
+├── internal/
+│   ├── testing.ts
+│   └── validation.ts
 └── index.ts
 ```
 

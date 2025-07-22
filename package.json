@@ -51,7 +51,25 @@
     "tslib": "^2.3.0",
     "uuid": "^8.3.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "@opentelemetry/api": "^1.7.0",
+    "@opentelemetry/sdk-metrics": "^1.18.2",
+    "@opentelemetry/sdk-trace-node": "^1.18.2",
+    "@opentelemetry/resources": "^1.18.2",
+    "@opentelemetry/semantic-conventions": "^1.18.2",
+    "@opentelemetry/exporter-prometheus": "^0.45.1",
+    "@opentelemetry/exporter-jaeger": "^1.18.2",
+    "@opentelemetry/exporter-otlp-http": "^0.26.0",
+    "@opentelemetry/instrumentation": "^0.45.1",
+    "@opentelemetry/instrumentation-http": "^0.45.1",
+    "@opentelemetry/instrumentation-express": "^0.34.0",
+    "@opentelemetry/instrumentation-fastify": "^0.33.0"
+  },
+    "optionalDependencies": {
+    "@opentelemetry/sdk-node": "^0.45.1",
+    "@opentelemetry/auto-instrumentations-node": "^0.39.4",
+    "@opentelemetry/instrumentation-express": "^0.34.0",
+    "@opentelemetry/instrumentation-fastify": "^0.33.0"
   },
   "peerDependencies": {
     "fastify": "^4.26.1"
