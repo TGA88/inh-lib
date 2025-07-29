@@ -46,5 +46,6 @@ export function createFastifyContext<TBody = Record<string, unknown>>(
   return {
     request: adaptFastifyRequest<TBody>(req),
     response: adaptFastifyResponse(res),
+    registry: {} // Initialize an empty registry
   };
 }

@@ -27,3 +27,20 @@ export function sendError(context: UnifiedHttpContext, message: string, statusCo
     timestamp: new Date().toISOString(),
   });
 }
+export function getRegistryItem<T>(context: UnifiedHttpContext, key: string): T | Error{
+  try {
+    if (!context.registry || !(key in context.registry)) {
+      return new Error(`Registry item "${key}" not found`);
+    }
+    return context.registry[key] as T;
+  } catch (error) {
+    return new Error(`Error accessing registry: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+export function addRegistryItem<T>(context: UnifiedHttpContext, key: string, value: T): void {
+  if (!context.registry) {
+    context.registry = {};
+  }
+  context.registry[key] = value;
+} 

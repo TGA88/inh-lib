@@ -1,6 +1,6 @@
 /* eslint-disable */
 export default {
-  displayName: 'unified-route',
+  displayName: 'unified-telemetry-core',
   preset: '../../jest.preset.js',
   globals: {
     'ts-jest': {
@@ -11,5 +11,5 @@ export default {
     '^.+\\.[tj]s$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../../coverage/packages/unified-route',
+  coverageDirectory: '../../coverage/packages/unified-telemetry-core',
 };

@@ -22,4 +22,5 @@ export interface UnifiedResponseContext {
 export interface UnifiedHttpContext {
   request: UnifiedRequestContext;
   response: UnifiedResponseContext;
+  registry: Record<string, unknown>;
 }

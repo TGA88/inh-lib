@@ -7,6 +7,8 @@
     "inh-logger": "packages/inh-logger",
     "ui-router": "packages/ui-router",
     "unified-route": "packages/unified-route",
+    "unified-telemetry-core": "packages/unified-telemetry-core",
+    "unified-telemetry-http": "packages/unified-telemetry-http",
     "api-util-fastify": "packages/api-util-fastify"
   }
 }
