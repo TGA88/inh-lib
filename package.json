@@ -53,6 +53,22 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
+    "optionalDependencies": {
+    "@opentelemetry/api": "^1.8.0",
+    "@opentelemetry/sdk-metrics": "^1.21.0",
+    "@opentelemetry/sdk-trace-node": "^1.21.0",
+    "@opentelemetry/resources": "^1.21.0",
+    "@opentelemetry/semantic-conventions": "^1.21.0",
+    "@opentelemetry/exporter-prometheus": "^0.48.0",
+    "@opentelemetry/exporter-jaeger": "^1.21.0",
+    "@opentelemetry/exporter-otlp-http": "^0.26.0",
+    "@opentelemetry/instrumentation": "^0.48.0",
+    "@opentelemetry/instrumentation-http": "^0.48.0",
+    "@opentelemetry/sdk-node": "^0.48.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.42.0",
+    "@opentelemetry/instrumentation-express": "^0.37.0",
+    "@opentelemetry/instrumentation-fastify": "^0.35.0"
+  },
   "peerDependencies": {
     "fastify": "^4.26.1"
   },

@@ -1,10 +1,9 @@
 import { 
   UnifiedTelemetryLogger, 
-  UnifiedLoggerContext, 
-  UnifiedTelemetrySpan 
+  UnifiedLoggerContext 
 } from '../../interfaces';
 import {
-  createChildLoggerContext,
+  enrichLogAttributes,
   extractErrorInfo
 } from '../../utils/logger-helpers';
 
@@ -19,79 +18,65 @@ import {
  */
 export class ConsoleUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
   constructor(
-    private readonly context: UnifiedLoggerContext,
-    private span?: UnifiedTelemetrySpan
+    private readonly context: UnifiedLoggerContext
   ) {}
 
   debug(message: string, attributes?: Record<string, unknown>): void {
-    this.logToConsole('DEBUG', message, attributes);
+    const enrichedAttributes = enrichLogAttributes(this.context, attributes);
+    this.logToConsole('DEBUG', message, enrichedAttributes);
+
+    if (this.context.options.autoAddSpanEvents) {
+      this.addSpanEvent('debug', { message, ...this.filterSpanAttributes(attributes) });
+    }
   }
 
   info(message: string, attributes?: Record<string, unknown>): void {
-    this.logToConsole('INFO', message, attributes);
+    const enrichedAttributes = enrichLogAttributes(this.context, attributes);
+    this.logToConsole('INFO', message, enrichedAttributes);
+
+    if (this.context.options.autoAddSpanEvents) {
+      this.addSpanEvent('info', { message, ...this.filterSpanAttributes(attributes) });
+    }
   }
 
   warn(message: string, attributes?: Record<string, unknown>): void {
-    this.logToConsole('WARN', message, attributes);
+    const enrichedAttributes = enrichLogAttributes(this.context, attributes);
+    this.logToConsole('WARN', message, enrichedAttributes);
     
-    if (this.span) {
-      console.debug(`[SPAN-EVENT] warning: ${message}`, attributes);
+    if (this.context.options.autoAddSpanEvents) {
+      this.addSpanEvent('warn', { message, ...this.filterSpanAttributes(attributes) });
     }
   }
 
   error(message: string, error?: Error, attributes?: Record<string, unknown>): void {
     const errorAttrs = error ? extractErrorInfo(error) : {};
-    const combinedAttrs = { ...errorAttrs, ...attributes };
+    const enrichedAttributes = enrichLogAttributes(this.context, { ...errorAttrs, ...attributes });
 
-    this.logToConsole('ERROR', message, combinedAttrs);
+    this.logToConsole('ERROR', message, enrichedAttributes);
     
-    if (this.span) {
-      if (error) {
-        console.debug(`[SPAN-EXCEPTION] ${error.message}`, { stack: error.stack });
-      }
-      console.debug(`[SPAN-EVENT] error: ${message}`, combinedAttrs);
+    // Record exception on span if error is provided
+    if (error) {
+      this.context.span.recordException(error);
+    }
+
+    if (this.context.options.autoAddSpanEvents) {
+      this.addSpanEvent('error', { message, ...this.filterSpanAttributes({ ...errorAttrs, ...attributes }) });
     }
   }
 
   addSpanEvent(name: string, attributes?: Record<string, string | number | boolean>): void {
     console.debug(`[SPAN-EVENT] ${name}`, attributes);
+    this.context.span.addEvent(name, attributes);
   }
 
   setSpanAttribute(key: string, value: string | number | boolean): void {
     console.debug(`[SPAN-ATTR] ${key}=${value}`);
-  }
-
-  attachSpan(span: UnifiedTelemetrySpan): void {
-    this.span = span;
-    console.debug(`[SPAN-ATTACH] ${this.context.operationName} (${span.getSpanId()})`);
+    this.context.span.setTag(key, value);
   }
 
   finishSpan(): void {
-    if (this.span) {
-      console.debug(`[SPAN-FINISH] ${this.context.operationName} (${this.span.getSpanId()})`);
-    }
-  }
-
-  getSpanId(): string {
-    return this.context.spanId;
-  }
-
-  getTraceId(): string {
-    return this.context.traceId;
-  }
-
-  createChildLogger(
-    operationName: string, 
-    attributes?: Record<string, string | number | boolean>
-  ): UnifiedTelemetryLogger {
-    // ✅ Using utils function instead of private method
-    const childContext = createChildLoggerContext(this.context, operationName, attributes);
-    return new ConsoleUnifiedTelemetryLogger(childContext);
-  }
-
-  createChildContext(operationName: string): UnifiedLoggerContext {
-    // ✅ Using utils function instead of private method
-    return createChildLoggerContext(this.context, operationName);
+    console.debug(`[SPAN-FINISH] ${this.context.options.operationName}`);
+    this.context.span.finish();
   }
 
   /**
@@ -100,13 +85,12 @@ export class ConsoleUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
    */
   logToConsole(level: string, message: string, attributes?: Record<string, unknown>): void {
     const timestamp = new Date().toISOString();
-    const prefix = `[${timestamp}] [${level}] [${this.context.layer}:${this.context.operationType}]`;
+    const prefix = `[${timestamp}] [${level}] [${this.context.options.layer}:${this.context.options.operationType}]`;
     
     const contextInfo = {
-      traceId: this.context.traceId,
-      spanId: this.context.spanId,
-      operation: this.context.operationName,
-      layer: this.context.layer,
+      operation: this.context.options.operationName,
+      layer: this.context.options.layer,
+      operationType: this.context.options.operationType,
     };
 
     switch (level) {
@@ -123,5 +107,29 @@ export class ConsoleUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
         console.error(prefix, message, { ...contextInfo, ...attributes });
         break;
     }
+  }
+
+  /**
+   * Filter attributes to only include span-compatible types
+   * 
+   * @param attributes - The attributes to filter
+   * @returns Filtered attributes with only string, number, or boolean values
+   * 
+   * @remarks
+   * Spans only accept primitive types as attributes, so we filter out
+   * complex objects to prevent serialization issues.
+   */
+  filterSpanAttributes(attributes?: Record<string, unknown>): Record<string, string | number | boolean> {
+    if (!attributes) return {};
+
+    const filtered: Record<string, string | number | boolean> = {};
+    
+    for (const [key, value] of Object.entries(attributes)) {
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        filtered[key] = value;
+      }
+    }
+
+    return filtered;
   }
 }

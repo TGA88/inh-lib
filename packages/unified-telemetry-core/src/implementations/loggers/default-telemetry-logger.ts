@@ -1,12 +1,13 @@
 import { 
-  UnifiedTelemetryLogger, 
-  UnifiedLoggerContext, 
+  UnifiedTelemetryLogger,  
   UnifiedBaseTelemetryLogger,
-  UnifiedTelemetrySpan 
+  UnifiedTelemetrySpan, 
+  UnifiedLoggerContext,
+  UnifiedLoggerOptions
 } from '../../interfaces';
+
 import {
   enrichLogAttributes,
-  createChildLoggerContext,
   extractErrorInfo
 } from '../../utils/logger-helpers';
 
@@ -20,11 +21,16 @@ import {
  * ✅ No 'any' types - fully typed
  */
 export class DefaultUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
+  private readonly span?: UnifiedTelemetrySpan;
+  private readonly options: UnifiedLoggerOptions;
+
   constructor(
     private readonly baseLogger: UnifiedBaseTelemetryLogger,
-    private readonly context: UnifiedLoggerContext,
-    private span?: UnifiedTelemetrySpan
-  ) {}
+    private readonly context: UnifiedLoggerContext
+  ) {
+    this.span = context.span;
+    this.options = context.options;
+  }
 
   debug(message: string, attributes?: Record<string, unknown>): void {
     this.logWithSpan('debug', message, attributes);
@@ -68,9 +74,9 @@ export class DefaultUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
     }
   }
 
-  attachSpan(span: UnifiedTelemetrySpan): void {
-    this.span = span;
-  }
+  // attachSpan(span: UnifiedTelemetrySpan): void {
+  //   this.span = span;
+  // }
 
   finishSpan(): void {
     if (this.span) {
@@ -78,27 +84,27 @@ export class DefaultUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
     }
   }
 
-  getSpanId(): string {
-    return this.context.spanId;
-  }
+  // getSpanId(): string {
+  //   return this.context.spanId;
+  // }
 
-  getTraceId(): string {
-    return this.context.traceId;
-  }
+  // getTraceId(): string {
+  //   return this.context.traceId;
+  // }
 
-  createChildLogger(
-    operationName: string, 
-    attributes?: Record<string, string | number | boolean>
-  ): UnifiedTelemetryLogger {
-    // ✅ Using utils function instead of private method
-    const childContext = createChildLoggerContext(this.context, operationName, attributes);
-    return new DefaultUnifiedTelemetryLogger(this.baseLogger, childContext);
-  }
+  // createChildLogger(
+  //   operationName: string, 
+  //   attributes?: Record<string, string | number | boolean>
+  // ): UnifiedTelemetryLogger {
+  //   // ✅ Using utils function instead of private method
+  //   const childContext = createChildLoggerContext(this.context, operationName, attributes);
+  //   return new DefaultUnifiedTelemetryLogger(this.baseLogger, childContext);
+  // }
 
-  createChildContext(operationName: string): UnifiedLoggerContext {
-    // ✅ Using utils function instead of private method
-    return createChildLoggerContext(this.context, operationName);
-  }
+  // createChildContext(operationName: string): UnifiedLoggerContext {
+  //   // ✅ Using utils function instead of private method
+  //   return createChildLoggerContext(this.context, operationName);
+  // }
 
   /**
    * Log with span integration
@@ -124,7 +130,7 @@ export class DefaultUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
     }
 
     // Add log event to span if available
-    if (this.span) {
+    if (this.options.autoAddSpanEvents && this.span) {
       this.span.addEvent(`log.${level}`, {
         message,
         ...(attributes as Record<string, string | number | boolean>),

@@ -1,6 +1,5 @@
 import { 
   UnifiedTelemetryProvider,
-  UnifiedTelemetryLogger,
   UnifiedTelemetryTracer,
   UnifiedTelemetryMetrics,
   UnifiedTelemetryConfig,
@@ -9,13 +8,12 @@ import {
   UnifiedTelemetryCounter,
   UnifiedTelemetryHistogram,
   UnifiedTelemetryGauge,
+  UnifiedTelemetryLoggerService
 } from '../../interfaces';
-import { ConsoleUnifiedTelemetryLogger } from '../loggers/console-telemetry-logger';
+import { UnifiedLoggerService } from '../../services/unified-logger.service';
 import { 
-  createRootLoggerContext,
   generateTraceId,
-  generateSpanId,
-  createDefaultSpanOptions 
+  generateSpanId
 } from '../../utils';
 
 /**
@@ -28,29 +26,20 @@ import {
  * ✅ No 'any' types - fully typed
  */
 export class ConsoleUnifiedTelemetryProvider implements UnifiedTelemetryProvider {
-  public readonly logger: UnifiedTelemetryLogger;
+  public readonly logger: UnifiedTelemetryLoggerService;
   public readonly tracer: UnifiedTelemetryTracer;
   public readonly metrics: UnifiedTelemetryMetrics;
 
   constructor(config: UnifiedTelemetryConfig) {
-    // Create root logger context
-    const rootContext = createRootLoggerContext(
-      generateTraceId(),
-      'console_root',
-      'http',
-      'utility',
-      {
-        'service.name': config.serviceName,
-        'service.version': config.serviceVersion,
-        'service.environment': config.environment,
-        'logger.type': 'console',
-      }
-    );
-
-    // Initialize components
-    this.logger = new ConsoleUnifiedTelemetryLogger(rootContext);
+    // Initialize tracer first
     this.tracer = new ConsoleTracer();
+    
+    // Create console logger service
+    this.logger = new ConsoleLoggerService();
     this.metrics = new ConsoleMetrics();
+    
+    // Log the configuration for debugging purposes
+    console.debug('[TELEMETRY] Console provider initialized with config:', config);
   }
 
   async shutdown(): Promise<void> {
@@ -63,8 +52,7 @@ export class ConsoleUnifiedTelemetryProvider implements UnifiedTelemetryProvider
  */
 class ConsoleTracer implements UnifiedTelemetryTracer {
   startSpan(name: string, options?: UnifiedSpanOptions): UnifiedTelemetrySpan {
-    const spanOptions = createDefaultSpanOptions(options?.kind, options?.attributes);
-    return new ConsoleSpan(name, spanOptions);
+    return new ConsoleSpan(name, options);
   }
 
   getActiveSpan(): UnifiedTelemetrySpan | undefined {
@@ -83,25 +71,33 @@ class ConsoleTracer implements UnifiedTelemetryTracer {
   }
 }
 
+
 /**
  * Console implementation of span
  */
 class ConsoleSpan implements UnifiedTelemetrySpan {
   private readonly spanId: string;
   private readonly traceId: string;
+  public readonly startTime: Date;  // Changed from private to public
   private finished = false;
 
   constructor(
     private readonly name: string,
-    private readonly options: UnifiedSpanOptions
+    private readonly options?: UnifiedSpanOptions
   ) {
     this.spanId = generateSpanId();
     this.traceId = generateTraceId();
+    this.startTime = new Date();
     
     console.debug(`[SPAN-START] ${name} (${this.spanId})`, {
-      kind: options.kind,
-      attributes: options.attributes,
+      kind: options?.kind || 'internal',
+      attributes: options?.attributes || {},
+      startTime: this.startTime.toISOString(),
     });
+  }
+
+  getStartTime(): Date {
+    return this.startTime;
   }
 
   setTag(key: string, value: string | number | boolean): UnifiedTelemetrySpan {
@@ -118,18 +114,30 @@ class ConsoleSpan implements UnifiedTelemetrySpan {
     console.debug(`[SPAN-EXCEPTION] ${this.name} (${this.spanId}):`, {
       message: exception.message,
       stack: exception.stack,
+      name: exception.name,
     });
     return this;
   }
 
   addEvent(name: string, attributes?: Record<string, string | number | boolean>): UnifiedTelemetrySpan {
-    console.debug(`[SPAN-EVENT] ${this.name} (${this.spanId}): ${name}`, attributes);
+    console.debug(`[SPAN-EVENT] ${this.name} (${this.spanId}): ${name}`, {
+      ...attributes,
+      timestamp: new Date().toISOString(),
+    });
     return this;
   }
 
   finish(): void {
     if (!this.finished) {
-      console.debug(`[SPAN-FINISH] ${this.name} (${this.spanId})`);
+      const endTime = new Date();
+      const duration = endTime.getTime() - this.startTime.getTime();
+      
+      console.debug(`[SPAN-FINISH] ${this.name} (${this.spanId})`, {
+        duration: `${duration}ms`,
+        startTime: this.startTime.toISOString(),
+        endTime: endTime.toISOString(),
+      });
+      
       this.finished = true;
     }
   }
@@ -189,9 +197,31 @@ class ConsoleHistogram implements UnifiedTelemetryHistogram {
  * Console gauge implementation
  */
 class ConsoleGauge implements UnifiedTelemetryGauge {
-  constructor(private  readonly name: string) {}
+  constructor(private readonly name: string) {}
 
   set(value: number, labels?: Record<string, string>): void {
     console.debug(`[GAUGE] ${this.name}: ${value}`, labels);
+  }
+}
+
+
+/**
+ * Console implementation of logger service
+ */
+class ConsoleLoggerService extends UnifiedLoggerService {
+  constructor() {
+    // Create a console base logger
+    const consoleBaseLogger = {
+      debug: (message: string, attributes?: Record<string, unknown>) => 
+        console.debug('[DEBUG]', message, attributes),
+      info: (message: string, attributes?: Record<string, unknown>) => 
+        console.info('[INFO]', message, attributes),
+      warn: (message: string, attributes?: Record<string, unknown>) => 
+        console.warn('[WARN]', message, attributes),
+      error: (message: string, attributes?: Record<string, unknown>) => 
+        console.error('[ERROR]', message, attributes),
+    };
+    
+    super(consoleBaseLogger);
   }
 }

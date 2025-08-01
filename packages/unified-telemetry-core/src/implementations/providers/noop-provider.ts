@@ -1,14 +1,16 @@
 import { 
   UnifiedTelemetryProvider,
-  UnifiedTelemetryLogger,
   UnifiedTelemetryTracer,
   UnifiedTelemetryMetrics,
   UnifiedTelemetrySpan,
   UnifiedTelemetryCounter,
   UnifiedTelemetryHistogram,
-  UnifiedTelemetryGauge
+  UnifiedTelemetryGauge,
+  UnifiedTelemetryConfig,
+  UnifiedSpanOptions,
+  UnifiedTelemetryLoggerService
 } from '../../interfaces';
-import { NoOpUnifiedTelemetryLogger } from '../loggers/noop-telemetry-logger';
+import { UnifiedLoggerService } from '../../services/unified-logger.service';
 
 /**
  * No-op implementation of UnifiedTelemetryProvider
@@ -20,13 +22,13 @@ import { NoOpUnifiedTelemetryLogger } from '../loggers/noop-telemetry-logger';
  * ✅ No 'any' types - fully typed
  */
 export class NoOpUnifiedTelemetryProvider implements UnifiedTelemetryProvider {
-  public readonly logger: UnifiedTelemetryLogger;
+  public readonly logger: UnifiedTelemetryLoggerService;
   public readonly tracer: UnifiedTelemetryTracer;
   public readonly metrics: UnifiedTelemetryMetrics;
 
-  constructor() {
-    this.logger = new NoOpUnifiedTelemetryLogger();
+  constructor(_config?: UnifiedTelemetryConfig) {
     this.tracer = new NoOpTracer();
+    this.logger = new NoOpLoggerService();
     this.metrics = new NoOpMetrics();
   }
 
@@ -39,7 +41,7 @@ export class NoOpUnifiedTelemetryProvider implements UnifiedTelemetryProvider {
  * No-op implementation of tracer
  */
 class NoOpTracer implements UnifiedTelemetryTracer {
-  startSpan(): UnifiedTelemetrySpan {
+  startSpan(_name?: string, _options?: UnifiedSpanOptions): UnifiedTelemetrySpan {
     return new NoOpSpan();
   }
 
@@ -60,19 +62,25 @@ class NoOpTracer implements UnifiedTelemetryTracer {
  * No-op implementation of span
  */
 class NoOpSpan implements UnifiedTelemetrySpan {
-  setTag(): UnifiedTelemetrySpan {
+  public readonly startTime: Date = new Date();
+
+  getStartTime(): Date {
+    return this.startTime;
+  }
+
+  setTag(_key: string, _value: string | number | boolean): UnifiedTelemetrySpan {
     return this;
   }
 
-  setStatus(): UnifiedTelemetrySpan {
+  setStatus(_status: { code: string; message?: string }): UnifiedTelemetrySpan {
     return this;
   }
 
-  recordException(): UnifiedTelemetrySpan {
+  recordException(_exception: Error): UnifiedTelemetrySpan {
     return this;
   }
 
-  addEvent(): UnifiedTelemetrySpan {
+  addEvent(_name: string, _attributes?: Record<string, string | number | boolean>): UnifiedTelemetrySpan {
     return this;
   }
 
@@ -81,11 +89,11 @@ class NoOpSpan implements UnifiedTelemetrySpan {
   }
 
   getTraceId(): string {
-    return 'noop';
+    return 'noop-trace-id';
   }
 
   getSpanId(): string {
-    return 'noop';
+    return 'noop-span-id';
   }
 }
 
@@ -93,15 +101,15 @@ class NoOpSpan implements UnifiedTelemetrySpan {
  * No-op implementation of metrics
  */
 class NoOpMetrics implements UnifiedTelemetryMetrics {
-  createCounter(): UnifiedTelemetryCounter {
+  createCounter(_name?: string, _description?: string): UnifiedTelemetryCounter {
     return new NoOpCounter();
   }
 
-  createHistogram(): UnifiedTelemetryHistogram {
+  createHistogram(_name?: string, _description?: string): UnifiedTelemetryHistogram {
     return new NoOpHistogram();
   }
 
-  createGauge(): UnifiedTelemetryGauge {
+  createGauge(_name?: string, _description?: string): UnifiedTelemetryGauge {
     return new NoOpGauge();
   }
 }
@@ -110,7 +118,7 @@ class NoOpMetrics implements UnifiedTelemetryMetrics {
  * No-op counter implementation
  */
 class NoOpCounter implements UnifiedTelemetryCounter {
-  add(): void {
+  add(_value?: number, _labels?: Record<string, string>): void {
     // No-op
   }
 }
@@ -119,7 +127,7 @@ class NoOpCounter implements UnifiedTelemetryCounter {
  * No-op histogram implementation
  */
 class NoOpHistogram implements UnifiedTelemetryHistogram {
-  record(): void {
+  record(_value?: number, _labels?: Record<string, string>): void {
     // No-op
   }
 }
@@ -128,7 +136,32 @@ class NoOpHistogram implements UnifiedTelemetryHistogram {
  * No-op gauge implementation
  */
 class NoOpGauge implements UnifiedTelemetryGauge {
-  set(): void {
+  set(_value?: number, _labels?: Record<string, string>): void {
     // No-op
+  }
+}
+
+/**
+ * No-op implementation of logger service
+ */
+class NoOpLoggerService extends UnifiedLoggerService {
+  constructor() {
+    // Create a no-op base logger
+    const noOpBaseLogger = {
+      debug: (_message: string, _attributes?: Record<string, unknown>) => {
+        // No-op
+      },
+      info: (_message: string, _attributes?: Record<string, unknown>) => {
+        // No-op
+      },
+      warn: (_message: string, _attributes?: Record<string, unknown>) => {
+        // No-op
+      },
+      error: (_message: string, _attributes?: Record<string, unknown>) => {
+        // No-op
+      },
+    };
+    
+    super(noOpBaseLogger);
   }
 }

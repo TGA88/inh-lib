@@ -1,9 +1,7 @@
 import { 
   UnifiedTelemetryLogger, 
-  UnifiedLoggerContext, 
-   
+  UnifiedLoggerContext 
 } from '../../interfaces';
-import { generateSpanId } from '../../utils/id-generators';
 
 /**
  * No-op implementation of UnifiedTelemetryLogger
@@ -13,76 +11,36 @@ import { generateSpanId } from '../../utils/id-generators';
  * 
  * ✅ No private methods - uses utils functions instead
  * ✅ No 'any' types - fully typed
+ * ✅ All methods are no-op implementations
  */
 export class NoOpUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
   constructor(private readonly context?: UnifiedLoggerContext) {}
 
-  debug(): void {
+  debug(message: string, attributes?: Record<string, unknown>): void {
     // No-op
   }
 
-  info(): void {
+  info(message: string, attributes?: Record<string, unknown>): void {
     // No-op
   }
 
-  warn(): void {
+  warn(message: string, attributes?: Record<string, unknown>): void {
     // No-op
   }
 
-  error(): void {
+  error(message: string, error?: Error, attributes?: Record<string, unknown>): void {
     // No-op
   }
 
-  addSpanEvent(): void {
+  addSpanEvent(name: string, attributes?: Record<string, string | number | boolean>): void {
     // No-op
   }
 
-  setSpanAttribute(): void {
-    // No-op
-  }
-
-  attachSpan(): void {
+  setSpanAttribute(key: string, value: string | number | boolean): void {
     // No-op
   }
 
   finishSpan(): void {
     // No-op
-  }
-
-  getSpanId(): string {
-    return this.context?.spanId || 'noop';
-  }
-
-  getTraceId(): string {
-    return this.context?.traceId || 'noop';
-  }
-
-  createChildLogger(operationName: string): UnifiedTelemetryLogger {
-    // Create minimal context for child logger
-    const childContext: UnifiedLoggerContext = {
-      traceId: this.context?.traceId || 'noop',
-      spanId: generateSpanId(),
-      parentSpanId: this.context?.spanId,
-      operationType: 'utility',
-      operationName,
-      layer: 'core',
-      attributes: {},
-      startTime: new Date(),
-    };
-    
-    return new NoOpUnifiedTelemetryLogger(childContext);
-  }
-
-  createChildContext(operationName: string): UnifiedLoggerContext {
-    return {
-      traceId: this.context?.traceId || 'noop',
-      spanId: generateSpanId(),
-      parentSpanId: this.context?.spanId,
-      operationType: 'utility',
-      operationName,
-      layer: 'core',
-      attributes: {},
-      startTime: new Date(),
-    };
   }
 }

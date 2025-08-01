@@ -14,7 +14,8 @@
 - constants , types ที่ต้อง export ให้ consumer project นำไปใช้  อยู่ภายใต้ folder ./src
 - main index ห้าม ทุกอย่าง ใน ./internal
 - main index ห้าม re-export type เพื่อให้ไม่มีปัญหาเรื่อง perfomance
-- constants file  ให้มี extension เป็น const.ts นะ
-- type file  ให้มี extension เป็น types.ts นะ
-- utils file ให้มี extension เป็น utils.ts นะ
-- types file ให้ใช้ .types
+- constants file  ให้มี extension เป็น const.ts และ ห้ามมี helper function ใน file .const.ts ถ้าต้องมีให้ อยู่ในfile .logic.ts
+- type file  ให้มี extension เป็น types.ts และ ห้ามมี helper function ใน file .types.ts ถ้าต้องมีให้ อยู่ในfile .logic.ts
+- utils file ให้มี extension เป็น utils.ts
+
+

@@ -52,7 +52,7 @@ export function extractTraceId(
  * Create context attributes for different layers
  */
 export function createLayerAttributes(
-  layer: UnifiedLoggerContext['layer'],
+  layer: UnifiedLoggerContext['options']['layer'],
   operation: string,
   additionalAttributes?: Record<string, string | number | boolean>
 ): Record<string, string | number | boolean> {
@@ -97,6 +97,13 @@ export function createLayerAttributes(
         ...additionalAttributes,
       };
     
+    case 'custom':
+      return {
+        ...baseAttributes,
+        'component': 'custom',
+        ...additionalAttributes,
+      };
+    
     default:
       return {
         ...baseAttributes,
@@ -105,11 +112,12 @@ export function createLayerAttributes(
   }
 }
 
+
 /**
  * Create operation type attributes
  */
 export function createOperationTypeAttributes(
-  operationType: UnifiedLoggerContext['operationType'],
+  operationType: UnifiedLoggerContext['options']['operationType'],
   additionalAttributes?: Record<string, string | number | boolean>
 ): Record<string, string | number | boolean> {
   const baseAttributes: Record<string, string | number | boolean> = {
@@ -156,6 +164,13 @@ export function createOperationTypeAttributes(
       return {
         ...baseAttributes,
         'component': 'authentication',
+        ...additionalAttributes,
+      };
+    
+    case 'custom':
+      return {
+        ...baseAttributes,
+        'component': 'custom',
         ...additionalAttributes,
       };
     

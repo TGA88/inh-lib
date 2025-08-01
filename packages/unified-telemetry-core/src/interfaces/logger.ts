@@ -1,3 +1,4 @@
+
 import { UnifiedTelemetrySpan } from './tracer';
 
 /**
@@ -16,29 +17,41 @@ export interface UnifiedTelemetryLogger {
   // Span integration methods
   addSpanEvent(name: string, attributes?: Record<string, string | number | boolean>): void;
   setSpanAttribute(key: string, value: string | number | boolean): void;
-  attachSpan(span: UnifiedTelemetrySpan): void;
+  // attachSpan(span: UnifiedTelemetrySpan): void;
   finishSpan(): void;
-  getSpanId(): string;
+  // getSpanId(): string;
   
-  // Context management
-  createChildLogger(operationName: string, attributes?: Record<string, string | number | boolean>): UnifiedTelemetryLogger;
-  createChildContext(operationName: string): UnifiedLoggerContext;
-  getTraceId(): string;
+  // // Context management
+  // createChildLogger(operationName: string, attributes?: Record<string, string | number | boolean>): UnifiedTelemetryLogger;
+  // createChildContext(operationName: string): UnifiedLoggerContext;
+  // getTraceId(): string;
 }
 
 /**
  * Logger context for tracing integration
  * Contains all the contextual information needed for telemetry correlation
  */
+// export interface UnifiedLoggerContext {
+//   traceId: string;
+//   spanId: string;
+//   parentSpanId?: string;
+//   operationType: 'http' | 'business' | 'database' | 'utility' | 'integration' | 'auth' | 'custom' ;
+//   operationName: string;
+//   layer: 'http' | 'service' | 'data' | 'core' | 'integration' | 'custom';
+//   attributes: Record<string, string | number | boolean>;
+//   startTime: Date;
+// }
 export interface UnifiedLoggerContext {
-  traceId: string;
-  spanId: string;
-  parentSpanId?: string;
+options: UnifiedLoggerOptions;
+span: UnifiedTelemetrySpan;
+}
+export type UnifiedLoggerOptions = {
   operationType: 'http' | 'business' | 'database' | 'utility' | 'integration' | 'auth' | 'custom' ;
   operationName: string;
   layer: 'http' | 'service' | 'data' | 'core' | 'integration' | 'custom';
-  attributes: Record<string, string | number | boolean>;
-  startTime: Date;
+  autoAddSpanEvents?: boolean; // Automatically add span events for all log levels
+  attributes?: Record<string, string | number | boolean>; // Additional attributes to include in all logs
+
 }
 
 /**
@@ -51,3 +64,8 @@ export interface UnifiedBaseTelemetryLogger {
   warn(message: string, attributes?: Record<string, unknown>): void;
   error(message: string, attributes?: Record<string, unknown>): void;
 }
+
+export interface UnifiedTelemetryLoggerService{
+  getLogger(context: UnifiedLoggerContext): UnifiedTelemetryLogger;
+  getBaseLogger(): UnifiedBaseTelemetryLogger;
+} 

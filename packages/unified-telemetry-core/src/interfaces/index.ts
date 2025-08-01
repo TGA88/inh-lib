@@ -12,3 +12,5 @@ export * from './metrics';
 
 // Configuration interfaces
 export * from './config';
+
+export * from './metadata';

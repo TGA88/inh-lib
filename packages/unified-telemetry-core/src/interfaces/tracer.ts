@@ -1,3 +1,5 @@
+import { UnifiedTelemetryContextMetadata } from "./metadata";
+
 /**
  * Telemetry tracer interface for creating and managing spans
  */
@@ -61,6 +63,13 @@ export interface UnifiedTelemetrySpan {
    * Get the span ID of this span
    */
   getSpanId(): string;
+
+  /**
+   * Get the start time of the span
+   * This is used to calculate the duration of the span by UnifiedTelemetryLogger for each log entry
+   */
+  getStartTime(): Date;
+  
 }
 
 /**
@@ -70,6 +79,7 @@ export interface UnifiedSpanOptions {
   kind?: UnifiedSpanKind;
   attributes?: Record<string, string | number | boolean>;
   startTime?: Date;
+  metadata?: UnifiedTelemetryContextMetadata
 }
 
 /**

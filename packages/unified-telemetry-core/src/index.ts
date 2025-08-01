@@ -21,6 +21,8 @@ export * from './interfaces';
 // ✅ Implementations - Public API
 export * from './implementations';
 
+export * from './services/unified-logger.service';
+
 // ❌ Utils - NOT exported (internal use only)
 // These are used internally by implementations but not exposed as public API
 // export * from './utils';
@@ -29,6 +31,7 @@ export * from './implementations';
 export type {
   UnifiedTelemetryProvider,
   UnifiedTelemetryLogger,
+  UnifiedTelemetryLoggerService,
   UnifiedTelemetryTracer,
   UnifiedTelemetryMetrics,
   UnifiedTelemetryConfig,

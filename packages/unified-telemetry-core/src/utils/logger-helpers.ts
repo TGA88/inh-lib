@@ -1,5 +1,5 @@
 import { UnifiedLoggerContext } from '../interfaces/logger';
-import { generateSpanId } from './id-generators';
+// import { generateSpanId } from './id-generators';
 
 /**
  * Utility functions for logger implementations
@@ -17,72 +17,71 @@ export function enrichLogAttributes(
 ): Record<string, unknown> {
   return {
     // Trace context
-    traceId: context.traceId,
-    spanId: context.spanId,
-    parentSpanId: context.parentSpanId,
+    traceId: context.span.getTraceId(),
+    spanId: context.span.getSpanId(),
     
     // Operation context
-    layer: context.layer,
-    operationType: context.operationType,
-    operationName: context.operationName,
-    
+    layer: context.options.layer,
+    operationType: context.options.operationType,
+    operationName: context.options.operationName,
+
     // Timing information
     timestamp: new Date().toISOString(),
-    operationDuration: Date.now() - context.startTime.getTime(),
+    operationDuration: Date.now() - context.span.getStartTime().getTime(),
     
     // Context attributes
-    ...context.attributes,
+    ...context.options.attributes,
     
     // Method attributes (highest priority)
     ...attributes,
   };
 }
 
-/**
- * Create child logger context from parent context
- * Generates new span ID and preserves trace context
- */
-export function createChildLoggerContext(
-  parentContext: UnifiedLoggerContext,
-  operationName: string,
-  additionalAttributes?: Record<string, string | number | boolean>
-): UnifiedLoggerContext {
-  return {
-    ...parentContext,
-    parentSpanId: parentContext.spanId,
-    spanId: generateSpanId(),
-    operationName,
-    startTime: new Date(),
-    attributes: {
-      ...parentContext.attributes,
-      ...additionalAttributes,
-    },
-  };
-}
+// /**
+//  * Create child logger context from parent context
+//  * Generates new span ID and preserves trace context
+//  */
+// export function createChildLoggerContext(
+//   parentContext: UnifiedLoggerContext,
+//   operationName: string,
+//   additionalAttributes?: Record<string, string | number | boolean>
+// ): UnifiedLoggerContext {
+//   return {
+//     ...parentContext,
+//     parentSpanId: parentContext.spanId,
+//     spanId: generateSpanId(),
+//     operationName,
+//     startTime: new Date(),
+//     attributes: {
+//       ...parentContext.attributes,
+//       ...additionalAttributes,
+//     },
+//   };
+// }
 
-/**
- * Create root logger context
- * Used when creating the initial logger context
- */
-export function createRootLoggerContext(
-  traceId: string,
-  operationName: string,
-  layer: UnifiedLoggerContext['layer'],
-  operationType: UnifiedLoggerContext['operationType'],
-  additionalAttributes?: Record<string, string | number | boolean>
-): UnifiedLoggerContext {
-  return {
-    traceId,
-    spanId: generateSpanId(),
-    operationType,
-    operationName,
-    layer,
-    attributes: {
-      ...additionalAttributes,
-    },
-    startTime: new Date(),
-  };
-}
+// /**
+//  * Create root logger context
+//  * Used when creating the initial logger context
+//  */
+// export function createRootLoggerContext(
+//   traceId: string,
+//   operationName: string,
+//   layer: UnifiedLoggerContext['layer'],
+//   operationType: UnifiedLoggerContext['operationType'],
+//   additionalAttributes?: Record<string, string | number | boolean>
+// ): UnifiedLoggerContext {
+//   return {
+//     traceId,
+//     spanId: generateSpanId(),
+//     operationType,
+//     operationName,
+//     layer,
+//     attributes: {
+//       ...additionalAttributes,
+//     },
+//     startTime: new Date(),
+//   };
+// }
 
 /**
  * Extract error information for logging

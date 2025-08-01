@@ -1,6 +1,7 @@
-import { UnifiedTelemetryLogger } from './logger';
+
 import { UnifiedTelemetryTracer } from './tracer';
 import { UnifiedTelemetryMetrics } from './metrics';
+import { UnifiedTelemetryLoggerService } from './logger';
 
 /**
  * Core telemetry provider interface
@@ -15,7 +16,7 @@ export interface UnifiedTelemetryProvider {
   /**
    * Root telemetry logger with tracing integration
    */
-  readonly logger: UnifiedTelemetryLogger;
+  readonly logger: UnifiedTelemetryLoggerService;
   
   /**
    * Telemetry tracer for creating spans
