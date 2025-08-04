@@ -12,10 +12,16 @@ A lightweight, type-safe HTTP middleware framework that provides a unified conte
 - 🛠️ **Utility Functions**: Helper functions for common HTTP operations
 
 ## Installation
-
+```
+npm install @inh-lib/unified-route
+# or
+yarn add @inh-lib/unified-route
+# or
+pnpm add @inh-lib/unified-route
 ```
 
-### Registry Keys Pattern
+
+## Registry Keys Pattern
 
 ```typescript
 // Recommended registry key structure for different frameworks
