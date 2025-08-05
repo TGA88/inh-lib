@@ -34,7 +34,8 @@ describe('Unified Base Service Functions', () => {
         send: jest.fn(),
         header: jest.fn().mockReturnThis(),
         redirect: jest.fn()
-      }
+      },
+      registry: {}
     };
   });
 

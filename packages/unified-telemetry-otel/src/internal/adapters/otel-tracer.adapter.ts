@@ -6,7 +6,7 @@
  * 
  * ⚠️ INTERNAL USE ONLY - Not exported in main index
  */
-import { trace, context } from '@opentelemetry/api';
+import { trace, context, Context } from '@opentelemetry/api';
 import { 
   UnifiedTelemetryTracer, 
   UnifiedTelemetrySpan, 
@@ -14,8 +14,8 @@ import {
 } from '@inh-lib/unified-telemetry-core';
 import { OtelSpanAdapter } from './otel-span.adapter';
 import { OtelTracerInstance } from '../types/otel.types';
-import { convertSpanKind } from '../logic/otel.logic';
-import { act } from 'react';
+import { convertSpanKind, createContextFromSpanIds } from '../logic/otel.logic';
+
 
 export class OtelTracerAdapter implements UnifiedTelemetryTracer {
 
@@ -24,11 +24,22 @@ export class OtelTracerAdapter implements UnifiedTelemetryTracer {
   startSpan(name: string, options?: UnifiedSpanOptions): UnifiedTelemetrySpan {
     const spanKind = options?.kind ? convertSpanKind(options.kind) : 1;
     
+    let parentContext: Context | undefined;
+
+    if (options?.parent) {
+      const parentSpanId = options.parent.getSpanId();
+      const traceId = options.parent.getTraceId();
+      parentContext = createContextFromSpanIds(
+       traceId,
+       parentSpanId
+      );
+    }
     const otelSpan = this.otelTracer.startSpan(name, {
       kind: spanKind,
       attributes: options?.attributes,
       startTime: options?.startTime,
-    });
+    }, parentContext);
+    
 
     return new OtelSpanAdapter(otelSpan, options?.startTime || new Date());
   }

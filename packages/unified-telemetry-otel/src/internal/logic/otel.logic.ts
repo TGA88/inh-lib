@@ -6,7 +6,7 @@
  * ⚠️ INTERNAL USE ONLY - Not exported in main index
  */
 
-import { trace, metrics, context, SpanContext } from '@opentelemetry/api';
+import { trace, metrics, context, SpanContext,Context } from '@opentelemetry/api';
 import { OtelTracerInstance, OtelMeterInstance } from '../types/otel.types';
 import { DEFAULT_TRACER_NAME, DEFAULT_METER_NAME } from '../constants/otel.const';
 
@@ -122,4 +122,20 @@ export function extractSpanIdFromSpan(span: unknown): string {
     return spanContext.spanId;
   }
   return 'unknown-span-id';
+}
+
+export function createContextFromSpanIds(traceId: string, parentSpanId: string): Context {
+  // สร้าง SpanContext
+  const spanContext = {
+    traceId,
+    spanId: parentSpanId,
+    traceFlags: 1, // sampled
+    isRemote: false,
+  };
+
+  // สร้าง NonRecordingSpan จาก SpanContext
+  const parentSpan = trace.wrapSpanContext(spanContext);
+  
+  // สร้าง Context ที่มี parent span
+  return trace.setSpan(context.active(), parentSpan);
 }

@@ -1,4 +1,4 @@
-import { UnifiedTelemetryContextMetadata } from "./metadata";
+
 
 /**
  * Telemetry tracer interface for creating and managing spans
@@ -79,7 +79,7 @@ export interface UnifiedSpanOptions {
   kind?: UnifiedSpanKind;
   attributes?: Record<string, string | number | boolean>;
   startTime?: Date;
-  metadata?: UnifiedTelemetryContextMetadata
+  parent?: UnifiedTelemetrySpan
 }
 
 /**
