@@ -37,6 +37,12 @@ import {
   cleanupTelemetryData,
 } from '../internal/utils/context.utils';
 import { calculateDurationSeconds } from '../internal/utils/performance.utils';
+import { 
+  pushSpanToStack, 
+  popSpanFromStack, 
+  getCurrentSpan,
+  getCurrentSpanLevel 
+} from '../internal/utils/span-context.utils';
 
 /**
  * Configuration for telemetry middleware
@@ -339,28 +345,44 @@ export class TelemetryMiddlewareService {
     logger: UnifiedTelemetryLogger; 
     finish: () => void 
   } {
-    const performanceData = getPerformanceData(context);
-    if (performanceData instanceof Error) {
-      throw new Error('No telemetry data found in context. Ensure telemetry middleware is applied first.');
+    // Get current active span (could be root or another child span)
+    let parentSpan = getCurrentSpan(context);
+    
+    // If no current span, get root span from performance data
+    if (!parentSpan) {
+      const performanceData = getPerformanceData(context);
+      if (performanceData instanceof Error) {
+        throw new Error('No telemetry data found in context. Ensure telemetry middleware is applied first.');
+      }
+      parentSpan = performanceData.span;
+      // Initialize span stack with root span
+      pushSpanToStack(context, parentSpan, 'http_request');
     }
 
-    // Create child span from current span
+    // Create child span from current active span
     const opType = options?.operationType || 'business';
     const layerType = options?.layer || 'service';
     
     const childSpan = this.dependencies.provider.tracer.startSpan(operationName, {
-      parent: performanceData.span,
+      parent: parentSpan,
       kind: 'internal',
       attributes: {
         'operation.type': opType,
         'operation.layer': layerType,
         'operation.name': operationName,
+        'span.level': getCurrentSpanLevel(context), // Track nesting level
+        // Store metadata for logger creation
+        'telemetry.operationType': opType,
+        'telemetry.layer': layerType,
         ...options?.attributes,
         ...this.config.customAttributes,
       }
     });
 
-    // Create logger with child span context
+    // Push new span to stack (becomes current active span)
+    pushSpanToStack(context, childSpan, operationName);
+
+    // Create logger for the new child span (always fresh logger for current span)
     const childLogger = this.dependencies.provider.logger.getLogger({
       span: childSpan,
       options: {
@@ -375,7 +397,9 @@ export class TelemetryMiddlewareService {
       span: childSpan,
       logger: childLogger,
       finish: () => {
+        // Finish the span and remove from stack
         childLogger.finishSpan();
+        popSpanFromStack(context);
       }
     };
   }
@@ -487,13 +511,48 @@ export class TelemetryMiddlewareService {
   }
 
   /**
-   * Get current logger from context
+   * Get current logger from context (creates new logger for current span)
    */
   getCurrentLogger(context: UnifiedHttpContext): UnifiedTelemetryLogger | null {
-    const performanceData = getPerformanceData(context);
-    if (performanceData instanceof Error) {
-      return null;
+    const currentSpan = getCurrentSpan(context);
+    if (!currentSpan) {
+      // Fallback to root logger if no current span
+      const performanceData = getPerformanceData(context);
+      if (performanceData instanceof Error) {
+        return null;
+      }
+      return performanceData.logger;
     }
-    return performanceData.logger;
+    
+    // Get operation metadata from current span
+    const metadata = this.getOperationMetadataFromSpan(currentSpan);
+    
+    // Create fresh logger for current span
+    return this.dependencies.provider.logger.getLogger({
+      span: currentSpan,
+      options: {
+        operationType: metadata.operationType,
+        operationName: metadata.operationName,
+        layer: metadata.layer,
+        autoAddSpanEvents: true,
+      }
+    });
+  }
+
+  /**
+   * Get operation metadata from span attributes
+   */
+  private getOperationMetadataFromSpan(_span: UnifiedTelemetrySpan): {
+    operationType: TelemetryOperationType;
+    layer: TelemetryLayerType;
+    operationName: string;
+  } {
+    // In a real implementation, you'd extract these from span attributes
+    // For now, return defaults (could be enhanced based on span implementation)
+    return {
+      operationType: 'business',
+      layer: 'service', 
+      operationName: 'operation'
+    };
   }
 }
