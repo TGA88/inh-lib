@@ -345,6 +345,7 @@ try {
 # Application
 PORT=3001                           # Port to listen on (default: 3001)
 ENABLE_TELEMETRY=true              # Enable/disable telemetry (default: true)
+CUSTOM_OTEL_CONFIG_ENABLED=true    # Use OtelConfig initialization (custom variable)
 
 # OpenTelemetry Configuration
 OTEL_SERVICE_NAME=fastify-telemetry-example  # Service name
@@ -494,10 +495,10 @@ docker-compose -f docker-compose.telemetry.yml up
 
 ### Application Services
 
-| Service | Container | Port | Metrics Port | Profile | App File |
-|---------|-----------|------|--------------|---------|----------|
-| `app-server` | `fastify-telemetry-app` | 3001 | 9464 | default | `telemetry-enhanced-app.js` |
-| `app-unified` | `fastify-unified-app` | 3002 | 9465 | `unified` | `fastify-with-telemetry-example.js` |
+| Service | Container | App Port | Metrics Port (Host→Container) | Profile | App File |
+|---------|-----------|----------|------------------------------|---------|----------|
+| `app-server` | `fastify-telemetry-app` | 3001 | 9464→9464 | default | `telemetry-enhanced-app.js` |
+| `app-unified` | `fastify-unified-app` | 3002 | 9465→9464 | `unified` | `fastify-with-telemetry-example.js` |
 | `app-simple` | `fastify-simple-app` | 3003 | - | `simple` | `simplified-fastify-example.js` |
 
 ### Usage Examples
@@ -525,10 +526,12 @@ curl http://localhost:3002/health  # Unified app
 curl http://localhost:3003/health  # Simple app
 
 # Metrics (เฉพาะ enhanced & unified)
-curl http://localhost:9464/metrics  # Enhanced app metrics
-curl http://localhost:9465/metrics  # Unified app metrics
+curl http://localhost:9464/metrics  # Enhanced app metrics (container port 9464)
+curl http://localhost:9465/metrics  # Unified app metrics (host port 9465 → container port 9464)
 
 # Telemetry Stack
 open http://localhost:3000          # Grafana (admin/admin)
 open http://localhost:9090          # Prometheus
 ```
+
+**หมายเหตุ:** app-unified ใช้ OpenTelemetry default port (9464) ใน container แต่ expose ที่ host port 9465 เพื่อไม่ให้ชนกับ app-server

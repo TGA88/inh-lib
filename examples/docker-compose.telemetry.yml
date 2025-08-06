@@ -135,11 +135,11 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_SERVICE_NAME=fastify-unified-example
       - OTEL_SERVICE_VERSION=1.0.0
-      - PROMETHEUS_METRICS_PORT=9465
+      # ไม่ต้องกำหนด PROMETHEUS_METRICS_PORT ใช้ default 9464 ใน container
       - APP_MODE=unified
     ports:
       - "3002:3001"   # Application port
-      - "9465:9465"   # Prometheus metrics endpoint
+      - "9465:9464"   # Host port 9465 -> Container port 9464 (Prometheus default)
     depends_on:
       - otel-collector
       - prometheus

@@ -2,10 +2,26 @@
  * ตัวอย่างการใช้งาน Fastify ร่วมกับ Unified Telemetry และ Unified Route
  * 
  * Example: Using Fastify with UnifiedMiddleware, UnifiedRoute, and TelemetryMiddlewareService
+ * 
+ * Environment Variables:
+ * - CUSTOM_OTEL_CONFIG_ENABLED: Set to 'true' to use OtelConfig initialization (custom variable)
+ * - ENABLE_TELEMETRY: Set to 'false' to disable telemetry (default: true)
+ * - PORT: Server port (default: 3000)
+ * - Other OpenTelemetry standard variables (see otel-config.ts)
  */
 
 import Fastify, { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { initializeOtel, type OtelConfig } from './otel-config';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { Resource } from '@opentelemetry/resources';
+import { 
+  ATTR_SERVICE_NAME,
+  ATTR_SERVICE_VERSION
+} from '@opentelemetry/semantic-conventions';
+
+// Deployment environment constant (using string directly to avoid deprecated SEMRESATTRS_*)
+const DEPLOYMENT_ENVIRONMENT = 'deployment.environment';
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 
 // Unified packages
 import type { 
@@ -35,6 +51,7 @@ interface AppConfig {
   serviceVersion: string;
   port: number;
   enableTelemetry: boolean;
+  useCustomOtelConfig: boolean; // ใหม่: ควบคุมการใช้ OtelConfig
 }
 
 /**
@@ -535,25 +552,92 @@ class FastifyTelemetryApp {
       return;
     }
 
-    // Initialize OpenTelemetry with environment-based configuration
-    const sdk = initializeOtel({
-      serviceName: this.config.serviceName,
-      serviceVersion: this.config.serviceVersion,
-      environment: process.env.NODE_ENV || 'development',
-      enableConsoleExporter: process.env.OTEL_DEBUG === 'true',
-    });
+    // ตรวจสอบว่าจะใช้ Custom OtelConfig หรือไม่
+    if (this.config.useCustomOtelConfig) {
+      console.log('🔧 Using Custom OtelConfig configuration');
+      
+      // Initialize OpenTelemetry with environment-based configuration
+      const sdk = initializeOtel({
+        serviceName: this.config.serviceName,
+        serviceVersion: this.config.serviceVersion,
+        environment: process.env.NODE_ENV || 'development',
+        enableConsoleExporter: process.env.OTEL_DEBUG === 'true',
+      });
 
-    // Create telemetry provider
-    this.telemetryProvider = OtelProviderService.createProviderWithConsole(
-      {
-        config: {
-          serviceName: this.config.serviceName,
-          serviceVersion: this.config.serviceVersion,
-          environment: process.env.NODE_ENV || 'development',
+      // Create telemetry provider using OtelConfig
+      this.telemetryProvider = OtelProviderService.createProviderWithConsole(
+        {
+          config: {
+            serviceName: this.config.serviceName,
+            serviceVersion: this.config.serviceVersion,
+            environment: process.env.NODE_ENV || 'development',
+          },
         },
-      },
-      sdk
-    );
+        sdk
+      );
+    } else {
+      console.log('🔧 Using basic telemetry configuration (without OtelConfig)');
+      
+      // Create basic NodeSDK for basic telemetry
+      const basicSdk = new NodeSDK({
+        resource: new Resource({
+          [ATTR_SERVICE_NAME]: this.config.serviceName,
+          [ATTR_SERVICE_VERSION]: this.config.serviceVersion,
+          [DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
+        }),
+        instrumentations: [
+          getNodeAutoInstrumentations({
+            // Disable some instrumentations if not needed
+            '@opentelemetry/instrumentation-fs': {
+              enabled: false, // Usually too noisy
+            },
+            '@opentelemetry/instrumentation-dns': {
+              enabled: false, // Usually too noisy
+            },
+            // Enable HTTP instrumentation for API calls
+            '@opentelemetry/instrumentation-http': {
+              enabled: true,
+            },
+            // Enable Fastify instrumentation
+            '@opentelemetry/instrumentation-fastify': {
+              enabled: true,
+            }
+          }),
+        ],
+      });
+      
+      // Initialize the basic SDK
+      basicSdk.start();
+      
+      // Create console logger for basic telemetry
+      const consoleLogger = {
+        debug: (message: string, attributes?: Record<string, unknown>) => {
+          console.debug(message, attributes);
+        },
+        info: (message: string, attributes?: Record<string, unknown>) => {
+          console.info(message, attributes);
+        },
+        warn: (message: string, attributes?: Record<string, unknown>) => {
+          console.warn(message, attributes);
+        },
+        error: (message: string, attributes?: Record<string, unknown>) => {
+          console.error(message, attributes);
+        },
+      };
+      
+      // Create basic telemetry provider without OtelConfig
+      this.telemetryProvider = OtelProviderService.createProvider(
+        {
+          config: {
+            serviceName: this.config.serviceName,
+            serviceVersion: this.config.serviceVersion,
+            environment: process.env.NODE_ENV || 'development',
+          },
+        },
+        consoleLogger,
+        basicSdk
+      );
+    }
 
     // Create telemetry middleware service
     const telemetryConfig: TelemetryMiddlewareConfig = {
@@ -1097,6 +1181,7 @@ async function main(): Promise<void> {
     serviceVersion: '1.0.0',
     port: parseInt(process.env.PORT || '3000', 10),
     enableTelemetry: process.env.ENABLE_TELEMETRY !== 'false',
+    useCustomOtelConfig: process.env.CUSTOM_OTEL_CONFIG_ENABLED === 'true',
   };
 
   const app = new FastifyTelemetryApp(config);
