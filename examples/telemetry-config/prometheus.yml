@@ -1,0 +1,76 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # OpenTelemetry Collector metrics
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8888']
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  # Application server metrics (direct scraping)
+  - job_name: 'fastify-telemetry-app'
+    static_configs:
+      - targets: ['app-server:9464']
+    scrape_interval: 10s
+    metrics_path: /metrics
+    scrape_timeout: 5s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+
+  # Node.js application metrics (if using prom-client)
+  - job_name: 'nodejs-app-metrics'
+    static_configs:
+      - targets: ['app-server:3001']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+
+  # Grafana metrics
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Tempo metrics
+  - job_name: 'tempo'
+    static_configs:
+      - targets: ['tempo:3200']
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # Loki metrics
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+# Remote write configuration (optional)
+# remote_write:
+#   - url: "http://cortex:9009/api/prom/push"
+
+# Alerting configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           # - alertmanager:9093
+
+# Load recording and alerting rules (optional)
+# rule_files:
+#   - "alert_rules.yml"
+#   - "recording_rules.yml"

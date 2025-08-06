@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node"
+  },
+  "include": [
+    "fastify-with-telemetry-example.ts",
+    "simplified-fastify-example.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
