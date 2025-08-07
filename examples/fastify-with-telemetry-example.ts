@@ -570,7 +570,7 @@ class FastifyTelemetryApp {
           config: {
             serviceName: this.config.serviceName,
             serviceVersion: this.config.serviceVersion,
-            environment: process.env.NODE_ENV || 'development',
+            environment: (process.env.NODE_ENV as 'development' | 'staging' | 'production') || 'development',
           },
         },
         sdk
@@ -631,7 +631,7 @@ class FastifyTelemetryApp {
           config: {
             serviceName: this.config.serviceName,
             serviceVersion: this.config.serviceVersion,
-            environment: process.env.NODE_ENV || 'development',
+            environment: (process.env.NODE_ENV as 'development' | 'staging' | 'production') || 'development',
           },
         },
         consoleLogger,

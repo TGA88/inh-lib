@@ -4,7 +4,16 @@
   "sourceRoot": "packages/unified-telemetry-http/src",
   "projectType": "library",
   "targets": {
-
+    "build": {
+      "executor": "@nrwl/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/unified-telemetry-http",
+        "main": "packages/unified-telemetry-http/src/index.ts",
+        "tsConfig": "packages/unified-telemetry-http/tsconfig.lib.json",
+        "assets": ["packages/unified-telemetry-http/*.md"]
+      }
+    },
     "publish": {
       "executor": "ngx-deploy-npm:deploy",
       "options": {

@@ -1,27 +1,61 @@
 # Multi-stage build for Node.js application with telemetry
-FROM node:18-alpine AS builder
+# Using Node.js 22 LTS (latest LTS with modern features)
+# NOTE: This assumes packages are pre-built and available in ../dist/packages/
+FROM node:22-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
 # Copy package files first for better caching
-COPY package*.json ./
-COPY tsconfig*.json ./
+COPY examples/package*.json ./
+COPY examples/tsconfig*.json ./
 
-# Copy the entire monorepo structure for dependencies
-COPY ../packages ./packages
+# Copy pre-built packages from mono-repo to the parent directory (../dist/packages)
+# This matches the relative paths in package.json dependencies
+COPY dist/packages/ ../dist/packages/
 
-# Install dependencies including local packages
-RUN npm ci
+# Switch back to app directory
+WORKDIR /app
+
+# Install dependencies including local packages and their peer dependencies
+RUN npm ci --legacy-peer-deps
+
+# Create node_modules structure in /dist/packages so @inh-lib packages can find dependencies
+# Each package needs to find both external dependencies (like tslib) and other @inh-lib packages
+RUN mkdir -p /dist/packages/node_modules/@inh-lib && \
+    # Link essential dependencies from /app/node_modules to /dist/packages/node_modules
+    ln -sf /app/node_modules/tslib /dist/packages/node_modules/tslib && \
+    # Link OpenTelemetry packages that @inh-lib packages need
+    mkdir -p "/dist/packages/node_modules/@opentelemetry" && \
+    for otel_pkg in api sdk-node sdk-trace-node auto-instrumentations-node instrumentation-http \
+                    instrumentation-fs instrumentation-fastify semantic-conventions \
+                    auto-instrumentations-web resources; do \
+        if [ -d "/app/node_modules/@opentelemetry/$otel_pkg" ]; then \
+            ln -sf "/app/node_modules/@opentelemetry/$otel_pkg" "/dist/packages/node_modules/@opentelemetry/$otel_pkg"; \
+        fi; \
+    done && \
+    # Link other common dependencies that @inh-lib packages might need
+    for dep in reflect-metadata; do \
+        if [ -d "/app/node_modules/$dep" ]; then \
+            ln -sf "/app/node_modules/$dep" "/dist/packages/node_modules/$dep"; \
+        fi; \
+    done && \
+    # Create @inh-lib namespace and link all our packages
+    for pkg_dir in /dist/packages/*/; do \
+        if [ -d "$pkg_dir" ] && [ -f "$pkg_dir/package.json" ]; then \
+            pkg_name=$(basename "$pkg_dir"); \
+            ln -sf "$pkg_dir" "/dist/packages/node_modules/@inh-lib/$pkg_name"; \
+        fi; \
+    done
 
 # Copy source code and configuration files
-COPY . .
+COPY examples/ ./
 
-# Build all packages first, then the application
-RUN npm run build:packages && npm run build
+# Build the example application
+RUN npm run build
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:22-alpine AS production
 
 WORKDIR /app
 
@@ -33,20 +67,19 @@ RUN apk add --no-cache dumb-init && \
 # Copy built application and built dependencies (dist output)
 COPY --from=builder --chown=nodeuser:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodeuser:nodejs /app/dist ./dist
-COPY --from=builder --chown=nodeuser:nodejs /app/packages/*/dist ./packages/
+COPY --from=builder --chown=nodeuser:nodejs /dist/packages ../dist/packages/
 COPY --from=builder --chown=nodeuser:nodejs /app/package*.json ./
 
 # Copy the example applications
-COPY --from=builder --chown=nodeuser:nodejs /app/*.js ./
-COPY --from=builder --chown=nodeuser:nodejs /app/otel-config.js ./
-COPY --from=builder --chown=nodeuser:nodejs /app/telemetry-enhanced-app.js ./
+COPY --from=builder --chown=nodeuser:nodejs /app/dist/*.js ./
+COPY --from=builder --chown=nodeuser:nodejs /app/dist/otel-config.js ./
+COPY --from=builder --chown=nodeuser:nodejs /app/dist/telemetry-enhanced-app.js ./
 
-# Copy the entrypoint script
-COPY --chown=nodeuser:nodejs docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
-
-# Create logs directory
-RUN mkdir -p /app/logs && chown nodeuser:nodejs /app/logs
+# Copy the entrypoint script and create logs directory
+COPY --from=builder --chown=nodeuser:nodejs /app/docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh && \
+    mkdir -p /app/logs && \
+    chown nodeuser:nodejs /app/logs
 
 # Environment variables for OpenTelemetry
 ENV NODE_ENV=production
@@ -57,10 +90,10 @@ ENV PROMETHEUS_METRICS_PORT=9464
 ENV ENABLE_TELEMETRY=true
 
 # Application selection (which app to run)
-ENV APP_MODE=enhanced
+ENV APP_MODE=unified
 # Options: 
-# - "enhanced" = telemetry-enhanced-app.js (full telemetry)
-# - "unified" = fastify-with-telemetry-example.js (unified packages)  
+# - "unified" = fastify-with-telemetry-example.js (unified packages - DEFAULT)
+# - "enhanced" = telemetry-enhanced-app.js (advanced telemetry features)
 # - "simple" = simplified-fastify-example.js (mock telemetry)
 
 # Expose application and metrics ports

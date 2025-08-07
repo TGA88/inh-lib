@@ -19,7 +19,13 @@
     "test:api": "node test-api.js",
     "test:full": "npm run simple & sleep 2 && npm run test:api && pkill -f simplified-fastify-example",
     "telemetry:start": "./start-telemetry.sh",
-    "telemetry:stop": "docker-compose -f docker-compose.telemetry.yml down",
+    "telemetry:infra": "./start-infra.sh",
+    "telemetry:app": "./start-app.sh",
+    "telemetry:stop": "./stop-telemetry.sh",
+    "telemetry:stop:infra": "./stop-infra.sh",
+    "telemetry:stop:app": "./stop-app.sh",
+    "telemetry:clean": "./clean-telemetry.sh",
+    "telemetry:troubleshoot": "./troubleshoot-telemetry.sh",
     "telemetry:logs": "docker-compose -f docker-compose.telemetry.yml logs -f",
     "telemetry:enhanced": "docker-compose -f docker-compose.telemetry.yml up",
     "telemetry:unified": "docker-compose -f docker-compose.telemetry.yml --profile unified up",
@@ -52,7 +58,8 @@
     "@opentelemetry/sdk-trace-base": "^1.19.0",
     "@opentelemetry/semantic-conventions": "^1.19.0",
     "fastify": "^4.21.0",
-    "pino": "^8.15.0"
+    "pino": "^8.15.0",
+    "tslib": "^2.5.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

@@ -10,6 +10,7 @@ services:
       - "4317:4317"   # OTLP gRPC receiver
       - "4318:4318"   # OTLP HTTP receiver
       - "8888:8888"   # Prometheus metrics
+      - "13133:13133" # Health check endpoint
     depends_on:
       - tempo
       - loki
@@ -20,11 +21,12 @@ services:
   tempo:
     image: grafana/tempo:latest
     container_name: tempo
-    command: ["--target=all", "--storage.trace.backend=local", "--storage.trace.local.path=/var/tempo", "--auth.enabled=false"]
+    command: ["--config.file=/etc/tempo.yml"]
     ports:
       - "3200:3200"   # Tempo HTTP API
       - "4319:4317"   # OTLP gRPC receiver (direct)
     volumes:
+      - ./telemetry-config/tempo-config.yml:/etc/tempo.yml
       - tempo-data:/var/tempo
     networks:
       - telemetry
@@ -40,6 +42,7 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
+      - '--web.enable-remote-write-receiver'
     ports:
       - "9090:9090"
     volumes:
@@ -97,20 +100,22 @@ services:
     networks:
       - telemetry
 
-  # Application Server (multiple variants)
-  app-server:
+  # Main Application Server - Unified packages
+  app-unified:
     build:
       context: .
       dockerfile: Dockerfile.app
-    container_name: fastify-telemetry-app
+    container_name: fastify-unified-app
     environment:
       - PORT=3001
       - ENABLE_TELEMETRY=true
+      - CUSTOM_OTEL_CONFIG_ENABLED=false  # Use basic telemetry for better Prometheus metrics
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-      - OTEL_SERVICE_NAME=fastify-telemetry-example
+      - OTEL_SERVICE_NAME=fastify-unified-example
       - OTEL_SERVICE_VERSION=1.0.0
       - PROMETHEUS_METRICS_PORT=9464
-      - APP_MODE=enhanced  # Options: enhanced, unified, simple
+      - OTEL_ENABLE_PROMETHEUS=true  # Enable Prometheus metrics endpoint
+      - APP_MODE=unified
     ports:
       - "3001:3001"   # Application port
       - "9464:9464"   # Prometheus metrics endpoint
@@ -123,33 +128,35 @@ services:
     networks:
       - telemetry
 
-  # Alternative: Unified packages app
-  app-unified:
+  # Alternative: Enhanced app server (with custom OtelConfig)
+  app-server:
     build:
       context: .
       dockerfile: Dockerfile.app
-    container_name: fastify-unified-app
+    container_name: fastify-telemetry-app
     environment:
       - PORT=3002
       - ENABLE_TELEMETRY=true
+      - CUSTOM_OTEL_CONFIG_ENABLED=true  # Use custom OtelConfig
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-      - OTEL_SERVICE_NAME=fastify-unified-example
+      - OTEL_SERVICE_NAME=fastify-telemetry-example
       - OTEL_SERVICE_VERSION=1.0.0
-      # ไม่ต้องกำหนด PROMETHEUS_METRICS_PORT ใช้ default 9464 ใน container
-      - APP_MODE=unified
+      - PROMETHEUS_METRICS_PORT=9464
+      - OTEL_ENABLE_PROMETHEUS=true
+      - APP_MODE=enhanced  # Options: enhanced, unified, simple
     ports:
-      - "3002:3001"   # Application port
-      - "9465:9464"   # Host port 9465 -> Container port 9464 (Prometheus default)
+      - "3002:3002"   # Application port
+      - "9465:9464"   # Prometheus metrics endpoint
     depends_on:
       - otel-collector
       - prometheus
       - loki
     volumes:
-      - ./logs:/app/logs
+      - ./logs:/app/logs  # For promtail to collect logs
     networks:
       - telemetry
     profiles:
-      - unified  # Only start with: docker-compose --profile unified up
+      - enhanced  # Only start with: docker-compose --profile enhanced up
 
   # Alternative: Simple mock app (without external dependencies)
   app-simple:
@@ -160,9 +167,10 @@ services:
     environment:
       - PORT=3003
       - ENABLE_TELEMETRY=true
+      - CUSTOM_OTEL_CONFIG_ENABLED=false  # Use basic telemetry
       - APP_MODE=simple
     ports:
-      - "3003:3001"   # Map to different external port
+      - "3003:3003"   # Application port
     volumes:
       - ./logs:/app/logs
     networks:

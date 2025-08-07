@@ -1,5 +1,33 @@
 # Fastify with Unified Telemetry Examples
 
+📁 Working Directory
+
+**All commands in this README should be run from the `examples/` directory:**
+
+```bash
+# Navigate to examples directory first
+cd examples/
+
+# Then run any npm commands
+npm install
+npm run build
+npm run dev
+# etc...
+```
+
+**Directory Structure:**
+```
+inh-lib/                          # Monorepo root
+├── packages/                     # Source packages
+├── dist/packages/                # Built packages (after build)
+└── examples/                     # 👈 Run commands from here
+    ├── package.json              # Contains all scripts
+    ├── Dockerfile.app            # Docker configuration
+    ├── docker-compose.telemetry.yml
+    ├── *.ts                      # Source files
+    └── dist/                     # Compiled JS files
+```
+
 ตัวอย่างการใช้งาน Fastify ร่วมกับ Unified Telemetry และ Unified Route โดยไม่ใช้ `type any`
 
 ## ตัวอย่างที่มี
@@ -68,13 +96,27 @@ npm run dev:no-telemetry
 
 ## การติดตั้ง
 
+### Prerequisites
+1. **Node.js** 18+ และ **npm**
+2. **Docker** และ **Docker Compose** (สำหรับ telemetry stack)
+
+### Installation Steps
+
 ```bash
-# ติดตั้ง dependencies
+# 1. Navigate to examples directory
+cd examples/
+
+# 2. Install dependencies
 npm install
 
-# Build TypeScript
+# 3. Build TypeScript files
 npm run build
+
+# 4. (Optional) Build packages if needed
+npm run build:packages
 ```
+
+**Important:** ⚠️ **คำสั่งทั้งหมดต้องรันจาก `examples/` directory**
 
 ## การรัน
 
@@ -134,21 +176,59 @@ npm start
 
 ## Telemetry Stack (Docker Services)
 
+**Run from `examples/` directory:**
+
+### 🚀 Start Commands
+
 ```bash
-# เริ่ม telemetry stack (Prometheus, Tempo, Loki, Grafana, OTLP Collector)
+# Start infrastructure only (Prometheus, Grafana, Tempo, Loki, OTLP Collector)
+npm run telemetry:infra
+# → รัน telemetry infrastructure และรอให้พร้อมใช้งาน
+
+# Start application only (assumes infrastructure is ready)
+npm run telemetry:app
+# → build และรัน unified app (port 3001)
+
+# Start full stack (infrastructure + app with proper waiting)
 npm run telemetry:start
-# → รัน docker-compose พร้อม build Docker app (default: enhanced mode)
+# → รัน infrastructure ก่อน รอให้พร้อม แล้วรัน app
+```
 
-# หยุด telemetry stack
+### 🛑 Stop Commands
+
+```bash
+# Stop everything (infrastructure + applications)
 npm run telemetry:stop
-# → หยุด docker-compose services
+# → หยุดทุกอย่าง (apps + infra)
 
-# ดู logs ของ telemetry stack
+# Stop infrastructure only (keep apps running)
+npm run telemetry:stop:infra
+# → หยุด telemetry infrastructure แต่เก็บ apps ไว้
+
+# Stop applications only (keep infrastructure running)
+npm run telemetry:stop:app
+# → หยุด apps แต่เก็บ infrastructure ไว้
+
+# Clean up everything (stop + remove volumes)
+npm run telemetry:clean
+# → หยุดทุกอย่างและลบ data volumes (Prometheus, Grafana data)
+```
+
+### 🔍 Monitoring Commands
+
+```bash
+# View logs of all services
 npm run telemetry:logs
 # → แสดง logs จาก docker-compose services
+
+# Troubleshoot service issues
+npm run telemetry:troubleshoot
+# → ตรวจสอบ service status และ configuration issues
 ```
 
 ### Docker App Commands
+
+**Run from `examples/` directory:**
 
 ```bash
 # Build Docker image
@@ -166,24 +246,34 @@ npm run docker:run:simple
 # → รัน simplified-fastify-example.js ใน container
 ```
 
-### Docker Compose App Services
+**Alternative: Run Docker commands directly from monorepo root:**
 
 ```bash
-# รัน enhanced mode (default - port 3001)
+# From inh-lib/ (monorepo root)
+docker build -t fastify-telemetry-app -f examples/Dockerfile.app .
+docker run -p 3001:3001 -p 9464:9464 fastify-telemetry-app
+```
+
+### Docker Compose App Services
+
+**Run from `examples/` directory:**
+
+```bash
+# รัน unified mode (default - port 3001) - Main App
 docker-compose -f docker-compose.telemetry.yml up
-# → รัน app-server service (enhanced mode)
+# → รัน app-unified service (unified packages with optimized Prometheus metrics)
 
-# รัน unified mode (port 3002)
-docker-compose -f docker-compose.telemetry.yml --profile unified up
-# → รัน app-unified service (unified packages)
+# รัน enhanced mode (port 3002) - Advanced Features
+docker-compose -f docker-compose.telemetry.yml --profile enhanced up
+# → รัน app-server service (enhanced mode with custom OtelConfig)
 
-# รัน simple mode (port 3003)
+# รัน simple mode (port 3003) - Testing
 docker-compose -f docker-compose.telemetry.yml --profile simple up
 # → รัน app-simple service (simple example)
 
 # รันหลาย modes พร้อมกัน
-docker-compose -f docker-compose.telemetry.yml --profile unified --profile simple up
-# → รัน app-server + app-unified + app-simple พร้อมกัน
+docker-compose -f docker-compose.telemetry.yml --profile enhanced --profile simple up
+# → รัน app-unified + app-server + app-simple พร้อมกัน
 ```
 
 ### Docker App Modes (ใน Container)
@@ -345,22 +435,23 @@ try {
 # Application
 PORT=3001                           # Port to listen on (default: 3001)
 ENABLE_TELEMETRY=true              # Enable/disable telemetry (default: true)
-CUSTOM_OTEL_CONFIG_ENABLED=true    # Use OtelConfig initialization (custom variable)
+CUSTOM_OTEL_CONFIG_ENABLED=false   # Main app: Basic telemetry for Prometheus (false)
+                                   # Enhanced app: Custom OtelConfig (true)
 
 # OpenTelemetry Configuration
-OTEL_SERVICE_NAME=fastify-telemetry-example  # Service name
+OTEL_SERVICE_NAME=fastify-unified-example     # Main app service name
 OTEL_SERVICE_VERSION=1.0.0                   # Service version  
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318  # OTLP collector endpoint
 PROMETHEUS_METRICS_PORT=9464                # Prometheus metrics port
+OTEL_ENABLE_PROMETHEUS=true                 # Enable Prometheus endpoint
 
-# Telemetry Modes
+# Telemetry Modes (Enhanced App)
 OTEL_ENABLE_DUAL_MODE=false                 # Enable dual mode (OTLP + Prometheus)
 OTEL_ENABLE_OTLP_METRICS=false             # Send metrics to OTLP
-OTEL_ENABLE_PROMETHEUS=true                # Enable Prometheus endpoint
 OTEL_DEBUG=false                           # Enable debug logging
 
 # Docker App Mode
-APP_MODE=enhanced                          # App mode: enhanced|unified|simple
+APP_MODE=unified                           # App mode: unified|enhanced|simple
 ```
 
 ## ข้อดีของการใช้ Architecture นี้
@@ -400,55 +491,73 @@ APP_MODE=enhanced                          # App mode: enhanced|unified|simple
 
 ## Quick Start Guide
 
-### 1. Basic Development
+### 1. Main Application (Unified + Prometheus)
 ```bash
-# Clone และ install
+# Clone และ navigate to examples directory
+cd examples/
+
+# Install dependencies
 npm install
 
-# รัน app พร้อม telemetry
-npm run dev:telemetry
+# รัน main app พร้อม optimized telemetry
+npm run dev
 
-# เข้าไปดู metrics
+# หรือรันด้วย Docker (unified mode - default)
+docker-compose -f docker-compose.telemetry.yml up
+
+# เข้าถึง application
+open http://localhost:3001
+
+# ดู metrics ที่ optimize สำหรับ Prometheus
 open http://localhost:9464/metrics
 ```
 
 ### 2. Full Telemetry Stack
 ```bash
-# เริ่ม telemetry stack
+# Make sure you're in examples/ directory
+cd examples/
+
+# เริ่ม telemetry stack (จะรัน unified app โดยอัตโนมัติ)
 npm run telemetry:start
 
-# รัน app พร้อม dual mode  
-npm run dev:dual
-
 # เข้าไปดู Grafana dashboard
-open http://localhost:3000
+open http://localhost:3000  # admin/admin
+
+# ดู Prometheus targets
+open http://localhost:9090  # เช็คว่า unified app metrics ถูก scrape หรือไม่
 ```
 
-### 3. Docker Deployment
+### 3. Advanced Features Testing
 ```bash
-# Build และรัน
-npm run docker:build
-npm run docker:run
+# From examples/ directory
+cd examples/
 
-# หรือใช้ docker-compose
-docker-compose -f docker-compose.telemetry.yml up
+# รัน enhanced app สำหรับ testing advanced telemetry
+docker-compose -f docker-compose.telemetry.yml --profile enhanced up
+
+# หรือรันด้วย npm (enhanced mode)
+npm run dev:telemetry
+
+# เข้าถึง enhanced app
+open http://localhost:3002
+open http://localhost:9465/metrics  # Advanced telemetry metrics
 ```
 
-## Metrics & Observability
+## Monitoring & Observability
 
 ### Application Endpoints (Docker Compose Services)
-- **Enhanced App** (app-server): http://localhost:3001
-- **Unified App** (app-unified): http://localhost:3002 (with `--profile unified`)
+- **Unified App** (app-unified): http://localhost:3001 - **Main Application**
+- **Enhanced App** (app-server): http://localhost:3002 (with `--profile enhanced`) 
 - **Simple App** (app-simple): http://localhost:3003 (with `--profile simple`)
 
 ### Health Check Endpoints
-- **Enhanced App**: http://localhost:3001/health
-- **Unified App**: http://localhost:3002/health  
+- **Unified App**: http://localhost:3001/health - **Main Application**
+- **Enhanced App**: http://localhost:3002/health  
 - **Simple App**: http://localhost:3003/health
 
 ### Metrics Endpoints
-- **Enhanced App Metrics**: http://localhost:9464/metrics
-- **Unified App Metrics**: http://localhost:9465/metrics
+- **Unified App Metrics**: http://localhost:9464/metrics - **Optimized for Prometheus**
+- **Enhanced App Metrics**: http://localhost:9465/metrics - **Advanced OtelConfig**
 - **Simple App**: No metrics endpoint (mock telemetry)
 
 ### Telemetry Stack
@@ -471,67 +580,206 @@ docker-compose -f docker-compose.telemetry.yml up
 - **[DUAL_MODE.md](./DUAL_MODE.md)** - Dual mode configuration (OTLP + Prometheus)
 - **[OTEL_CONFIG_README.md](./OTEL_CONFIG_README.md)** - OpenTelemetry environment variables reference
 
+## 📚 Documentation Quick Links
+
+- **[DOCKER_SYMLINKS.md](./DOCKER_SYMLINKS.md)** - Technical guide to Docker symlinks for monorepo packages
+- **[DOCKER_TELEMETRY.md](./DOCKER_TELEMETRY.md)** - Complete observability stack setup and usage
+
+## Table of Contents
+
+- [� Working Directory](#-working-directory)
+- [�📚 Documentation Quick Links](#-documentation-quick-links)
+- [ตัวอย่างที่มี](#ตัวอย่างที่มี)
+- [การติดตั้ง](#การติดตั้ง)
+- [การรัน](#การรัน)
+  - [ตัวอย่างแบบง่าย](#ตัวอย่างแบบง่าย-simplified-fastify-examplets)
+  - [Enhanced Mode](#enhanced-mode-telemetry-enhanced-appts)
+  - [Unified Packages Mode](#unified-packages-mode-fastify-with-telemetry-examplets)
+  - [Telemetry Stack](#telemetry-stack-docker-services)
+- [Docker Commands](#docker-app-commands)
+- [Docker Architecture & Symlinks](#-docker-architecture--symlinks)
+- [API Endpoints](#api-endpoints)
+- [Architecture Highlights](#architecture-highlights)
+- [Environment Variables](#environment-variables)
+- [Monitoring & Observability](#-monitoring--observability)
+- [Troubleshooting](#-troubleshooting)
+
 ## แอปพลิเคชันแต่ละตัว
 
-### 1. **telemetry-enhanced-app.ts** 🚀
-- **OpenTelemetry เต็มรูปแบบ** พร้อม dual mode support
-- รองรับ OTLP + Prometheus metrics export
-- Configuration ผ่าน environment variables
-- เหมาะสำหรับ production deployment
-
-### 2. **fastify-with-telemetry-example.ts** 🏗️
+### 1. **fastify-with-telemetry-example.ts** 🚀 (Main App)
 - ใช้ **unified packages** (@inh-lib) ทั้งหมด
+- **Basic telemetry configuration** เพื่อ optimize สำหรับ Prometheus
 - Framework-agnostic architecture
 - Type-safe middleware และ route handlers
-- เหมาะสำหรับ enterprise development
+- เหมาะสำหรับ **production deployment**
 
-### 3. **simplified-fastify-example.ts** 🎯
+### 2. **telemetry-enhanced-app.ts** 🔧 (Enhanced Features)
+- **OpenTelemetry เต็มรูปแบบ** พร้อม custom OtelConfig
+- รองรับ dual mode support และ advanced features
+- Configuration ผ่าน environment variables
+- เหมาะสำหรับ **testing advanced telemetry capabilities**
+
+### 3. **simplified-fastify-example.ts** 🎯 (Testing)
 - ตัวอย่าง**แบบง่าย** สำหรับการเรียนรู้
 - Mock telemetry สำหรับการทดสอบ
 - ไม่ต้องพึ่งพา external packages
-- เหมาะสำหรับ rapid prototyping
+- เหมาะสำหรับ **rapid prototyping**
 
 ## Docker Compose Services Summary
 
 ### Application Services
 
-| Service | Container | App Port | Metrics Port (Host→Container) | Profile | App File |
-|---------|-----------|----------|------------------------------|---------|----------|
-| `app-server` | `fastify-telemetry-app` | 3001 | 9464→9464 | default | `telemetry-enhanced-app.js` |
-| `app-unified` | `fastify-unified-app` | 3002 | 9465→9464 | `unified` | `fastify-with-telemetry-example.js` |
-| `app-simple` | `fastify-simple-app` | 3003 | - | `simple` | `simplified-fastify-example.js` |
+| Service | Container | App Port | Metrics Port (Host→Container) | Profile | App File | Telemetry Mode |
+|---------|-----------|----------|-------------------------------|---------|----------|---------------|
+| `app-unified` | `fastify-unified-app` | 3001 | 9464→9464 | **default** | `fastify-with-telemetry-example.js` | Basic (optimized for Prometheus) |
+| `app-server` | `fastify-telemetry-app` | 3002 | 9465→9464 | `enhanced` | `telemetry-enhanced-app.js` | Custom OtelConfig |
+| `app-simple` | `fastify-simple-app` | 3003 | - | `simple` | `simplified-fastify-example.js` | Mock/Basic |
+
+### Key Features by Service
+
+#### 🚀 app-unified (Main - Default)
+- **Port**: 3001
+- **Features**: 
+  - ✅ Unified packages (@inh-lib) integration
+  - ✅ Basic telemetry (CUSTOM_OTEL_CONFIG_ENABLED=false)
+  - ✅ Optimized Prometheus metrics export
+  - ✅ Auto-instrumentation enabled
+  - 📊 Best for production Prometheus monitoring
+
+#### 🔧 app-server (Enhanced - Profile)
+- **Port**: 3002  
+- **Features**:
+  - ✅ Custom OtelConfig (CUSTOM_OTEL_CONFIG_ENABLED=true)
+  - ✅ Advanced OpenTelemetry features
+  - ✅ Dual-mode telemetry support
+  - 🧪 Best for testing advanced telemetry features
+
+#### 🎯 app-simple (Testing - Profile)
+- **Port**: 3003
+- **Features**:
+  - ✅ Minimal dependencies
+  - ✅ Mock telemetry for testing
+  - ✅ No external telemetry services required
+  - 🏃‍♂️ Best for rapid prototyping
 
 ### Usage Examples
 
 ```bash
-# รัน enhanced mode only (default)
+# รัน unified mode only (default - Main App)
 docker-compose -f docker-compose.telemetry.yml up
 
-# รัน unified mode only
-docker-compose -f docker-compose.telemetry.yml --profile unified up
+# รัน enhanced mode only (Advanced Features)
+docker-compose -f docker-compose.telemetry.yml --profile enhanced up
 
-# รัน simple mode only  
+# รัน simple mode only (Testing)
 docker-compose -f docker-compose.telemetry.yml --profile simple up
 
 # รันทุก modes พร้อมกัน
-docker-compose -f docker-compose.telemetry.yml --profile unified --profile simple up
+docker-compose -f docker-compose.telemetry.yml --profile enhanced --profile simple up
 ```
 
 ### Access URLs (เมื่อรันทุก services)
 
 ```bash
 # Applications
-curl http://localhost:3001/health  # Enhanced app
-curl http://localhost:3002/health  # Unified app  
-curl http://localhost:3003/health  # Simple app
+curl http://localhost:3001/health  # Unified app (Main - Default)
+curl http://localhost:3002/health  # Enhanced app (Advanced)
+curl http://localhost:3003/health  # Simple app (Testing)
 
-# Metrics (เฉพาะ enhanced & unified)
-curl http://localhost:9464/metrics  # Enhanced app metrics (container port 9464)
-curl http://localhost:9465/metrics  # Unified app metrics (host port 9465 → container port 9464)
+# Metrics
+curl http://localhost:9464/metrics  # Unified app metrics (optimized for Prometheus)
+curl http://localhost:9465/metrics  # Enhanced app metrics (custom OtelConfig)
+# Note: Simple app ไม่มี metrics endpoint (ใช้ mock telemetry)
 
 # Telemetry Stack
 open http://localhost:3000          # Grafana (admin/admin)
 open http://localhost:9090          # Prometheus
 ```
 
-**หมายเหตุ:** app-unified ใช้ OpenTelemetry default port (9464) ใน container แต่ expose ที่ host port 9465 เพื่อไม่ให้ชนกับ app-server
+## 🆕 Configuration Highlights
+
+### Default Setup (Recommended)
+- **Main App**: `app-unified` (port 3001)
+- **Telemetry**: Basic configuration with `CUSTOM_OTEL_CONFIG_ENABLED=false`
+- **Metrics**: Optimized for Prometheus scraping
+- **Best for**: Production deployment และ Prometheus monitoring
+
+### Advanced Setup (Testing)
+- **Enhanced App**: `app-server` (port 3002, profile `enhanced`)
+- **Telemetry**: Custom OtelConfig with `CUSTOM_OTEL_CONFIG_ENABLED=true`
+- **Features**: Dual-mode, advanced tracing, custom exporters
+- **Best for**: Testing advanced telemetry features
+
+### Simple Setup (Development)
+- **Simple App**: `app-simple` (port 3003, profile `simple`)
+- **Telemetry**: Mock/basic สำหรับการทดสอบ
+- **Best for**: Rapid prototyping ไม่ต้องการ external services
+
+---
+
+## 🎯 Summary
+
+This examples project demonstrates:
+
+### ✅ **Three Application Modes**
+- **Enhanced Mode** (`telemetry-enhanced-app.ts`) - Full OpenTelemetry with custom configuration
+- **Unified Mode** (`fastify-with-telemetry-example.ts`) - Using @inh-lib unified packages  
+- **Simple Mode** (`simplified-fastify-example.ts`) - Basic setup with mock telemetry
+
+### ✅ **Docker Support**
+- **Multi-stage builds** for optimized production images
+- **Symlink system** for monorepo package resolution  
+- **Complete observability stack** with Docker Compose
+
+### ✅ **Type Safety**
+- **No `any` types** - fully typed implementations
+- **Generic interfaces** for flexible telemetry providers
+- **Comprehensive error handling** with proper typing
+
+### ✅ **Production Ready**
+- **Health checks** and monitoring endpoints
+- **Graceful shutdown** handling
+- **Security best practices** (non-root user, dumb-init)
+- **Performance optimizations** (efficient symlinks, cached builds)
+
+### 📋 Recommended Workflows
+
+#### 🎯 **Development Workflow (Separate Infrastructure & App)**
+```bash
+# 1. Start infrastructure first
+npm run telemetry:infra
+
+# 2. Develop your app locally (outside Docker)
+npm run dev
+
+# 3. Stop app when done (keep infrastructure running)
+# Ctrl+C to stop local app
+
+# 4. Stop infrastructure when finished
+npm run telemetry:stop:infra
+```
+
+#### 🚀 **Full Stack Testing (All in Docker)**
+```bash
+# Start everything together
+npm run telemetry:start
+
+# Test endpoints
+curl http://localhost:3001/health
+curl http://localhost:3001/api/users
+
+# Stop everything
+npm run telemetry:stop
+```
+
+#### 🔄 **Quick App Restart (Keep Infrastructure)**
+```bash
+# Infrastructure already running from previous session
+npm run telemetry:app        # Start app
+
+# Make changes and restart app
+npm run telemetry:stop:app   # Stop app only
+npm run telemetry:app        # Start app again
+
+# Infrastructure stays running
+```
