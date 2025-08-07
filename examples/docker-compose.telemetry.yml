@@ -104,6 +104,9 @@ services:
   app-unified:
     image: unified-telemetry-app:latest
     container_name: fastify-unified-app
+    labels:
+      - "logging=promtail"
+      - "logging.jobname=fastify-unified-app"
     environment:
       - PORT=3001
       - ENABLE_TELEMETRY=true
@@ -130,6 +133,9 @@ services:
   app-server:
     image: unified-telemetry-app:latest
     container_name: fastify-telemetry-app
+    labels:
+      - "logging=promtail"
+      - "logging.jobname=fastify-telemetry-app"
     environment:
       - PORT=3002
       - ENABLE_TELEMETRY=true
@@ -158,6 +164,9 @@ services:
   app-simple:
     image: unified-telemetry-app:latest
     container_name: fastify-simple-app
+    labels:
+      - "logging=promtail"
+      - "logging.jobname=fastify-simple-app"
     environment:
       - PORT=3003
       - ENABLE_TELEMETRY=true

@@ -1,0 +1,7 @@
+{
+  "dashboard": $(cat grafana-dashboard-app-unified-traces.json),
+  "overwrite": true,
+  "inputs": [],
+  "folderId": 0,
+  "folderUid": ""
+}
