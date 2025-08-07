@@ -40,7 +40,7 @@ check_service "http://localhost:9090/-/ready" "Prometheus"
 check_service "http://localhost:3000/api/health" "Grafana"
 check_service "http://localhost:3200/ready" "Tempo"
 check_service "http://localhost:3100/ready" "Loki"
-check_service "http://localhost:8888/metrics" "OpenTelemetry Collector"
+check_service "http://localhost:13133" "OpenTelemetry Collector"
 
 echo ""
 echo "✅ Telemetry Infrastructure is ready!"

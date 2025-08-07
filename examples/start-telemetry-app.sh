@@ -31,7 +31,7 @@ if ! check_service "http://localhost:3000/api/health" "Grafana"; then
     infra_ready=false
 fi
 
-if ! check_service "http://localhost:8888/metrics" "OpenTelemetry Collector"; then
+if ! check_service "http://localhost:13133" "OpenTelemetry Collector"; then
     infra_ready=false
 fi
 
@@ -53,7 +53,8 @@ echo "✅ Infrastructure is ready! Starting application..."
 
 # Build application image
 echo "📦 Building application image..."
-docker build -f Dockerfile.app -t fastify-telemetry-app .
+echo "🔧 Running complete build process (packages + Docker image)..."
+./build-docker.sh
 
 # Start the application services only
 echo "🚀 Starting application services..."

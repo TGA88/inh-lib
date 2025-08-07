@@ -58,7 +58,8 @@ echo "✅ Packages built successfully"
 echo ""
 echo "📦 Building application image..."
 cd examples
-docker build -f Dockerfile.app -t fastify-telemetry-app ..
+echo "🔧 Running complete build process (packages + Docker image)..."
+./build-docker.sh
 
 # Start application
 echo ""

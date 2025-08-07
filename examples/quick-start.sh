@@ -19,7 +19,8 @@ echo "1. Creating logs directory..."
 mkdir -p logs
 
 echo "2. Building application Docker image..."
-docker build -f Dockerfile.app -t fastify-telemetry-app .
+echo "🔧 Running complete build process (packages + Docker image)..."
+./build-docker.sh
 
 echo "3. Starting telemetry stack..."
 docker-compose -f docker-compose.telemetry.yml up -d

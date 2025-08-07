@@ -8,6 +8,14 @@ echo "🔧 Building packages from mono-repo..."
 # Navigate to repo root
 cd "$(dirname "$0")/.."
 
+# Ensure dependencies are installed
+if [ ! -d "node_modules" ]; then
+    echo "📦 Installing dependencies..."
+    npm install --legacy-peer-deps
+else
+    echo "✅ Dependencies already installed"
+fi
+
 # Build all packages
 echo "📦 Building all packages..."
 npx nx run-many --target=build --all --parallel=false

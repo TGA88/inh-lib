@@ -102,9 +102,7 @@ services:
 
   # Main Application Server - Unified packages
   app-unified:
-    build:
-      context: .
-      dockerfile: Dockerfile.app
+    image: unified-telemetry-app:latest
     container_name: fastify-unified-app
     environment:
       - PORT=3001
@@ -130,9 +128,7 @@ services:
 
   # Alternative: Enhanced app server (with custom OtelConfig)
   app-server:
-    build:
-      context: .
-      dockerfile: Dockerfile.app
+    image: unified-telemetry-app:latest
     container_name: fastify-telemetry-app
     environment:
       - PORT=3002
@@ -160,9 +156,7 @@ services:
 
   # Alternative: Simple mock app (without external dependencies)
   app-simple:
-    build:
-      context: .
-      dockerfile: Dockerfile.app
+    image: unified-telemetry-app:latest
     container_name: fastify-simple-app
     environment:
       - PORT=3003

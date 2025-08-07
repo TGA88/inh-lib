@@ -108,8 +108,8 @@ service:
     logs:
       receivers: [otlp]
       processors: [memory_limiter, resource, batch]
-      # exporters: [loki]  # Commented out - loki exporter not available
-      exporters: [debug]
+      # exporters: [loki]  # Loki exporter not available in standard distribution
+      exporters: [debug]  # Development only - production logs use Promtail → Loki
 
   extensions: [health_check, pprof, zpages]
 

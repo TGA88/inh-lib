@@ -53,7 +53,7 @@ if ! check_service "http://localhost:3100/ready" "Loki" 20; then
     failed_services="$failed_services Loki"
 fi
 
-if ! check_service "http://localhost:8888/metrics" "OpenTelemetry Collector" 20; then
+if ! check_service "http://localhost:13133" "OpenTelemetry Collector" 20; then
     failed_services="$failed_services OTel-Collector"
 fi
 

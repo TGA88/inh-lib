@@ -53,7 +53,7 @@ if ! check_service "http://localhost:3100/ready" "Loki" 20; then
     failed_services="$failed_services Loki"
 fi
 
-if ! check_service "http://localhost:8888/metrics" "OpenTelemetry Collector" 20; then
+if ! check_service "http://localhost:13133" "OpenTelemetry Collector" 20; then
     failed_services="$failed_services OTel-Collector"
 fi
 
@@ -74,7 +74,8 @@ fi
 # Step 3: Build application image
 echo ""
 echo "📦 Step 3: Building application image..."
-docker build -f Dockerfile.app -t fastify-telemetry-app .
+echo "🔧 Running complete build process (packages + Docker image)..."
+./build-docker.sh
 
 # Step 4: Start application
 echo ""
