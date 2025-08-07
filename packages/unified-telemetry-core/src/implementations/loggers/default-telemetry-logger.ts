@@ -112,7 +112,10 @@ export class DefaultUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
    */
   logWithSpan(level: string, message: string, attributes?: Record<string, unknown>): void {
     // ✅ Using utils function for enriching attributes
-    const enrichedAttrs = enrichLogAttributes(this.context, attributes);
+    const data = enrichLogAttributes(this.context, attributes);
+    const enrichedAttrs = {
+   data:data
+    };
     
     switch (level) {
       case 'debug':

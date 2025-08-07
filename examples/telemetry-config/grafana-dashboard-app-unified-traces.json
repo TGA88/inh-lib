@@ -502,7 +502,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{job=\"docker-direct\"} | json | traceId != \"\"",
+          "expr": "{job=\"docker-direct\"} | json | traceId != \"\" | line_format \"{{.timestamp}} [{{.level}}] {{.message}} | traceId={{.traceId}} spanId={{.spanId}}\"",
           "refId": "A"
         }
       ],

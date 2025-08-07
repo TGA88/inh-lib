@@ -51,15 +51,12 @@ scrape_configs:
             - "2006-01-02T15:04:05.000000000Z07:00"
             - "2006-01-02T15:04:05.000Z07:00"
             - "2006-01-02T15:04:05Z07:00"
-      # Add labels
+      # Add labels (DO NOT include traceId/spanId as labels - too high cardinality)
       - labels:
           level:
           service:
-          traceId:
-          spanId:
           method:
           statusCode:
-          requestId:
 
   # Backup: Direct Docker log files for all containers
   - job_name: docker-logs-direct
@@ -96,16 +93,13 @@ scrape_configs:
       - timestamp:
           source: time
           format: RFC3339Nano
-      # Add labels
+      # Add labels (DO NOT include traceId/spanId as labels - too high cardinality)
       - labels:
           level:
           service:
-          traceId:
-          spanId:
           method:
           statusCode:
           stream:
-          requestId:
 
   # Simplified application logs (only if files exist)
   - job_name: app-file-logs
