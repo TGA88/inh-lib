@@ -1,5 +1,8 @@
 {
   "name": "@inh-lib/unified-route",
-  "version": "1.0.0",
-  "type": "commonjs"
+  "version": "0.0.0",
+  "type": "commonjs",
+    "publishConfig": {
+    "access": "public"
+  }
 }
