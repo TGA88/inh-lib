@@ -448,298 +448,105 @@ Root Span: HTTP PUT /users/:id
 
 ### Which Approach to Choose?
 
-#### ✅ Use `createBusinessLogicMiddleware` when:
+#### ✅ Use `createBusinessLogicMiddleware` + `getCurrentLogger/getCurrentSpan` when:
 - You want consistent telemetry patterns across all business operations
-- You prefer separation between telemetry and business logic
+- You prefer **separation between telemetry and business logic**
+- You want **automatic error handling and span management**
+- You need **better performance** (no child span overhead)
 - You have many middleware that need similar telemetry wrapping
-- You want automatic error handling and logging
+- You want **safer code** (no risk of forgotten finish() calls)
+- **RECOMMENDED for most use cases** 🎯
 
 #### ✅ Use manual `createChildSpan` when:
-- You need fine-grained control over telemetry data
-- You want to add dynamic attributes based on business logic results
-- You prefer fewer middleware layers
-- You want custom error handling and logging
+- You need **fine-grained control** over telemetry data and span lifecycle
+- You want to add **dynamic attributes based on business logic results**
+- You prefer **fewer middleware layers** but more complex individual middleware
+- You want **custom error handling and logging** for specific operations
+- You need **isolated error contexts** for different business operations
+- You're building **complex hierarchical traces** with multiple nested operations
 
-#### 📋 Example Comparison:
+## Helper Methods for Business Logic
 
+The `TelemetryMiddlewareService` provides convenient helper methods to access current telemetry context:
+
+### 🔍 **getCurrentSpan(context)**
 ```typescript
-// Approach 1: Separate telemetry wrapper + business logic
-const approach1 = [
-  telemetryService.createMiddleware(),
-  telemetryService.createBusinessLogicMiddleware('user-operation'), // Telemetry wrapper
-  async (context, next) => {
-    // Your business logic here
-    const user = await userService.getUser(context.request.params.id);
-    context.registry.user = user;
-    await next();
-  }
-];
-
-// Approach 2: Combined business logic + telemetry
-const approach2 = [
-  telemetryService.createMiddleware(),
-  async (context, next) => {
-    const { span, logger, finish } = telemetryService.createChildSpan(
-      context, 'user-operation-complete', { operationType: 'business' }
-    );
-    
-    try {
-      // Business logic with detailed telemetry
-      const user = await userService.getUserWithTelemetry(context, context.request.params.id);
-      span.setTag('user.found', !!user);
-      context.registry.user = user;
-      await next();
-    } finally {
-      finish();
-    }
-  }
-];
-```
-
-### Custom System Telemetry
-
-```typescript
-// Create independent system telemetry
-const systemTelemetry = telemetryService.createSystemTelemetry('my-service');
-
-// Start system metrics collection
-systemTelemetry.start();
-
-// Stop when shutting down
-process.on('SIGTERM', () => {
-  systemTelemetry.stop();
-});
-```
-
-## 🎯 Business Logic Integration Benefits
-
-### Why Use Child Spans for Business Steps?
-
-1. **📊 Detailed Performance Analysis**
-   - See exactly which business step is slow
-   - Identify bottlenecks in complex operations
-   - Monitor individual validation/processing times
-
-2. **🔍 Granular Error Tracking**
-   - Know exactly where failures occur in your business flow
-   - Separate validation errors from business logic errors
-   - Better error attribution and debugging
-
-3. **📈 Business Metrics**
-   - Track success/failure rates per business step
-   - Monitor validation pass/fail rates
-   - Measure business operation performance
-
-4. **🎛️ Flexible Observability**
-   - Enable/disable telemetry for specific steps
-   - Add custom attributes per business operation
-   - Different logging levels for different layers
-
-5. **🗄️ Database Performance Tracking**
-   - Monitor individual SQL query performance
-   - Track database connection health
-   - Identify slow queries and N+1 problems
-   - Cache hit/miss ratios and performance
-
-6. **🔄 Cache Layer Monitoring**
-   - Track cache hit/miss rates
-   - Monitor cache operation latency
-   - Identify cache eviction patterns
-   - Debug cache-related performance issues
-
-### Best Practices for Business Logic Telemetry
-
-```typescript
-// ✅ Good: Separate concerns with different operation types
-const validation = telemetryService.createValidationMiddleware('user-input', {
-  operationType: 'validation',  // Clear operation type
-  layer: 'service',            // Appropriate layer
-  attributes: { 
-    'validation.type': 'input',
-    'validation.required_fields': ['email', 'name']
-  }
-});
-
-const business = telemetryService.createBusinessLogicMiddleware('user-creation', {
-  operationType: 'business',   // Business logic type
-  layer: 'service',           // Service layer
-  attributes: {
-    'business.domain': 'user-management',
-    'business.operation': 'create'
-  }
-});
-
-// ✅ Good: Use descriptive operation names
-telemetryService.createChildSpan(context, 'validate-email-uniqueness', {
-  operationType: 'validation',
-  attributes: { 'validation.scope': 'uniqueness' }
-});
-
-// ❌ Avoid: Generic or unclear names
-telemetryService.createChildSpan(context, 'step1', {
-  // Too generic, hard to understand in traces
-});
-
-// ✅ Good: Database operations with detailed attributes
-const { span, logger, finish } = telemetryService.createChildSpan(context, 'db-user-select-by-email', {
-  operationType: 'database',
-  layer: 'data',
-  attributes: {
-    'db.operation': 'select',
-    'db.table': 'users',
-    'db.query_type': 'select_by_email',
-    'user.email': email
-  }
-});
-
-// ✅ Good: Cache operations with performance tracking
-const { span, logger, finish } = telemetryService.createChildSpan(context, 'cache-user-lookup', {
-  operationType: 'cache',
-  layer: 'data',
-  attributes: {
-    'cache.operation': 'get',
-    'cache.key': cacheKey,
-    'cache.type': 'redis'
-  }
-});
-
-// ❌ Avoid: Missing context passing to repository
-async getUserById(id: string) {
-  // Can't create child spans without context
-  return await this.database.query('...');
+const span = telemetryService.getCurrentSpan(context);
+if (span) {
+  span.setTag('business.operation', 'user-validation');
+  span.setTag('validation.result', 'success');
 }
+```
 
-// ✅ Good: Context-aware repository methods
-async getUserByIdWithContext(context: UnifiedHttpContext, id: string) {
-  const { span, logger, finish } = this.telemetryService.createChildSpan(context, 'db-operation');
+### 📝 **getCurrentLogger(context)**  
+```typescript
+const logger = telemetryService.getCurrentLogger(context);
+if (logger) {
+  logger.info('Business operation started');
+  logger.warn('Validation failed', { field: 'email' });
+}
+```
+
+### 🎯 **createChildSpan(context, name, options)**
+```typescript
+const { span, logger, finish } = telemetryService.createChildSpan(
+  context, 
+  'complex-operation',
+  { 
+    operationType: 'business',
+    layer: 'service'
+  }
+);
+
+try {
+  // Complex business logic here
+  span.setTag('operation.complexity', 'high');
+  logger.info('Complex operation completed');
+} finally {
+  finish(); // Important: Always call finish()
+}
+```
+
+### 💡 **Usage Patterns:**
+
+#### Pattern 1: Simple Business Logic (Recommended)
+```typescript
+async (context, next) => {
+  const logger = telemetryService.getCurrentLogger(context);
+  const span = telemetryService.getCurrentSpan(context);
+  
+  // Simple business logic with existing telemetry context
+  logger?.info('Processing request');
+  span?.setTag('request.type', 'user-lookup');
+  
+  const result = await someBusinessLogic();
+  await next();
+}
+```
+
+#### Pattern 2: Complex Business Logic 
+```typescript
+async (context, next) => {
+  const { span, logger, finish } = telemetryService.createChildSpan(
+    context, 'complex-processing', { operationType: 'business' }
+  );
+  
   try {
-    return await this.database.query('...');
+    // Complex business logic that needs its own span
+    for (const step of complexSteps) {
+      logger.info(`Processing step: ${step.name}`);
+      await processStep(step);
+      span.setTag(`step.${step.name}.completed`, true);
+    }
   } finally {
     finish();
   }
+  
+  await next();
 }
 ```
 
-### Layer-Based Organization
-
-Organize your business logic spans by layers for better trace analysis:
-
-```typescript
-// Presentation Layer - Input validation
-const inputValidation = telemetryService.createValidationMiddleware('request-validation', {
-  layer: 'presentation',
-  operationType: 'validation'
-});
-
-// Service Layer - Business logic
-const businessLogic = telemetryService.createBusinessLogicMiddleware('business-rules', {
-  layer: 'service', 
-  operationType: 'business'
-});
-
-// Data Layer - Database operations  
-const dataAccess = telemetryService.createBusinessLogicMiddleware('data-persistence', {
-  layer: 'data',
-  operationType: 'database'
-});
-
-// Integration Layer - External API calls
-const externalIntegration = telemetryService.createBusinessLogicMiddleware('external-service-call', {
-  layer: 'integration',
-  operationType: 'integration'
-});
-```
-
-### Repository Pattern with Child Spans
-
-For database operations, create child spans in your repository methods to track individual queries:
-
-```typescript
-class UserRepository {
-  constructor(private telemetryService: TelemetryMiddlewareService) {}
-
-  async findById(context: UnifiedHttpContext, id: string): Promise<User | null> {
-    // Create child span for specific database operation
-    const { span, logger, finish } = this.telemetryService.createChildSpan(
-      context, 
-      'db-user-select-by-id', 
-      {
-        operationType: 'database',
-        layer: 'data',
-        attributes: {
-          'db.operation': 'select',
-          'db.table': 'users',
-          'user.id': id
-        }
-      }
-    );
-
-    try {
-      logger.info('Executing user lookup query', { userId: id });
-      
-      // Add database-specific attributes
-      span.setTag('db.statement', 'SELECT * FROM users WHERE id = ?');
-      
-      const startTime = Date.now();
-      const user = await this.dbConnection.query('SELECT * FROM users WHERE id = ?', [id]);
-      const duration = Date.now() - startTime;
-      
-      // Add performance metrics
-      span.setTag('db.query_duration_ms', duration);
-      span.setTag('db.rows_affected', user ? 1 : 0);
-      
-      return user;
-      
-    } catch (error) {
-      logger.error('Database query failed', error);
-      throw error;
-    } finally {
-      finish(); // Always finish the span
-    }
-  }
-}
-
-// Service layer using repository
-class UserService {
-  async getUser(context: UnifiedHttpContext, id: string): Promise<User | null> {
-    const { span, logger, finish } = this.telemetryService.createChildSpan(
-      context,
-      'service-get-user',
-      {
-        operationType: 'business',
-        layer: 'service'
-      }
-    );
-
-    try {
-      // This will create child spans for cache and database operations
-      let user = await this.cacheService.get(context, `user:${id}`);
-      
-      if (!user) {
-        user = await this.userRepository.findById(context, id); // Child span created here
-        if (user) {
-          await this.cacheService.set(context, `user:${id}`, user); // Another child span
-        }
-      }
-
-      return user;
-    } finally {
-      finish();
-    }
-  }
-}
-```
-
-This creates a hierarchical trace structure:
-```
-Root Span: HTTP GET /users/:id
-├── Child Span: service-get-user
-│   ├── Child Span: cache-get
-│   ├── Child Span: db-user-select-by-id
-│   └── Child Span: cache-set
-└── Response completion
-```
-
+---
 ```typescript
 import { createUnifiedApp } from '@inh-lib/unified-route';
 
@@ -772,9 +579,26 @@ import {
   UnifiedResponseContext,
   composeMiddleware 
 } from '@inh-lib/unified-route';
+import { TelemetryMiddlewareService } from '@inh-lib/unified-telemetry-middleware';
 
 const app = express();
 app.use(express.json());
+
+// Create telemetry provider
+const telemetryProvider = new OpenTelemetryProvider({
+  serviceName: 'my-api',
+  serviceVersion: '1.0.0',
+  environment: 'production'
+});
+
+// Create telemetry middleware service
+const telemetryService = new TelemetryMiddlewareService(telemetryProvider, {
+  serviceName: 'my-api',
+  serviceVersion: '1.0.0',
+  enableMetrics: true,
+  enableTracing: true,
+  enableResourceTracking: true
+});
 
 // Create Express adapter for unified context
 function createExpressContext(req: express.Request, res: express.Response): UnifiedHttpContext {
@@ -838,8 +662,31 @@ app.listen(3000);
 
 ```typescript
 import Fastify, { FastifyRequest, FastifyReply } from 'fastify';
+import { 
+  UnifiedHttpContext,
+  UnifiedRequestContext,
+  UnifiedResponseContext,
+  composeMiddleware 
+} from '@inh-lib/unified-route';
+import { TelemetryMiddlewareService } from '@inh-lib/unified-telemetry-middleware';
 
 const fastify = Fastify({ logger: true });
+
+// Create telemetry provider
+const telemetryProvider = new OpenTelemetryProvider({
+  serviceName: 'my-api',
+  serviceVersion: '1.0.0',
+  environment: 'production'
+});
+
+// Create telemetry middleware service
+const telemetryService = new TelemetryMiddlewareService(telemetryProvider, {
+  serviceName: 'my-api',
+  serviceVersion: '1.0.0',
+  enableMetrics: true,
+  enableTracing: true,
+  enableResourceTracking: true
+});
 
 // Create Fastify adapter for unified context
 function createFastifyContext(request: FastifyRequest, reply: FastifyReply): UnifiedHttpContext {

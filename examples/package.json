@@ -5,7 +5,10 @@
   "main": "dist/fastify-with-telemetry-example.js",
   "scripts": {
     "build": "tsc",
-    "build:packages": "npm run build --workspaces --if-present",
+    "build:packages": "cd .. && npm run build",
+    "link:packages": "npm link ../dist/packages/api-util-fastify ../dist/packages/unified-route ../dist/packages/unified-telemetry-core ../dist/packages/unified-telemetry-middleware ../dist/packages/unified-telemetry-otel",
+    "setup": "npm install --no-save --no-package-lock --legacy-peer-deps",
+    "setup:with-link": "npm run build:packages && npm run setup && npm run link:packages",
     "start": "node dist/fastify-with-telemetry-example.js",
     "start:telemetry": "node dist/telemetry-enhanced-app.js",
     "dev": "ts-node fastify-with-telemetry-example.ts",

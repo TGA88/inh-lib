@@ -19,9 +19,11 @@ npm run dev
 ```
 inh-lib/                          # Monorepo root
 ├── packages/                     # Source packages
-├── dist/packages/                # Built packages (after build)
+├── dist/packages/                # Built packages (after npm run build)
 └── examples/                     # 👈 Run commands from here
-    ├── package.json              # Contains all scripts
+    ├── .npmrc                    # npm configuration (legacy-peer-deps=true)
+    ├── package.json              # Contains all scripts + file: dependencies
+    ├── node_modules/             # Local dependencies (not workspace)
     ├── Dockerfile.app            # Docker configuration
     ├── docker-compose.telemetry.yml
     ├── *.ts                      # Source files
@@ -99,24 +101,44 @@ npm run dev:no-telemetry
 ### Prerequisites
 1. **Node.js** 18+ และ **npm**
 2. **Docker** และ **Docker Compose** (สำหรับ telemetry stack)
+3. **Build packages ที่ root** ก่อนใช้งาน
 
 ### Installation Steps
 
 ```bash
-# 1. Navigate to examples directory
+# 1. Build packages ที่ root ก่อน (จำเป็น!)
+cd .. && npm run build
+
+# 2. กลับมาที่ examples directory
 cd examples/
 
-# 2. Install dependencies
+# 3. Install dependencies (ใช้ .npmrc configuration)
 npm install
+# หรือใช้ setup script
+npm run setup
 
-# 3. Build TypeScript files
+# 4. Build TypeScript files
 npm run build
-
-# 4. (Optional) Build packages if needed
-npm run build:packages
 ```
 
-**Important:** ⚠️ **คำสั่งทั้งหมดต้องรันจาก `examples/` directory**
+**⚠️ สำคัญ:** 
+- **ต้อง build packages ที่ root ก่อน** เพราะ examples ใช้ `file:../dist/packages/*`
+- **ใช้คำสั่ง `npm run build` ที่ root** ซึ่งจะรัน `nx run-many --target=build --all`
+- **คำสั่งทั้งหมดต้องรันจาก `examples/` directory**
+- **มี `.npmrc` กำหนด `legacy-peer-deps=true`** เพื่อแก้ OpenTelemetry conflicts
+
+### คำสั่ง Build ที่ Root
+```bash
+# จาก root directory (inh-lib/)
+npm run build                    # Build ทุก packages
+npm run build:affected          # Build เฉพาะที่เปลี่ยนแปลง
+```
+
+### Quick Setup (One-liner)
+```bash
+# รัน build packages + install + setup ในคำสั่งเดียว
+npm run setup:with-link
+```
 
 ## การรัน
 
@@ -782,4 +804,122 @@ npm run telemetry:stop:app   # Stop app only
 npm run telemetry:app        # Start app again
 
 # Infrastructure stays running
+```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### 1. Package Not Found หรือ Import Errors
+```bash
+# ตรวจสอบว่า build packages แล้วหรือไม่
+ls -la ../dist/packages/
+
+# หากไม่มี folder นี้ ให้ build ที่ root
+cd .. && npm run build && cd examples/
+
+# หรือใช้ nx โดยตรง
+cd .. && npx nx run-many --target=build --all && cd examples/
+```
+
+#### 2. OpenTelemetry Peer Dependency Conflicts
+```bash
+# ใช้ setup script ที่มี --legacy-peer-deps
+npm run setup
+
+# หรือ install manual พร้อม flag
+npm install --legacy-peer-deps
+```
+
+#### 3. Examples ไม่อยู่ใน Workspaces
+✅ **Correct**: Examples แยกจาก workspace แล้ว (ไม่เกิด conflicts)
+```json
+// root package.json
+"workspaces": [
+  "apps/**",
+  "packages/**"
+  // ไม่มี "examples" ในนี้
+]
+```
+
+#### 4. Module Resolution Errors
+```bash
+# ตรวจสอบ .npmrc ใน examples
+cat .npmrc
+
+# ควรมี:
+# legacy-peer-deps=true
+# package-lock=false
+```
+
+#### 5. Docker Service Conflicts
+```bash
+# หยุด services ที่อาจ conflict
+npm run telemetry:stop
+
+# ลบ containers และ volumes
+docker-compose -f docker-compose.telemetry.yml down -v
+
+# เริ่มใหม่
+npm run telemetry:start
+```
+
+### File Dependencies
+```
+examples/ setup ต้องการ:
+├── ../dist/packages/*/           # Built packages (จาก root build)
+├── .npmrc                        # npm configuration  
+├── package.json                  # Local dependencies
+└── node_modules/                 # Installed dependencies
+```
+
+### Debugging Commands
+```bash
+# เช็ค package versions
+npm list @inh-lib/api-util-fastify
+
+# เช็ค symlinks (หากใช้ npm link)
+ls -la node_modules/@inh-lib/
+
+# เช็ค build output
+ls -la ../dist/packages/
+
+# เช็ค telemetry services
+docker-compose -f docker-compose.telemetry.yml ps
+```
+
+---
+
+## 📋 Setup Summary
+
+### ✅ What We Fixed
+1. **Removed examples from workspace** - แก้ workspace conflicts
+2. **Added `.npmrc` with `legacy-peer-deps=true`** - แก้ OpenTelemetry conflicts  
+3. **Use `file:../dist/packages/*` dependencies** - ใช้ build output แทน source
+4. **Setup scripts ที่ครบครัน** - build + install + link ในคำสั่งเดียว
+
+### 🎯 Best Practices  
+- **Build packages ที่ root ก่อนเสมอ** (`npm run build`)
+- **รัน commands จาก examples/ directory**
+- **ใช้ setup scripts แทน manual install**
+- **Examples แยกจาก workspace** (ไม่เกิด conflicts)
+
+### 🚀 Quick Start
+```bash
+# จาก monorepo root (inh-lib/)
+npm run build                           # Build packages ด้วย nx
+cd examples && npm run setup:with-link  # Install + setup examples
+npm run dev                             # รัน development server
+```
+
+### หรือแยกขั้นตอน
+```bash
+# 1. Build packages ที่ root
+cd /path/to/inh-lib && npm run build
+
+# 2. Setup examples 
+cd examples && npm run setup:with-link
+
+# 3. รัน application
+npm run dev
 ```

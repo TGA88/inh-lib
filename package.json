@@ -3,10 +3,14 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "build": "nx run-many --target=build --all",
+    "build:affected": "nx affected --target=build",
     "prepare": "husky install",
     "commit-init": "npx commitizen init cz-conventional-changelog --save-dev --save-exact",
     "commit": "git-cz",
-    "version": "nx affected --target version --base HEAD~1 --head HEAD --trackDeps --parallel=1"
+    "version": "nx affected --target version --base HEAD~1 --head HEAD --trackDeps --parallel=1",
+    "link:examples": "npm run build && cd examples && npm link ../packages/api-util-fastify ../packages/unified-route ../packages/unified-telemetry-core ../packages/unified-telemetry-middleware ../packages/unified-telemetry-otel",
+    "setup:examples": "npm run build && cd examples && npm install --no-package-lock"
   },
   "private": true,
   "workspaces": [
