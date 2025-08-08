@@ -37,7 +37,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/packages/ui-router"],
       "options": {
-        "jestConfig": "packages/ui-core/jest.config.ts",
+        "jestConfig": "packages/ui-router/jest.config.ts",
         "passWithNoTests": true
       }
     },
