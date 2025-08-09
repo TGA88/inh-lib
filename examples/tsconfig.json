@@ -32,6 +32,7 @@
     "fastify-with-telemetry-example.ts",
     "simplified-fastify-example.ts",
     "telemetry-enhanced-app.ts",
+    "fastify-hybrid-telemetry.ts",
     "otel-config.ts",
     "otel-config-new.ts"
   ],

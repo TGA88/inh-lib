@@ -37,8 +37,36 @@ inh-lib/                          # Monorepo root
 1. **telemetry-enhanced-app.ts** - ตัวอย่างเต็มรูปแบบ OpenTelemetry พร้อม dual mode support
 2. **fastify-with-telemetry-example.ts** - ตัวอย่างใช้ unified packages ทั้งหมด
 3. **simplified-fastify-example.ts** - ตัวอย่างแบบง่าย ใช้ mock telemetry สำหรับการทดสอบ
+4. **fastify-hybrid-telemetry.ts** - 🆕 🌟 **Hybrid Architecture** (แนะนำสำหรับ Production)
 
 ## การรัน
+
+### ตัวอย่าง Hybrid Telemetry (แนะนำสำหรับ Production) 🌟
+
+```bash
+# รัน hybrid example ที่ใช้ทั้ง TelemetryPluginService + UnifiedTelemetryMiddlewareService
+npm run dev:hybrid
+
+# หรือรันด้วย tsx โดยตรง (alternative)
+npx tsx fastify-hybrid-telemetry.ts
+
+# ดู architecture status  
+curl http://localhost:3000/api/architecture/status | jq .
+
+# อ่าน README เฉพาะ example นี้
+cat README-fastify-hybrid-telemetry.md
+```
+
+**Architecture:**
+- ✅ **TelemetryPluginService** → Fastify hooks (auto-tracing)
+- ✅ **UnifiedTelemetryMiddlewareService** → Business logic
+- ✅ **createFastifyContext** → Convert req/res to UnifiedHttpContext
+- ✅ **Fastify as Request/Response Framework** only
+
+**เหมาะสำหรับ:**
+- Production applications ที่ต้องการ comprehensive telemetry
+- มี business logic ที่ซับซ้อน
+- ต้องการ flexibility ในการจัดการ telemetry ระดับ service
 
 ### ตัวอย่างแบบง่าย (simplified-fastify-example.ts)
 
@@ -88,6 +116,7 @@ npm run dev:no-telemetry
 
 - ✅ **Type Safety**: ใช้ TypeScript อย่างเต็มรูปแบบ ไม่มี `type any`
 - 🔍 **Telemetry**: Distributed tracing, metrics, และ logging ด้วย OpenTelemetry
+- 🌟 **Hybrid Architecture**: รวม TelemetryPluginService + UnifiedTelemetryMiddlewareService
 - 🚀 **Fastify Integration**: ใช้ `@inh-lib/api-util-fastify` adapter
 - 📊 **Unified Middleware**: ใช้ `UnifiedMiddleware` และ `UnifiedRouteHandler`
 - 🏗️ **Hierarchical Spans**: สร้าง child spans สำหรับ business logic
@@ -95,6 +124,7 @@ npm run dev:no-telemetry
 - 🛡️ **Error Handling**: จัดการ error และ exception tracking
 - 🔄 **Dual Mode**: รองรับ OTLP + Prometheus metrics export พร้อมกัน
 - 🐳 **Docker Support**: พร้อม telemetry stack สำหรับ local development
+- 🧪 **Comprehensive Testing**: Test scripts สำหรับ API endpoints ทั้งหมด
 
 ## การติดตั้ง
 
@@ -134,11 +164,7 @@ npm run build                    # Build ทุก packages
 npm run build:affected          # Build เฉพาะที่เปลี่ยนแปลง
 ```
 
-### Quick Setup (One-liner)
-```bash
-# รัน build packages + install + setup ในคำสั่งเดียว
-npm run setup:with-link
-```
+
 
 ## การรัน
 
@@ -281,9 +307,9 @@ docker run -p 3001:3001 -p 9464:9464 fastify-telemetry-app
 **Run from `examples/` directory:**
 
 ```bash
-# รัน unified mode (default - port 3001) - Main App
+# รัน hybrid mode (default - port 3001) - Main App
 docker-compose -f docker-compose.telemetry.yml up
-# → รัน app-unified service (unified packages with optimized Prometheus metrics)
+# → รัน app-unified service (hybrid packages with comprehensive telemetry)
 
 # รัน enhanced mode (port 3002) - Advanced Features
 docker-compose -f docker-compose.telemetry.yml --profile enhanced up
@@ -301,7 +327,11 @@ docker-compose -f docker-compose.telemetry.yml --profile enhanced --profile simp
 ### Docker App Modes (ใน Container)
 
 ```bash
-# Enhanced mode (default)
+# Hybrid mode (default)
+docker run -e APP_MODE=hybrid fastify-telemetry-app
+# → รัน fastify-hybrid-telemetry.js
+
+# Enhanced mode
 docker run -e APP_MODE=enhanced fastify-telemetry-app
 # → รัน telemetry-enhanced-app.js
 
@@ -316,15 +346,20 @@ docker run -e APP_MODE=simple fastify-telemetry-app
 
 ## API Endpoints
 
-### Health Check
+### Health Check & Status
 ```http
 GET /health
+# Response: { "status": "ok", "service": "fastify-hybrid-telemetry", ... }
+
+GET /ready
+# Response: { "ready": true, "components": { "telemetryProvider": true, ... }}
 ```
 
 ### Users API
 ```http
 # Get all users
 GET /api/users
+# Response: { "success": true, "data": [...], "meta": { "architecture": "hybrid-telemetry" }}
 
 # Get user by ID
 GET /api/users/{id}
@@ -347,6 +382,18 @@ Content-Type: application/json
 
 # Delete user
 DELETE /api/users/{id}
+```
+
+### Testing Scripts
+```bash
+# Comprehensive API testing script
+./test-fastify-telemetry-plugin.sh
+
+# Test specific endpoint
+curl http://localhost:3001/api/users | jq .
+
+# Test telemetry ready status  
+curl http://localhost:3001/ready | jq .components
 ```
 
 ## Architecture Highlights
@@ -473,7 +520,7 @@ OTEL_ENABLE_OTLP_METRICS=false             # Send metrics to OTLP
 OTEL_DEBUG=false                           # Enable debug logging
 
 # Docker App Mode
-APP_MODE=unified                           # App mode: unified|enhanced|simple
+APP_MODE=hybrid                            # App mode: hybrid|unified|enhanced|simple (default: hybrid)
 ```
 
 ## ข้อดีของการใช้ Architecture นี้
@@ -485,6 +532,8 @@ APP_MODE=unified                           # App mode: unified|enhanced|simple
 5. **Maintainability**: Code structure ที่ชัดเจนและแยกหน้าที่กันดี
 6. **Flexibility**: รองรับ multiple telemetry export modes
 7. **Production Ready**: พร้อม Docker และ telemetry stack สำหรับ deployment
+8. **Hybrid Architecture**: ความยืดหยุ่นในการใช้ telemetry ทั้งระดับ HTTP และ business logic
+9. **Comprehensive Testing**: Test scripts ครอบคลุม API endpoints ทั้งหมด
 
 ## ตัวอย่าง Telemetry Output
 
@@ -513,7 +562,7 @@ APP_MODE=unified                           # App mode: unified|enhanced|simple
 
 ## Quick Start Guide
 
-### 1. Main Application (Unified + Prometheus)
+### 1. Hybrid Architecture (แนะนำสำหรับ Production) 🌟
 ```bash
 # Clone และ navigate to examples directory
 cd examples/
@@ -521,11 +570,32 @@ cd examples/
 # Install dependencies
 npm install
 
+# รัน hybrid app พร้อม comprehensive telemetry
+npm run dev:hybrid
+
+# หรือรันด้วย tsx โดยตรง
+npx tsx fastify-hybrid-telemetry.ts
+
+# หรือรันด้วย Docker (hybrid mode - default)
+docker-compose -f docker-compose.telemetry.yml up
+
+# เข้าถึง application
+open http://localhost:3001
+
+# ดู ready status พร้อม telemetry components
+curl http://localhost:3001/ready | jq .
+
+# ดู metrics ที่ครบครัน
+open http://localhost:9464/metrics
+```
+
+### 2. Main Application (Unified + Prometheus)
+```bash
+# Install dependencies
+npm install
+
 # รัน main app พร้อม optimized telemetry
 npm run dev
-
-# หรือรันด้วย Docker (unified mode - default)
-docker-compose -f docker-compose.telemetry.yml up
 
 # เข้าถึง application
 open http://localhost:3001
@@ -539,14 +609,14 @@ open http://localhost:9464/metrics
 # Make sure you're in examples/ directory
 cd examples/
 
-# เริ่ม telemetry stack (จะรัน unified app โดยอัตโนมัติ)
+# เริ่ม telemetry stack (จะรัน hybrid app โดยอัตโนมัติ)
 npm run telemetry:start
 
 # เข้าไปดู Grafana dashboard
 open http://localhost:3000  # admin/admin
 
 # ดู Prometheus targets
-open http://localhost:9090  # เช็คว่า unified app metrics ถูก scrape หรือไม่
+open http://localhost:9090  # เช็คว่า hybrid app metrics ถูก scrape หรือไม่
 ```
 
 ### 3. Advanced Features Testing
@@ -554,11 +624,21 @@ open http://localhost:9090  # เช็คว่า unified app metrics ถู�
 # From examples/ directory
 cd examples/
 
+# ทดสอบ hybrid telemetry architecture
+npm run dev:hybrid
+# หรือ
+npx tsx fastify-hybrid-telemetry.ts
+./test-fastify-telemetry-plugin.sh
+
 # รัน enhanced app สำหรับ testing advanced telemetry
 docker-compose -f docker-compose.telemetry.yml --profile enhanced up
 
 # หรือรันด้วย npm (enhanced mode)
 npm run dev:telemetry
+
+# ทดสอบ multiple modes พร้อมกัน
+docker-compose -f docker-compose.telemetry.yml --profile enhanced --profile simple up
+```
 
 # เข้าถึง enhanced app
 open http://localhost:3002

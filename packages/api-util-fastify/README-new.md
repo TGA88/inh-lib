@@ -116,20 +116,8 @@ await fastify.register(TelemetryPluginService.createPlugin({
 
 // Route with automatic telemetry
 fastify.get('/api/users/:id', async (req, res) => {
-  // Use instance-based telemetry methods
-  const logger = fastify.telemetry.getCurrentLogger();
-  const span = fastify.telemetry.createChildSpan('user.fetch', {
-    userId: req.params.id
-  });
-  
-  try {
-    logger.info('Fetching user', { userId: req.params.id });
-    const user = await fetchUser(req.params.id);
-    span.setTag('user.found', !!user);
-    return user;
-  } finally {
-    span.finish();
-  }
+  const context = fastify.telemetry.createEnhancedContext(req, res);
+  const logger = context.telemetry.logger;
   
   logger?.info('Processing request', { userId: req.params.id });
   res.send({ message: 'Hello from Fastify with Telemetry!' });

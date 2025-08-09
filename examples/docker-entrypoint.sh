@@ -22,13 +22,17 @@ case $APP_MODE in
     echo "🔧 Running Unified Packages Application (with @inh-lib packages)"
     APP_FILE="dist/fastify-with-telemetry-example.js"
     ;;
+  "hybrid")
+    echo "🔄 Running Hybrid Telemetry Application (with middleware patterns)"
+    APP_FILE="dist/fastify-hybrid-telemetry.js"
+    ;;
   "simple")
     echo "🎭 Running Simple Mock Application (with mock telemetry)"
     APP_FILE="dist/simplified-fastify-example.js"
     ;;
   *)
     echo "❌ Invalid APP_MODE: ${APP_MODE}"
-    echo "Valid options: enhanced, unified, simple"
+    echo "Valid options: enhanced, unified, hybrid, simple"
     exit 1
     ;;
 esac

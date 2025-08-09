@@ -35,7 +35,7 @@ RUN mkdir -p /dist/packages/node_modules/@inh-lib && \
         fi; \
     done && \
     # Link other common dependencies that @inh-lib packages might need
-    for dep in reflect-metadata; do \
+    for dep in reflect-metadata fastify-plugin; do \
         if [ -d "/app/node_modules/$dep" ]; then \
             ln -sf "/app/node_modules/$dep" "/dist/packages/node_modules/$dep"; \
         fi; \
