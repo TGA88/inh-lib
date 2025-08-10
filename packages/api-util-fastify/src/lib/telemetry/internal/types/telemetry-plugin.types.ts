@@ -36,6 +36,7 @@ declare module 'fastify' {
   interface FastifyRequest {
     requestContext?: {
       telemetry?: RequestTelemetryContext;
+      requestId?: string;
     };
   }
 }
