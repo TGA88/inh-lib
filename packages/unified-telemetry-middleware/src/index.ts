@@ -11,6 +11,14 @@ export { TelemetryMiddlewareService } from './services/telemetry-middleware.serv
 // Export configuration interface
 export type { TelemetryMiddlewareConfig } from './services/telemetry-middleware.service';
 
+// Export public types
+export type {
+  TelemetryOperationType,
+  TelemetryLayerType,
+  TelemetryAttributeValue,
+  TelemetryAttributes
+} from './types/telemetry.types';
+
 // Export public constants
 export { 
   TELEMETRY_HEADERS,

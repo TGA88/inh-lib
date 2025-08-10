@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import fp from 'fastify-plugin';
 import { UnifiedHttpContext } from '@inh-lib/unified-route';
-import { UnifiedTelemetryProvider } from '@inh-lib/unified-telemetry-core';
+import { UnifiedTelemetryProvider, UnifiedTelemetrySpan } from '@inh-lib/unified-telemetry-core';
 import { 
   TelemetryMiddlewareService, 
   TELEMETRY_OPERATION_TYPES,

@@ -4,7 +4,11 @@
  */
 
 import type { UnifiedTelemetrySpan, UnifiedTelemetryLogger } from '@inh-lib/unified-telemetry-core';
-import type { TelemetryMiddlewareService } from '@inh-lib/unified-telemetry-middleware';
+import type { 
+  TelemetryMiddlewareService,
+  TelemetryOperationType,
+  TelemetryLayerType 
+} from '@inh-lib/unified-telemetry-middleware';
 
 /**
  * Options for getOrCreateSpan method
@@ -12,8 +16,8 @@ import type { TelemetryMiddlewareService } from '@inh-lib/unified-telemetry-midd
 export interface GetOrCreateSpanOptions {
   operationName?: string;
   createNewIfNotFound?: boolean;
-  operationType?: string;
-  layer?: string;
+  operationType?: TelemetryOperationType;
+  layer?: TelemetryLayerType;
   attributes?: Record<string, string | number | boolean>;
 }
 
