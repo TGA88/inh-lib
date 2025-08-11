@@ -88,6 +88,7 @@ export interface TelemetryMiddlewareConfig {
 
 /**
  * Main service class for creating telemetry middleware
+ * it must be singleton and initialized once per application
  */
 export class TelemetryMiddlewareService {
   private readonly config: InternalTelemetryMiddlewareConfig;

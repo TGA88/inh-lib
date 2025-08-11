@@ -1,8 +1,8 @@
 // adapters/unified-fastify-adapter.ts
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { UnifiedRequestContext, UnifiedResponseContext, UnifiedHttpContext } from '@inh-lib/unified-route';
+import { UnifiedRequestContext, UnifiedResponseContext, UnifiedHttpContext, UnifiedRouteHandler } from '@inh-lib/unified-route';
 
-export function adaptFastifyRequest<TBody = Record<string, unknown>>(
+ function createUnifiedRequest<TBody = Record<string, unknown>>(
   req: FastifyRequest
 ): UnifiedRequestContext & { body: TBody } {
   return {
@@ -17,11 +17,11 @@ export function adaptFastifyRequest<TBody = Record<string, unknown>>(
   } as UnifiedRequestContext & { body: TBody };
 }
 
-export function adaptFastifyResponse(res: FastifyReply): UnifiedResponseContext {
+ function createUnifiedResponse(res: FastifyReply): UnifiedResponseContext {
   return {
     status: (code: number) => {
       res.status(code);
-      return adaptFastifyResponse(res);
+      return createUnifiedResponse(res);
     },
     json: <T>(data: T) => {
       res.send(data);
@@ -31,7 +31,7 @@ export function adaptFastifyResponse(res: FastifyReply): UnifiedResponseContext 
     },
     header: (name: string, value: string) => {
       res.header(name, value);
-      return adaptFastifyResponse(res);
+      return createUnifiedResponse(res);
     },
     redirect: (url: string) => {
       res.redirect(url);
@@ -39,13 +39,30 @@ export function adaptFastifyResponse(res: FastifyReply): UnifiedResponseContext 
   };
 }
 
-export function createFastifyContext<TBody = Record<string, unknown>>(
+export function createUnifiedContext<TBody = Record<string, unknown>>(
   req: FastifyRequest,
   res: FastifyReply
 ): UnifiedHttpContext & { request: UnifiedRequestContext & { body: TBody } } {
   return {
-    request: adaptFastifyRequest<TBody>(req),
-    response: adaptFastifyResponse(res),
+    request: createUnifiedRequest<TBody>(req),
+    response: createUnifiedResponse(res),
     registry: {} // Initialize an empty registry
   };
 }
+
+export function createUnifiedFastifyHandler(
+  handler: UnifiedRouteHandler
+) {
+  const fastifyHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+    if (!req.businessLogicContext) {
+      const context = createUnifiedContext(req, reply);
+      req.businessLogicContext = context;
+    }
+
+    await handler(req.businessLogicContext);
+  };
+
+  return fastifyHandler
+}
+
+ 

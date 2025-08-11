@@ -8,7 +8,7 @@ import {
   TELEMETRY_LAYERS
 } from '@inh-lib/unified-telemetry-middleware';
 
-import { createFastifyContext } from '../../unified-fastify-adapter';
+import { createUnifiedContext } from '../../unified-fastify-adapter';
 
 import { TelemetryPluginOptions, TelemetryDecoratorOptions } from '../types/telemetry.types';
 import { DEFAULT_TELEMETRY_PLUGIN_OPTIONS } from '../constants/telemetry.const';
@@ -147,7 +147,7 @@ export class TelemetryPluginService {
       // const startMeasurement = ResourceTrackingService.startTracking();
       // request.startRequestMeasurement = startMeasurement;
 
-      request.unifiedAppContext = createFastifyContext(request, reply);
+      request.unifiedAppContext = createUnifiedContext(request, reply);
 
       // Initialize root span in UnifiedHttpContext
       middlewareService.createRootSpan(request.unifiedAppContext);
