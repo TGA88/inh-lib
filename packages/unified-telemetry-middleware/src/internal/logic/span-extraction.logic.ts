@@ -47,7 +47,7 @@ export function executeSpanExtractionStrategy(
   }
 
   // Strategy 2: Extract from headers if provided and extraction is enabled
-  if (headers && hasValidTraceHeaders(headers) && config.enableTraceExtraction) {
+  if (headers  && config.enableTraceExtraction) {
     const extractedSpan = extractSpanFromHeaders(
       headers,
       provider,

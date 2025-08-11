@@ -1,12 +1,13 @@
 import { FastifyInstance, FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import fp from 'fastify-plugin';
 import { UnifiedHttpContext } from '@inh-lib/unified-route';
-import { UnifiedTelemetryProvider, UnifiedTelemetrySpan } from '@inh-lib/unified-telemetry-core';
-import { 
-  TelemetryMiddlewareService, 
+import { UnifiedTelemetryProvider } from '@inh-lib/unified-telemetry-core';
+import {
+  TelemetryMiddlewareService,
   TELEMETRY_OPERATION_TYPES,
   TELEMETRY_LAYERS
 } from '@inh-lib/unified-telemetry-middleware';
+
 import { createFastifyContext } from '../../unified-fastify-adapter';
 
 import { TelemetryPluginOptions, TelemetryDecoratorOptions } from '../types/telemetry.types';
@@ -25,35 +26,42 @@ type TelemetryLayer = (typeof TELEMETRY_LAYERS)[keyof typeof TELEMETRY_LAYERS];
 interface TelemetryDecorator {
   /** Direct access to telemetry provider */
   provider: UnifiedTelemetryProvider;
-  
+
   /** Full middleware service access for advanced usage */
   unifiedTelemetryService: TelemetryMiddlewareService;
-  
-  /** 
-   * Get or create span with smart fallback strategies
-   * Covers 90% of telemetry use cases in Fastify hooks
-   * 
-   * Strategy: Active Span → Extract from Headers → Create Fallback
-   */
-  getOrCreateSpan: (
-    headers?: Record<string, string>,
-    options?: {
-      operationName?: string;
-      createNewIfNotFound?: boolean;
-      operationType?: TelemetryOperationType;
-      layer?: TelemetryLayer;
-      attributes?: TelemetrySpanAttributes;
-    }
-  ) => {
-    span: UnifiedTelemetrySpan;
-    logger: object; // UnifiedTelemetryLogger
-    finish: () => void;
-  } | null;
+
+  // /** 
+  //  * Get or create span with smart fallback strategies
+  //  * Covers 90% of telemetry use cases in Fastify hooks
+  //  * 
+  //  * Strategy: Active Span → Extract from Headers → Create Fallback
+  //  */
+  // getOrCreateSpan: (
+  //   headers?: Record<string, string>,
+  //   options?: {
+  //     operationName?: string;
+  //     createNewIfNotFound?: boolean;
+  //     operationType?: TelemetryOperationType;
+  //     layer?: TelemetryLayer;
+  //     attributes?: TelemetrySpanAttributes;
+  //   }
+  // ) => {
+  //   span: UnifiedTelemetrySpan;
+  //   logger: object; // UnifiedTelemetryLogger
+  //   finish: () => void;
+  // } | null;
 }
+
+
 
 declare module 'fastify' {
   interface FastifyInstance {
     telemetry?: TelemetryDecorator;
+  }
+  interface FastifyRequest {
+    // startRequestMeasurement?: UnifiedResourceMeasurement;
+    unifiedAppContext?: UnifiedHttpContext;
+    businessLogicContext?: UnifiedHttpContext;
   }
 }
 
@@ -90,20 +98,20 @@ export class TelemetryPluginService {
         // Core properties
         provider: pluginOptions.provider,
         unifiedTelemetryService: middlewareService,
-        
-        // Main method - covers 90% of use cases
-        getOrCreateSpan: (
-          headers?: Record<string, string>,
-          options?: {
-            operationName?: string;
-            createNewIfNotFound?: boolean;
-            operationType?: TelemetryOperationType;
-            layer?: TelemetryLayer;
-            attributes?: TelemetrySpanAttributes;
-          }
-        ) => {
-          return executeGetOrCreateSpan(middlewareService, headers, options);
-        },
+
+        // // Main method - covers 90% of use cases
+        // getOrCreateSpan: (
+        //   headers?: Record<string, string>,
+        //   options?: {
+        //     operationName?: string;
+        //     createNewIfNotFound?: boolean;
+        //     operationType?: TelemetryOperationType;
+        //     layer?: TelemetryLayer;
+        //     attributes?: TelemetrySpanAttributes;
+        //   }
+        // ) => {
+        //   return executeGetOrCreateSpan(middlewareService, headers, options);
+        // },
       });
 
       // System metrics are now handled by TelemetryMiddlewareService
@@ -131,66 +139,59 @@ export class TelemetryPluginService {
     options: TelemetryDecoratorOptions,
     middlewareService: TelemetryMiddlewareService
   ): void {
-    // Create the telemetry middleware
-    const telemetryMiddleware = middlewareService.createMiddleware();
-    
-    // Store contexts for tracking
-    const requestContexts = new Map<string, UnifiedHttpContext>();
-
     // onRequest hook - start telemetry using middleware
     fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
       if (shouldSkipTelemetry(request.url, options.skipRoutes)) {
         return;
       }
+      // const startMeasurement = ResourceTrackingService.startTracking();
+      // request.startRequestMeasurement = startMeasurement;
 
-      // Create unified context from Fastify request/reply
-      const context = createFastifyContext(request, reply);
-      
-      // Store context for use in onResponse
-      const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-      requestContexts.set(requestId, context);
-      
-      // Store request ID for cleanup
-      request.requestContext = request.requestContext || {};
-      request.requestContext.requestId = requestId;
+      request.unifiedAppContext = createFastifyContext(request, reply);
 
-      // Add request ID to reply headers
-      reply.header('x-request-id', requestId);
-      
-      // Execute middleware start - this sets up telemetry
-      try {
-        await telemetryMiddleware(context, async () => {
-          // Middleware has started telemetry setup
-          // No actual next() to call here - just indicate middleware started
-        });
-      } catch (error) {
-        console.error('[TelemetryPlugin] Error starting telemetry middleware:', error);
+      // Initialize root span in UnifiedHttpContext
+      middlewareService.createRootSpan(request.unifiedAppContext);
+
+    });
+    // preHandler hook - start to update route info in UnifiedHttpContext
+    fastify.addHook('preHandler', async (request: FastifyRequest) => {
+      if (request.unifiedAppContext) {
+        const routeInfo = { method: request.method, route: request.routerPath, url: request.url };
+        middlewareService.updateRouteInfo(request.unifiedAppContext, routeInfo.method, routeInfo.route, routeInfo.url);
       }
+
     });
 
     // onResponse hook - finish telemetry using middleware
-    fastify.addHook('onResponse', async (request: FastifyRequest) => {
-      const requestId = request.requestContext?.requestId;
-      if (!requestId) {
-        return;
-      }
+    fastify.addHook('onResponse', async (request: FastifyRequest, reply: FastifyReply) => {
 
-      const context = requestContexts.get(requestId);
-      if (!context) {
-        return;
+      if(request.unifiedAppContext) {
+        // Finalize telemetry for the request
+        await middlewareService.finalizeRootSpan(request.unifiedAppContext, reply.statusCode);
       }
-
-      // Cleanup context from memory
-      requestContexts.delete(requestId);
+      // const startMeasurement = request.startRequestMeasurement
+      // if (!startMeasurement) {
+      //   return;
+      // }
+      // const labels = {
+      //   method: request.method,
+      //   routePath: request.routerPath // routePath will be set by Fastify at pre-handler stage
+      // };
+      // const endMeasurement: UnifiedStopResourceMeasurementResult = ResourceTrackingService.stopTracking(startMeasurement);
+      // middlewareService.recordCustomMetrics(labels['method'], labels['routePath'], reply.statusCode, endMeasurement['durationMs'], endMeasurement['memoryUsageBytes'], endMeasurement['cpuTimeSeconds']);
 
       // The middleware should have already finished telemetry in its finally block
       // Nothing extra needed here since middleware handles completion
     });
 
     // onError hook - let middleware handle errors
-    fastify.addHook('onError', async () => {
+    fastify.addHook('onError', async (request: FastifyRequest, reply: FastifyReply) => {
       // Middleware should handle error recording in its catch block
       // Error will propagate through middleware's try-catch
+       if(request.unifiedAppContext) {
+        // Finalize telemetry for the request
+        await middlewareService.finalizeRootSpan(request.unifiedAppContext, reply.statusCode);
+      }
     });
   }
 }

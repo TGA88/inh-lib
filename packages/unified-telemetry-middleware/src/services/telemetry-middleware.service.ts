@@ -32,6 +32,7 @@ import { createResourceTracker, createSystemMetricsMonitor } from '../internal/l
 import { 
   storePerformanceData,
   getPerformanceData,
+  updateRequestContextWithRouteInfo,
 } from '../internal/utils/context.utils';
 
 import { 
@@ -55,6 +56,7 @@ import {
   startSystemMetricsMonitoring
 } from '../internal/utils/telemetry-finalization.utils';
 import type { GetActiveSpanOptions } from '../internal/types/span-extraction.types';
+import { INTERNAL_REGISTRY_KEYS } from '../internal/constants/telemetry.const';
 
 /**
  * Configuration for telemetry middleware
@@ -131,7 +133,7 @@ export class TelemetryMiddlewareService {
       storePerformanceData(context, performanceData);
 
       // Log request start
-      performanceData.logger.info('HTTP request started', {
+      performanceData.logger.info('Unified Request started', {
         method: performanceData.requestContext.method,
         route: performanceData.requestContext.route,
         url: performanceData.requestContext.url,
@@ -170,7 +172,7 @@ export class TelemetryMiddlewareService {
           message: error.message 
         });
         
-        performanceData.logger.error('Request failed with exception', error, {
+        performanceData.logger.error('Unified Request failed with exception', error, {
           errorType: error.constructor.name,
           errorMessage: error.message,
         });
@@ -516,4 +518,56 @@ export class TelemetryMiddlewareService {
       options
     );
   }
+
+
+
+  /**
+   * create TraceContext and Usage Request snapshot and keep it's in UnifiedHttpContext
+   * Extract TraceContext format W3C and then B3 then if not found create new span W3C format and store it in UnifiedHttpContext
+   * 
+   */
+  createRootSpan(context: UnifiedHttpContext) : UnifiedHttpContext {
+    // Setup telemetry at request start
+    const performanceData = this.extractor.extractAndSetupTelemetry(context);
+    storePerformanceData(context, performanceData);
+
+      // Log request start
+      performanceData.logger.info('Root Span is Created', {
+        method: performanceData.requestContext.method,
+        route: performanceData.requestContext.route,
+        url: performanceData.requestContext.url,
+        traceId: performanceData.traceContext.traceId,
+        spanId: performanceData.traceContext.spanId,
+        requestId: performanceData.requestContext.requestId,
+        correlationId: performanceData.requestContext.correlationId,
+      });
+    return context; 
+    };
+
+  /**
+   * 
+   * cleanup UnifiedHttpContext after request end and record performance data metrics
+   * 
+   */
+  async finalizeRootSpan(context: UnifiedHttpContext,statusCode?: number): Promise<void> {
+    await finalizeTelemetryForRequest(
+      context,
+      statusCode ?? extractTelemetryStatusCode(context),
+      this.config,
+      this.resourceTracker,
+      this.metricsCollector
+    );
+  };
+
+  /**
+   * 
+   * update Route info in UnifiedHttpContext for Lifecycle that routeInfo is available
+   * like Fastify hooks route path is available at preHandler hook
+   * 
+   */
+  async updateRouteInfo(context: UnifiedHttpContext,method:string,route:string,url:string): Promise<UnifiedHttpContext> {
+    updateRequestContextWithRouteInfo(context,method,route,url)
+    return context;
+  };
+  
 }

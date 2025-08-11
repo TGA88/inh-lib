@@ -120,8 +120,21 @@ export function getPerformanceData(context: UnifiedHttpContext): InternalPerform
 export function updateRequestContextWithResponse(
   context: UnifiedHttpContext,
   statusCode: number
+
 ): void {
   addRegistryItem(context, 'telemetry:statusCode', statusCode);
+}
+
+/**
+ * Update request context with response data
+ */
+export function updateRequestContextWithRouteInfo(
+  context: UnifiedHttpContext,
+  method: string,
+  route: string,
+  url: string
+): void {
+  addRegistryItem(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_ROUTE_INFO, { route, method, url });
 }
 
 /**
@@ -145,5 +158,6 @@ export function cleanupTelemetryData(context: UnifiedHttpContext): void {
   addRegistryItem(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_TRACE_ID, undefined);
   addRegistryItem(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_SPAN_ID, undefined);
   addRegistryItem(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_REQUEST_ID, undefined);
+  addRegistryItem(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_ROUTE_INFO, undefined);
   addRegistryItem(context, 'telemetry:statusCode', undefined);
 }

@@ -10,9 +10,7 @@ import { TELEMETRY_HEADERS } from '../../constants/telemetry-middleware.const';
 /**
  * Extract trace context from HTTP headers supporting W3C and B3 formats
  */
-export function extractTraceContextFromHeaders(context: UnifiedHttpContext): InternalTraceContext {
-  const headers = context.request.headers;
-
+export function extractTraceContextFromRequestHeaders(headers: Record<string, string>): InternalTraceContext {
   // Try W3C format first
   const w3cContext = extractW3CTraceContext(headers);
   if (w3cContext.format !== 'none') {
@@ -25,8 +23,21 @@ export function extractTraceContextFromHeaders(context: UnifiedHttpContext): Int
     return b3Context;
   }
 
-  // Generate new trace context
-  return generateNewTraceContext();
+  return createEmptyTraceContext();
+
+
+}
+/**
+ * Extract trace context from Unified HTTP headers supporting W3C and B3 formats
+ */
+export function extractTraceContextFromHeaders(context: UnifiedHttpContext): InternalTraceContext {
+  const headers = context.request.headers;
+
+ const res= extractTraceContextFromRequestHeaders(headers);
+  if (res.format === 'none') {
+    return generateNewTraceContext();
+  }
+  return res;
 }
 
 /**

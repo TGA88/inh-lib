@@ -4,7 +4,7 @@
  * ✅ Replaces private methods in service classes
  */
 
-import type { UnifiedHttpContext } from '@inh-lib/unified-route';
+import { getRegistryItem, type UnifiedHttpContext } from '@inh-lib/unified-route';
 import { 
   getPerformanceData,
   updateRequestContextWithResponse,
@@ -15,6 +15,7 @@ import { createHttpMetricsLabels } from './service-config.utils';
 import type { 
   InternalTelemetryMiddlewareConfig
 } from '../types/middleware.types';
+import { INTERNAL_REGISTRY_KEYS } from '../constants/telemetry.const';
 
 /**
  * Resource tracker interface (replaces any type)
@@ -69,6 +70,17 @@ export async function finalizeTelemetryForRequest(
   updateRequestContextWithResponse(context, statusCode);
   performanceData.requestContext.statusCode = statusCode;
 
+//   get Route info from context
+  const routeInfo = getRegistryItem<{method: string; route: string; url: string}>(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_ROUTE_INFO);
+
+if (!routeInfo || routeInfo instanceof Error) {
+    performanceData.logger.warn('Route info not found in context registry, using default values');
+} else {
+    performanceData.requestContext.route = routeInfo.route;
+    performanceData.requestContext.method = routeInfo.method;
+    performanceData.requestContext.url = routeInfo.url;
+}
+
   // Calculate final metrics
   const durationSeconds = calculateDurationSeconds(performanceData.startTime);
   let memoryUsageBytes = 0;
@@ -105,7 +117,7 @@ export async function finalizeTelemetryForRequest(
   }
 
   // Log request completion
-  performanceData.logger.info('HTTP request completed', {
+  performanceData.logger.info('Unified Request completed', {
     statusCode,
     durationSeconds: durationSeconds.toFixed(3),
     memoryUsageBytes,

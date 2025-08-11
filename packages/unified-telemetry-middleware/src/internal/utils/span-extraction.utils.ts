@@ -17,6 +17,7 @@ import type {
   SpanExtractionSource
 } from '../types/span-extraction.types';
 import { SPAN_EXTRACTION_DEFAULTS, SPAN_EXTRACTION_ATTRIBUTES } from '../constants/span-extraction.const';
+import {  extractTraceContextFromRequestHeaders } from '../logic/trace-extractor.logic';
 
 /**
  * Try to get active span from provider's tracer
@@ -51,20 +52,12 @@ export function extractSpanFromHeaders(
   }
 
   try {
-    // Try to extract trace context using existing logic
-    // Note: This would need to be adapted based on actual extractor implementation
-    const traceParent = headers['traceparent'];
-    if (!traceParent) {
-      return null;
+    // Extract trace context from headers
+    const traceContext = extractTraceContextFromRequestHeaders(headers);
+    if (traceContext.format === 'none') {
+      return null; // No valid trace context found
     }
-
-    // Parse traceparent header: version-traceId-spanId-flags
-    const parts = traceParent.split('-');
-    if (parts.length !== 4) {
-      return null;
-    }
-
-    const [, traceId, parentSpanId] = parts;
+    const { traceId, spanId } = traceContext;
     
     // Create span with extracted parent context
     const operationName = options?.operationName || SPAN_EXTRACTION_DEFAULTS.PARENT_OPERATION_NAME;
@@ -77,7 +70,7 @@ export function extractSpanFromHeaders(
         'operation.type': options?.operationType || SPAN_EXTRACTION_DEFAULTS.FALLBACK_OPERATION_TYPE,
         'operation.layer': options?.layer || SPAN_EXTRACTION_DEFAULTS.FALLBACK_LAYER,
         'operation.name': operationName,
-        'trace.parent_id': parentSpanId,
+        'trace.parent_id': spanId,
         'trace.id': traceId,
         ...options?.attributes,
         ...config.customAttributes,

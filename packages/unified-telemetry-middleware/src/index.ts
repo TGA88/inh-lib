@@ -27,6 +27,9 @@ export {
   TELEMETRY_SPAN_KINDS,
 } from './constants/telemetry-middleware.const';
 
+
+export * from './types/resource-tracking.types';
+export * from './services/resource-tracking.service';
 // Note: We deliberately do NOT export:
 // - Internal types from ./internal/
 // - Internal utilities 
