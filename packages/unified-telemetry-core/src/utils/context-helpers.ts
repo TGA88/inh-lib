@@ -65,7 +65,13 @@ export function createLayerAttributes(
     case 'http':
       return {
         ...baseAttributes,
-        'component': 'http-server',
+        'component': 'framework-handler',
+        ...additionalAttributes,
+      };
+    case 'api':
+      return {
+        ...baseAttributes,
+        'component': 'unified-handler',
         ...additionalAttributes,
       };
     
@@ -103,12 +109,6 @@ export function createLayerAttributes(
         'component': 'custom',
         ...additionalAttributes,
       };
-    
-    default:
-      return {
-        ...baseAttributes,
-        ...additionalAttributes,
-      };
   }
 }
 
@@ -125,13 +125,30 @@ export function createOperationTypeAttributes(
   };
 
   switch (operationType) {
-    case 'http':
+    case 'endpoint':
       return {
         ...baseAttributes,
-        'protocol': 'http',
         ...additionalAttributes,
       };
-    
+    case 'middleware':
+      return {
+        ...baseAttributes,
+        'component': 'middleware',
+        ...additionalAttributes,
+      };
+    case 'produce':
+      return {
+        ...baseAttributes,
+        'component': 'message-producer',
+        ...additionalAttributes,
+      };
+    case 'consume':
+      return {
+        ...baseAttributes,        
+        'component': 'message-consumer',
+        ...additionalAttributes,
+      };  
+  
     case 'database':
       return {
         ...baseAttributes,
@@ -139,17 +156,10 @@ export function createOperationTypeAttributes(
         ...additionalAttributes,
       };
     
-    case 'business':
+    case 'logic':
       return {
         ...baseAttributes,
-        'component': 'business-logic',
-        ...additionalAttributes,
-      };
-    
-    case 'utility':
-      return {
-        ...baseAttributes,
-        'component': 'utility',
+        'component': 'logic',
         ...additionalAttributes,
       };
     
@@ -166,17 +176,11 @@ export function createOperationTypeAttributes(
         'component': 'authentication',
         ...additionalAttributes,
       };
-    
-    case 'custom':
-      return {
-        ...baseAttributes,
-        'component': 'custom',
-        ...additionalAttributes,
-      };
-    
+
     default:
       return {
         ...baseAttributes,
+        'component': 'custom',
         ...additionalAttributes,
       };
   }

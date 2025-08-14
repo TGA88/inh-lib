@@ -64,6 +64,8 @@ export interface UnifiedTelemetrySpan {
    */
   getSpanId(): string;
 
+  getParentSpanId(): string | undefined;
+
   /**
    * Get the start time of the span
    * This is used to calculate the duration of the span by UnifiedTelemetryLogger for each log entry

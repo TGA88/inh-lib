@@ -19,7 +19,8 @@ export function enrichLogAttributes(
     // Trace context
     traceId: context.span.getTraceId(),
     spanId: context.span.getSpanId(),
-    
+    parentSpanId: context.span.getParentSpanId(),
+
     // Operation context
     layer: context.options.layer,
     operationType: context.options.operationType,

@@ -30,7 +30,7 @@ import type {
   UnifiedRouteHandler 
 } from '@inh-lib/unified-route';
 import { 
-  createFastifyContext 
+  createUnifiedContext 
 } from '@inh-lib/api-util-fastify';
 import { 
   TelemetryMiddlewareService,
@@ -419,7 +419,7 @@ class FastifyTelemetryAdapter {
    */
   convertMiddleware(middleware: UnifiedMiddleware) {
     return async (request: FastifyRequest, reply: FastifyReply) => {
-      const context = createFastifyContext(request, reply);
+      const context = createUnifiedContext(request, reply);
       
       let nextCalled = false;
       const next = async () => {
@@ -441,7 +441,7 @@ class FastifyTelemetryAdapter {
     middlewares: UnifiedMiddleware[] = []
   ) {
     return async (request: FastifyRequest, reply: FastifyReply) => {
-      const context = createFastifyContext<TBody>(request, reply);
+      const context = createUnifiedContext<TBody>(request, reply);
       
       try {
         // Apply middlewares first
@@ -489,7 +489,7 @@ class FastifyTelemetryAdapter {
     }
   ): UnifiedMiddleware {
     return this.telemetryService.createBusinessLogicMiddleware(operationName, {
-      operationType: 'business',
+      operationType: 'logic',
       layer: 'service',
       logStart: options?.logStart,
       logEnd: options?.logEnd,

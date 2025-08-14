@@ -7,6 +7,7 @@ import { getRegistryItem, addRegistryItem } from '@inh-lib/unified-route';
 import type { UnifiedTelemetrySpan, UnifiedTelemetryLogger } from '@inh-lib/unified-telemetry-core';
 import type { InternalHttpRequestContext, InternalPerformanceTrackingData, InternalResourceMeasurement } from '../types/middleware.types';
 import { INTERNAL_REGISTRY_KEYS, INTERNAL_DEFAULTS } from '../constants/telemetry.const';
+import { pushSpanToStack } from './span-context.utils';
 
 /**
  * Extract HTTP request context from unified-route context
@@ -71,6 +72,9 @@ export function storePerformanceData(
   addRegistryItem(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_TRACE_ID, data.traceContext.traceId);
   addRegistryItem(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_SPAN_ID, data.traceContext.spanId);
   addRegistryItem(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_REQUEST_ID, data.requestContext.requestId);
+
+   // Initialize span stack with root span
+        pushSpanToStack(context, data.span, 'http_request');
 }
 
 /**
@@ -120,8 +124,21 @@ export function getPerformanceData(context: UnifiedHttpContext): InternalPerform
 export function updateRequestContextWithResponse(
   context: UnifiedHttpContext,
   statusCode: number
+
 ): void {
   addRegistryItem(context, 'telemetry:statusCode', statusCode);
+}
+
+/**
+ * Update request context with response data
+ */
+export function updateRequestContextWithRouteInfo(
+  context: UnifiedHttpContext,
+  method: string,
+  route: string,
+  url: string
+): void {
+  addRegistryItem(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_ROUTE_INFO, { route, method, url });
 }
 
 /**
@@ -145,5 +162,6 @@ export function cleanupTelemetryData(context: UnifiedHttpContext): void {
   addRegistryItem(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_TRACE_ID, undefined);
   addRegistryItem(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_SPAN_ID, undefined);
   addRegistryItem(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_REQUEST_ID, undefined);
+  addRegistryItem(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_ROUTE_INFO, undefined);
   addRegistryItem(context, 'telemetry:statusCode', undefined);
 }

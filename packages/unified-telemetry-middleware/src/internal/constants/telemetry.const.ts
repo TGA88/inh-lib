@@ -48,6 +48,7 @@ export const INTERNAL_REGISTRY_KEYS = {
   TELEMETRY_TRACE_ID: 'telemetry:traceId',
   TELEMETRY_SPAN_ID: 'telemetry:spanId',
   TELEMETRY_REQUEST_ID: 'telemetry:requestId',
+  TELEMETRY_ROUTE_INFO: 'telemetry:routeInfo',
 } as const;
 
 /**

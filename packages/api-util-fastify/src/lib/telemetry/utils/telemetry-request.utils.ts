@@ -1,23 +1,70 @@
 import { FastifyRequest } from 'fastify';
 import { UnifiedTelemetrySpan } from '@inh-lib/unified-telemetry-core';
 import { RequestTelemetryContext } from '../internal/types/telemetry-plugin.types';
+import { InitializeTelemetryContextResult } from '@inh-lib/unified-telemetry-middleware';
+import { ResourceUsageSnapshot } from '../types/telemetry.types';
+
 
 // Type alias for telemetry span attributes
 type TelemetrySpanAttributes = Record<string, string | number | boolean>;
 type TelemetrySpanValue = string | number | boolean;
 
 // Extended FastifyRequest type with telemetry context
-interface FastifyRequestWithTelemetry extends FastifyRequest {
-  requestContext?: {
-    telemetry?: RequestTelemetryContext;
-  };
-}
+type FastifyRequestWithTelemetry = FastifyRequest & {
+  requestTelemetryContext?: RequestTelemetryContext;
+};
 
 /**
  * Utility class for accessing telemetry data from Fastify request context
  * Use these methods when you need to work with the request span created by TelemetryPluginService hooks
  */
 export class TelemetryRequestUtils {
+
+
+    /**
+     * create telemetry context from requestTelemetryContext and attach it to request
+     * @param request - Fastify request object
+     * @param InitializeTelemetryContextResult - Result of initializing telemetry context
+     * @returns FastifyRequestWithTelemetry 
+     */
+   static createTelemetryContext(
+     request: FastifyRequest,
+     initContext: InitializeTelemetryContextResult
+   ): FastifyRequestWithTelemetry | null {
+     const reqWithTelemetry = request as FastifyRequestWithTelemetry;
+     if (initContext instanceof Error){
+        return null;
+     }
+    
+  
+      const { timestamp, memory, cpu } = initContext.startMemory;
+      const resourceUsageSnapshot: ResourceUsageSnapshot = {
+        memoryUsage: {
+            heapUsed: memory.heapUsed,
+            heapTotal: memory.heapTotal,
+            external: memory.external,
+            rss: memory.rss,
+            arrayBuffers: 0
+        },
+        cpuUsage: {
+         user: cpu.user,
+         system: cpu.system,
+        },
+        timestamp,
+      };
+      reqWithTelemetry.requestTelemetryContext = {
+        span: initContext.span,
+        startTime: initContext.startTime,
+        requestId: initContext.requestContext.requestId as string,
+        logger: initContext.logger,
+        resourceSnapshot: resourceUsageSnapshot
+      };
+      return reqWithTelemetry;
+    }
+  
+        
+   
+    
   /**
    * Get the span created by TelemetryPluginService hooks for current request
    * @param request - Fastify request object
@@ -25,7 +72,7 @@ export class TelemetryRequestUtils {
    */
   static getRequestSpan(request: FastifyRequest): UnifiedTelemetrySpan | null {
     const reqWithTelemetry = request as FastifyRequestWithTelemetry;
-    return reqWithTelemetry.requestContext?.telemetry?.span || null;
+    return reqWithTelemetry.requestTelemetryContext?.span || null;
   }
   
   /**
@@ -76,7 +123,7 @@ export class TelemetryRequestUtils {
    */
   static getRequestId(request: FastifyRequest): string | null {
     const reqWithTelemetry = request as FastifyRequestWithTelemetry;
-    return reqWithTelemetry.requestContext?.telemetry?.requestId || null;
+    return reqWithTelemetry.requestTelemetryContext?.requestId || null;
   }
   
   /**

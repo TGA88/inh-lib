@@ -29,6 +29,7 @@ import {
   generateCorrelationId,
 } from '../utils/context.utils';
 import { startTracking } from '../logic/resource-tracker.logic';
+import { TelemetryAttributes, TelemetryLayerType, TelemetryOperationType } from '../types/telemetry.types';
 
 /**
  * Adapter for extracting and setting up telemetry context
@@ -167,16 +168,18 @@ export function createTelemetryExtractorAdapter(dependencies: InternalTelemetryD
    */
   function createLoggerFromSpan(
     span: UnifiedTelemetrySpan,
-    requestContext: InternalHttpRequestContext
+    requestContext: InternalHttpRequestContext,
+    operationType?: TelemetryOperationType,
+    layer?: TelemetryLayerType
   ): UnifiedTelemetryLogger {
     const operationName = createOperationName(requestContext);
 
     return provider.logger.getLogger({
       span,
       options: {
-        operationType: TELEMETRY_OPERATION_TYPES.HTTP,
+        operationType: operationType || TELEMETRY_OPERATION_TYPES.ENDPOINT,
         operationName,
-        layer: TELEMETRY_LAYERS.HTTP,
+        layer: layer || TELEMETRY_LAYERS.HTTP,
         autoAddSpanEvents: config.spans.enableAutoSpanEvents,
         attributes: config.customAttributes || {},
       },
@@ -252,7 +255,7 @@ export function createSpanAttributes(
  */
 export function createNoOpSpan(): UnifiedTelemetrySpan {
   return {
-    setTag: () => ({ setTag: () => createNoOpSpan(), setStatus: () => createNoOpSpan(), recordException: () => createNoOpSpan(), addEvent: () => createNoOpSpan(), finish: () => { /* no-op */ }, getTraceId: () => '', getSpanId: () => '', getStartTime: () => new Date() }),
+    setTag: () => createNoOpSpan(),
     setStatus: () => createNoOpSpan(),
     recordException: () => createNoOpSpan(),
     addEvent: () => createNoOpSpan(),
@@ -262,6 +265,7 @@ export function createNoOpSpan(): UnifiedTelemetrySpan {
     getTraceId: () => '',
     getSpanId: () => '',
     getStartTime: () => new Date(),
+    getParentSpanId: () => undefined, // No parent span in no-op
   };
 }
 

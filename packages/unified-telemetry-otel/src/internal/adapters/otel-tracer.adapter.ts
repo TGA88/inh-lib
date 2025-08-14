@@ -41,7 +41,7 @@ export class OtelTracerAdapter implements UnifiedTelemetryTracer {
     }, parentContext);
     
 
-    return new OtelSpanAdapter(otelSpan, options?.startTime || new Date());
+    return new OtelSpanAdapter(otelSpan, options?.startTime || new Date(), options?.parent);
   }
 
 getActiveSpan(): UnifiedTelemetrySpan | undefined {
@@ -52,6 +52,8 @@ getActiveSpan(): UnifiedTelemetrySpan | undefined {
     if (!activeSpan?.isRecording()) {
       return undefined;
     }
+
+    
 
     return new OtelSpanAdapter(activeSpan, new Date());
   }

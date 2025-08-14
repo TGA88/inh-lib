@@ -121,7 +121,7 @@ services:
       - "3001:3001"   # Application port
       - "9464:9464"   # Prometheus metrics endpoint
     depends_on:
-      - otel-collector❌ Application failed to start within timeout
+      - otel-collector
       - prometheus
       - loki
     volumes:

@@ -11,6 +11,17 @@ export { TelemetryMiddlewareService } from './services/telemetry-middleware.serv
 // Export configuration interface
 export type { TelemetryMiddlewareConfig } from './services/telemetry-middleware.service';
 
+export * from './services/processor.service';
+
+// Export public types
+export type {
+  TelemetryOperationType,
+  TelemetryLayerType,
+  TelemetryAttributeValue,
+  TelemetryAttributes,
+  InitializeTelemetryContextResult
+} from './types/telemetry.types';
+
 // Export public constants
 export { 
   TELEMETRY_HEADERS,
@@ -19,6 +30,9 @@ export {
   TELEMETRY_SPAN_KINDS,
 } from './constants/telemetry-middleware.const';
 
+
+export * from './types/resource-tracking.types';
+export * from './services/resource-tracking.service';
 // Note: We deliberately do NOT export:
 // - Internal types from ./internal/
 // - Internal utilities 

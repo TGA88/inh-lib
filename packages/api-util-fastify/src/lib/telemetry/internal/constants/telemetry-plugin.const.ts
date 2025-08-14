@@ -1,7 +1,7 @@
 export const INTERNAL_TELEMETRY_CONSTANTS = {
   PLUGIN_NAME: 'fastify-unified-telemetry',
   SPAN_NAME_PREFIX: 'fastify.request',
-  DEFAULT_OPERATION_TYPE: 'http',
+  DEFAULT_OPERATION_TYPE: 'custom',
   DEFAULT_LAYER: 'http',
   SYSTEM_METRICS_INTERVAL: 5000,
   MEMORY_THRESHOLD_MB: 50,

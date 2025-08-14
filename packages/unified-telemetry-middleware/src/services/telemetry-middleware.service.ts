@@ -27,22 +27,38 @@ import type {
   TelemetryAttributes
 } from '../internal/types/telemetry.types';
 import { createTelemetryExtractorAdapter } from '../internal/adapters/telemetry-extractor.adapter';
-import { createMetricsCollector, createHttpMetricsLabels, createSystemMetricsLabels } from '../internal/logic/metrics-collector.logic';
+import { createMetricsCollector } from '../internal/logic/metrics-collector.logic';
 import { createResourceTracker, createSystemMetricsMonitor } from '../internal/logic/resource-tracker.logic';
 import { 
   storePerformanceData,
   getPerformanceData,
-  updateRequestContextWithResponse,
-  getStatusCodeFromContext,
-  cleanupTelemetryData,
+  updateRequestContextWithRouteInfo,
 } from '../internal/utils/context.utils';
-import { calculateDurationSeconds } from '../internal/utils/performance.utils';
+
 import { 
   pushSpanToStack, 
   popSpanFromStack, 
-  getCurrentSpan,
-  getCurrentSpanLevel 
+  getCurrentSpan as getCurrentSpanFromContext,
+  getCurrentSpanLevel,
 } from '../internal/utils/span-context.utils';
+import { 
+  executeSpanExtractionStrategy,
+  createChildSpanWithoutContext
+} from '../internal/logic/span-extraction.logic';
+import {
+  createInternalTelemetryConfig,
+  extractTelemetryStatusCode,
+  createHttpMetricsLabels,
+  getOperationMetadataFromSpan
+} from '../internal/utils/service-config.utils';
+import {
+  finalizeTelemetryForRequest,
+  startSystemMetricsMonitoring
+} from '../internal/utils/telemetry-finalization.utils';
+import type { GetActiveSpanOptions } from '../internal/types/span-extraction.types';
+import { INTERNAL_REGISTRY_KEYS } from '../internal/constants/telemetry.const';
+import { InitializeTelemetryContextResult } from '../types/telemetry.types';
+import { TELEMETRY_LAYERS, TELEMETRY_OPERATION_TYPES } from '../constants/telemetry-middleware.const';
 
 /**
  * Configuration for telemetry middleware
@@ -74,6 +90,7 @@ export interface TelemetryMiddlewareConfig {
 
 /**
  * Main service class for creating telemetry middleware
+ * it must be singleton and initialized once per application
  */
 export class TelemetryMiddlewareService {
   private readonly config: InternalTelemetryMiddlewareConfig;
@@ -87,7 +104,7 @@ export class TelemetryMiddlewareService {
     provider: UnifiedTelemetryProvider,
     config: TelemetryMiddlewareConfig
   ) {
-    this.config = this.createInternalConfig(config);
+    this.config = createInternalTelemetryConfig(config);
     this.dependencies = {
       provider,
       config: this.config,
@@ -99,21 +116,31 @@ export class TelemetryMiddlewareService {
     this.systemMetricsMonitor = createSystemMetricsMonitor(config.systemMetricsInterval);
 
     if (this.config.enableSystemMetrics) {
-      this.startSystemMetricsMonitoring(config.serviceName);
+      // Initialize system metrics monitoring
+        startSystemMetricsMonitoring(
+          this.config,
+          config.serviceName,
+          this.systemMetricsMonitor,
+          this.metricsCollector
+        );
     }
   }
 
   /**
-   * Create telemetry middleware for unified-route
+   * Deprecated Create telemetry middleware for unified-route.
+   * So InitializeContext and FinalizeContext methods instead
    */
   createMiddleware(): UnifiedMiddleware {
     return async (context: UnifiedHttpContext, next: () => Promise<void>) => {
+
+ 
+
       // Setup telemetry at request start
       const performanceData = this.extractor.extractAndSetupTelemetry(context);
       storePerformanceData(context, performanceData);
 
       // Log request start
-      performanceData.logger.info('HTTP request started', {
+      performanceData.logger.info('BUSINESS_LOGIC is started', {
         method: performanceData.requestContext.method,
         route: performanceData.requestContext.route,
         url: performanceData.requestContext.url,
@@ -127,12 +154,21 @@ export class TelemetryMiddlewareService {
       let error: Error | null = null;
 
       try {
-        // Execute next middleware/handler
+        // Execute middleware chain
         await next();
-        
-        // Extract status code from context (with fallback to 200)
-        statusCode = this.extractStatusCodeFromContext(context);
-        
+
+        // Extract final status code
+        statusCode = extractTelemetryStatusCode(context);
+
+        // Finalize telemetry data
+        await finalizeTelemetryForRequest(
+          context,
+          statusCode,
+          this.config,
+          this.resourceTracker,
+          this.metricsCollector,
+          "BUSINESS_LOGIC_CONTEXT"
+        );
       } catch (err) {
         error = err instanceof Error ? err : new Error(String(err));
         statusCode = 500;
@@ -143,8 +179,8 @@ export class TelemetryMiddlewareService {
           code: 'error', 
           message: error.message 
         });
-        
-        performanceData.logger.error('Request failed with exception', error, {
+
+        performanceData.logger.error('BUSINESS_LOGIC failed with exception', error, {
           errorType: error.constructor.name,
           errorMessage: error.message,
         });
@@ -152,7 +188,14 @@ export class TelemetryMiddlewareService {
         throw error;
       } finally {
         // Finalize telemetry at request end
-        await this.finalizeTelemetry(context, statusCode);
+        await finalizeTelemetryForRequest(
+          context,
+          statusCode,
+          this.config,
+          this.resourceTracker,
+          this.metricsCollector,
+          "BUSINESS_LOGIC_CONTEXT"
+        );
       }
     };
   }
@@ -165,7 +208,12 @@ export class TelemetryMiddlewareService {
     stop: () => void;
   } {
     return {
-      start: () => this.startSystemMetricsMonitoring(serviceName),
+      start: () => startSystemMetricsMonitoring(
+        this.config,
+        serviceName,
+        this.systemMetricsMonitor,
+        this.metricsCollector
+      ),
       stop: () => this.systemMetricsMonitor.stop(),
     };
   }
@@ -215,122 +263,8 @@ export class TelemetryMiddlewareService {
     await this.dependencies.provider.shutdown();
   }
 
-  // Private methods implemented as utility functions
-
-  private createInternalConfig(config: TelemetryMiddlewareConfig): InternalTelemetryMiddlewareConfig {
-    return {
-      metrics: {
-        enableRequestCounter: config.enableMetrics ?? true,
-        enableDurationHistogram: config.enableMetrics ?? true,
-        enableMemoryHistogram: config.enableResourceTracking ?? true,
-        enableCpuHistogram: config.enableResourceTracking ?? true,
-        enableSystemMetrics: config.enableSystemMetrics ?? true,
-      },
-      spans: {
-        enableTracing: config.enableTracing ?? true,
-        enableAutoSpanEvents: true,
-        spanNamePrefix: 'http',
-        operationNamePrefix: 'http_request',
-      },
-      enableResourceTracking: config.enableResourceTracking ?? true,
-      enableTraceExtraction: config.enableTraceExtraction ?? true,
-      enableCorrelationId: config.enableCorrelationId ?? true,
-      enableSystemMetrics: config.enableSystemMetrics ?? true,
-      enableRegistryCleanup: config.enableRegistryCleanup ?? true,
-      customAttributes: config.customAttributes,
-    };
-  }
-
-  private extractStatusCodeFromContext(context: UnifiedHttpContext): number {
-    // Try to get status code from response context
-    // This is a simplified implementation - in production you might need
-    // to integrate more deeply with your HTTP framework
-    return getStatusCodeFromContext(context) || 200;
-  }
-
-  private async finalizeTelemetry(context: UnifiedHttpContext, statusCode: number): Promise<void> {
-    const performanceData = getPerformanceData(context);
-    if (performanceData instanceof Error) {
-      return;
-    }
-
-    // Update request context with final status
-    updateRequestContextWithResponse(context, statusCode);
-    performanceData.requestContext.statusCode = statusCode;
-
-    // Calculate final metrics
-    const durationSeconds = calculateDurationSeconds(performanceData.startTime);
-    let memoryUsageBytes = 0;
-    let cpuTimeSeconds = 0;
-
-    if (this.config.enableResourceTracking) {
-      const resourceResult = this.resourceTracker.stopTracking(performanceData.startMemory);
-      memoryUsageBytes = resourceResult.memoryUsageBytes;
-      cpuTimeSeconds = resourceResult.cpuTimeSeconds;
-
-      // Add resource metrics to span
-      performanceData.span.setTag('request.duration_ms', resourceResult.durationMs);
-      performanceData.span.setTag('request.memory_usage_bytes', memoryUsageBytes);
-      performanceData.span.setTag('request.cpu_time_ms', cpuTimeSeconds * 1000);
-    }
-
-    // Set final span attributes
-    performanceData.span.setTag('http.status_code', statusCode);
-    performanceData.span.setTag('request.duration_seconds', durationSeconds);
-
-    // Record metrics
-    const labels = createHttpMetricsLabels(
-      performanceData.requestContext.method,
-      performanceData.requestContext.route,
-      statusCode
-    );
-
-    this.metricsCollector.recordHttpRequest(labels);
-    this.metricsCollector.recordHttpDuration(durationSeconds, labels);
-
-    if (this.config.enableResourceTracking) {
-      this.metricsCollector.recordHttpMemoryUsage(memoryUsageBytes, labels);
-      this.metricsCollector.recordHttpCpuUsage(cpuTimeSeconds, labels);
-    }
-
-    // Log request completion
-    performanceData.logger.info('HTTP request completed', {
-      statusCode,
-      durationSeconds: durationSeconds.toFixed(3),
-      memoryUsageBytes,
-      cpuTimeMs: (cpuTimeSeconds * 1000).toFixed(2),
-    });
-
-    // Finish span and cleanup
-    performanceData.logger.finishSpan();
-    if (this.config.enableRegistryCleanup) {
-      cleanupTelemetryData(context);
-    }
-  }
-
-  private startSystemMetricsMonitoring(serviceName: string): void {
-    if (!this.config.enableSystemMetrics) return;
-
-    this.systemMetricsMonitor.start();
-
-    // Update system metrics periodically
-    const updateSystemMetrics = () => {
-      const systemMetrics = this.systemMetricsMonitor.getCurrentMetrics();
-      const labels = createSystemMetricsLabels(serviceName);
-      
-      this.metricsCollector.recordSystemMetrics(
-        systemMetrics.memoryUsagePercent,
-        systemMetrics.cpuUsagePercent,
-        labels
-      );
-    };
-
-    // Initial update
-    updateSystemMetrics();
-  }
-
   /**
-   * Create child span for business logic steps
+   * Create child span from paraent if no parent then fall back parent as root span  but no change active span in context
    */
   createChildSpan(
     context: UnifiedHttpContext,
@@ -346,10 +280,82 @@ export class TelemetryMiddlewareService {
     finish: () => void 
   } {
     // Get current active span (could be root or another child span)
-    let parentSpan = getCurrentSpan(context);
+    let parentSpan = getCurrentSpanFromContext(context);
     
     // If no current span, get root span from performance data
     if (!parentSpan) {
+      console.log('No current span found, extracting from performance data');
+      const performanceData = getPerformanceData(context);
+      if (performanceData instanceof Error) {
+        throw new Error('No telemetry data found in context. Ensure telemetry middleware is applied first.');
+      }
+      parentSpan = performanceData.span;
+    }
+
+    // Create child span from current active span
+    const opType = options?.operationType || 'custom';
+    const layerType = options?.layer || 'custom';
+
+    const childSpan = this.dependencies.provider.tracer.startSpan(operationName, {
+      parent: parentSpan,
+      kind: 'internal',
+      attributes: {
+        'operation.type': opType,
+        'operation.layer': layerType,
+        'operation.name': operationName,
+        'span.level': getCurrentSpanLevel(context), // Track nesting level
+        // Store metadata for logger creation
+        'telemetry.operationType': opType,
+        'telemetry.layer': layerType,
+        ...options?.attributes,
+        ...this.config.customAttributes,
+      }
+    });
+
+
+
+    // Create logger for the new child span (always fresh logger for current span)
+    const childLogger = this.dependencies.provider.logger.getLogger({
+      span: childSpan,
+      options: {
+        operationType: opType,
+        operationName: operationName,
+        layer: layerType,
+        autoAddSpanEvents: true,
+      }
+    });
+
+    return {
+      span: childSpan,
+      logger: childLogger,
+      finish: () => {
+        // Finish the span and remove from stack
+        childLogger.finishSpan();
+      }
+    };
+  }
+  /**
+   * Create child span (it will be root span when no parent) and set active span in unified context
+   */
+  createActiveSpan(
+    context: UnifiedHttpContext,
+    operationName: string,
+    options?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      attributes?: TelemetryAttributes;
+    }
+  ): { 
+    span: UnifiedTelemetrySpan; 
+    logger: UnifiedTelemetryLogger; 
+    finish: () => void 
+  } {
+    // Get current active span (could be root or another child span)
+    let parentSpan = getCurrentSpanFromContext(context);
+    
+    // If no current span, get root span from performance data
+    if (!parentSpan) {
+      console.log('No current span found, extracting from performance data');
       const performanceData = getPerformanceData(context);
       if (performanceData instanceof Error) {
         throw new Error('No telemetry data found in context. Ensure telemetry middleware is applied first.');
@@ -360,9 +366,9 @@ export class TelemetryMiddlewareService {
     }
 
     // Create child span from current active span
-    const opType = options?.operationType || 'business';
-    const layerType = options?.layer || 'service';
-    
+    const opType = options?.operationType || TELEMETRY_OPERATION_TYPES.CUSTOM;
+    const layerType = options?.layer || TELEMETRY_LAYERS.CUSTOM;
+
     const childSpan = this.dependencies.provider.tracer.startSpan(operationName, {
       parent: parentSpan,
       kind: 'internal',
@@ -404,23 +410,23 @@ export class TelemetryMiddlewareService {
     };
   }
 
-  /**
-   * Create business logic middleware for specific operations
+   /**
+   * Create operation layer middleware for specific operations
    */
-  createBusinessLogicMiddleware(
+  createOperationLayerProcess(
     operationName: string,
-    options?: {
-      operationType?: TelemetryOperationType;
-      layer?: TelemetryLayerType;
+    options: {
+      operationType: TelemetryOperationType;
+      layer: TelemetryLayerType;
       logStart?: boolean;
       logEnd?: boolean;
       attributes?: TelemetryAttributes;
     }
   ): UnifiedMiddleware {
     return async (context: UnifiedHttpContext, next: () => Promise<void>) => {
-      const { span, logger, finish } = this.createChildSpan(context, operationName, {
-        operationType: options?.operationType || 'business',
-        layer: options?.layer || 'service',
+      const { span, logger, finish } = this.createActiveSpan(context, operationName, {
+        operationType: options?.operationType || TELEMETRY_OPERATION_TYPES.CUSTOM,
+        layer: options?.layer || TELEMETRY_LAYERS.CUSTOM,
         attributes: options?.attributes,
       });
 
@@ -475,6 +481,126 @@ export class TelemetryMiddlewareService {
     };
   }
 
+
+    /**
+   * Create operation type middleware for specific operations
+   */
+  createOperationTypeStep(
+    operationName: string,
+    options: {
+      operationType: TelemetryOperationType;
+      layer: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }
+  ): UnifiedMiddleware {
+    return async (context: UnifiedHttpContext, next: () => Promise<void>) => {
+      const { span, logger, finish } = this.createChildSpan(context, operationName, {
+        operationType: options?.operationType || TELEMETRY_OPERATION_TYPES.MIDDLEWARE,
+        layer: options?.layer || TELEMETRY_LAYERS.SERVICE,
+        attributes: options?.attributes,
+      });
+
+      const startTime = process.hrtime.bigint();
+
+      // Log operation start
+      if (options?.logStart !== false) {
+        logger.info(`${operationName} started`, {
+          operationName,
+          operationType: options?.operationType || 'business',
+          layer: options?.layer || 'service',
+        });
+      }
+
+      try {
+        // Execute next middleware/handler
+        await next();
+
+        // Set success status
+        span.setStatus({ code: 'ok' });
+
+        // Log operation success
+        if (options?.logEnd !== false) {
+          const durationMs = Number(process.hrtime.bigint() - startTime) / 1000000;
+          logger.info(`${operationName} completed successfully`, {
+            durationMs: durationMs.toFixed(2),
+          });
+        }
+
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        
+        // Record exception and set error status
+        span.recordException(err);
+        span.setStatus({ 
+          code: 'error', 
+          message: err.message 
+        });
+
+        // Log error
+        logger.error(`${operationName} failed`, err, {
+          errorType: err.constructor.name,
+          errorMessage: err.message,
+          operationName,
+        });
+
+        throw error;
+      } finally {
+        // Always finish the span
+        finish();
+      }
+    };
+  }
+
+
+  /**
+   * Deprecated . to keep for backward compatibility
+   * Create API middleware for specific operations
+   */
+  createBusinessLogicMiddleware(
+    operationName: string,
+    options?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }
+  ): UnifiedMiddleware {
+    const step = this.createApiMiddlewareStep(operationName, {
+      operationType: options?.operationType || TELEMETRY_OPERATION_TYPES.MIDDLEWARE,
+      layer: options?.layer || TELEMETRY_LAYERS.API,
+      logStart: options?.logStart !== false,
+      logEnd: options?.logEnd !== false,
+      attributes: options?.attributes,
+    });
+    return step;
+  }
+  
+  /**
+   * Create API middleware for specific operations
+   */
+  createApiMiddlewareStep(
+    operationName: string,
+    options?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }
+  ): UnifiedMiddleware {
+    const step = this.createOperationTypeStep(operationName, {
+      operationType: options?.operationType || TELEMETRY_OPERATION_TYPES.MIDDLEWARE,
+      layer: options?.layer || TELEMETRY_LAYERS.API,
+      logStart: options?.logStart !== false,
+      logEnd: options?.logEnd !== false,
+      attributes: options?.attributes,
+    });
+    return step;
+  }
+
   /**
    * Create validation middleware with specific validation context
    */
@@ -486,8 +612,8 @@ export class TelemetryMiddlewareService {
       attributes?: TelemetryAttributes;
     }
   ): UnifiedMiddleware {
-    return this.createBusinessLogicMiddleware(`validation:${validationName}`, {
-      operationType: 'utility',
+    return this.createOperationTypeStep(`validation:${validationName}`, {
+      operationType: TELEMETRY_OPERATION_TYPES.LOGIC,
       layer: options?.layer || 'service',
       logStart: options?.logValidationDetails !== false,
       logEnd: options?.logValidationDetails !== false,
@@ -499,10 +625,17 @@ export class TelemetryMiddlewareService {
     });
   }
 
+
+ 
+
   /**
    * Get current span from context (for manual span operations)
    */
   getCurrentSpan(context: UnifiedHttpContext): UnifiedTelemetrySpan | null {
+    const res = getCurrentSpanFromContext(context);
+    if (res) {
+      return res;
+    }
     const performanceData = getPerformanceData(context);
     if (performanceData instanceof Error) {
       return null;
@@ -514,7 +647,7 @@ export class TelemetryMiddlewareService {
    * Get current logger from context (creates new logger for current span)
    */
   getCurrentLogger(context: UnifiedHttpContext): UnifiedTelemetryLogger | null {
-    const currentSpan = getCurrentSpan(context);
+    const currentSpan = getCurrentSpanFromContext(context);
     if (!currentSpan) {
       // Fallback to root logger if no current span
       const performanceData = getPerformanceData(context);
@@ -525,7 +658,7 @@ export class TelemetryMiddlewareService {
     }
     
     // Get operation metadata from current span
-    const metadata = this.getOperationMetadataFromSpan(currentSpan);
+    const metadata = getOperationMetadataFromSpan();
     
     // Create fresh logger for current span
     return this.dependencies.provider.logger.getLogger({
@@ -540,19 +673,130 @@ export class TelemetryMiddlewareService {
   }
 
   /**
-   * Get operation metadata from span attributes
+   * Get active span without requiring UnifiedHttpContext
+   * Useful for framework-specific hooks and standalone operations
+   * 
+   * Strategy: Active Span → Extract from Headers → Create Fallback
    */
-  private getOperationMetadataFromSpan(_span: UnifiedTelemetrySpan): {
-    operationType: TelemetryOperationType;
-    layer: TelemetryLayerType;
-    operationName: string;
-  } {
-    // In a real implementation, you'd extract these from span attributes
-    // For now, return defaults (could be enhanced based on span implementation)
-    return {
-      operationType: 'business',
-      layer: 'service', 
-      operationName: 'operation'
-    };
+
+  /**
+   * Get active span without requiring UnifiedHttpContext
+   * Useful for framework-specific hooks and standalone operations
+   * 
+   * Strategy: Active Span → Extract from Headers → Create Fallback
+   */
+  getActiveSpanWithoutUnifiedContext(
+    headers?: Record<string, string>,
+    fallbackOptions?: GetActiveSpanOptions
+  ): UnifiedTelemetrySpan | null {
+    
+    const extractionResult = executeSpanExtractionStrategy(
+      headers,
+      this.dependencies.provider,
+      this.config,
+      fallbackOptions
+    );
+
+    return extractionResult ? extractionResult.span : null;
   }
+
+  /**
+   * Create child span without requiring UnifiedHttpContext
+   * Useful for framework-specific hooks where UnifiedHttpContext is not available
+   */
+  createChildSpanWithoutUnifiedContext(
+    parentSpanOrHeaders: UnifiedTelemetrySpan | { headers: Record<string, string> },
+    operationName: string,
+    options?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      attributes?: TelemetryAttributes;
+    }
+  ): { 
+    span: UnifiedTelemetrySpan; 
+    logger: UnifiedTelemetryLogger; 
+    finish: () => void 
+  } {
+    
+    return createChildSpanWithoutContext(
+      parentSpanOrHeaders,
+      operationName,
+      this.dependencies.provider,
+      this.config,
+      options
+    );
+  }
+
+
+
+  /**
+   * create TraceContext and Usage Request snapshot and keep it's in UnifiedHttpContext
+   * Extract TraceContext format W3C and then B3 then if not found create new span W3C format and store it in UnifiedHttpContext
+   * 
+   */
+  initializeContext(context: UnifiedHttpContext) : UnifiedHttpContext {
+    // Setup telemetry at request start
+    const performanceData = this.extractor.extractAndSetupTelemetry(context);
+    storePerformanceData(context, performanceData);
+
+      // Log request start
+      performanceData.logger.info('API_LOGIC is started', {
+        method: performanceData.requestContext.method,
+        route: performanceData.requestContext.route,
+        url: performanceData.requestContext.url,
+        traceId: performanceData.traceContext.traceId,
+        spanId: performanceData.traceContext.spanId,
+        requestId: performanceData.requestContext.requestId,
+        correlationId: performanceData.requestContext.correlationId,
+      });
+    return context; 
+    };
+
+    /**
+     * Static helper to initialize telemetry context outside of instance
+     */
+     getInitializeContext(
+      context: UnifiedHttpContext
+    ): InitializeTelemetryContextResult {
+
+      const performanceData = getPerformanceData(context);
+
+      if (performanceData instanceof Error) {
+        throw new Error('No telemetry data found in context. Ensure telemetry middleware is applied first.');
+      }
+
+      return performanceData;
+    }
+
+  /**
+   * 
+   * cleanup UnifiedHttpContext after request end and record performance data metrics
+   * 
+   */
+  async finalizeContext(context: UnifiedHttpContext,statusCode?: number): Promise<void> {
+
+
+    await finalizeTelemetryForRequest(
+      context,
+      statusCode ?? extractTelemetryStatusCode(context),
+      this.config,
+      this.resourceTracker,
+      this.metricsCollector,
+      "API_CONTEXT"
+    );
+  };
+
+  /**
+   * 
+   * update Route info in UnifiedHttpContext for Lifecycle that routeInfo is available
+   * like Fastify hooks route path is available at preHandler hook
+   * 
+   */
+  async updateRouteInfo(context: UnifiedHttpContext,method:string,route:string,url:string): Promise<UnifiedHttpContext> {
+    updateRequestContextWithRouteInfo(context,method,route,url)
+    return context;
+  };
+  
+
+  //
 }

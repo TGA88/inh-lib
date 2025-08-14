@@ -95,6 +95,9 @@ class NoOpSpan implements UnifiedTelemetrySpan {
   getSpanId(): string {
     return 'noop-span-id';
   }
+  getParentSpanId(): string {
+    return 'noop-parent-span-id';
+  }
 }
 
 /**

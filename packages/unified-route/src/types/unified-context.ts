@@ -6,7 +6,8 @@ export interface UnifiedRequestContext {
   query: Record<string, string | string[]>;
   headers: Record<string, string>;
   method: string;
-  url: string;
+  url: string; // actual URL requested
+  route: string; // route path, e.g. "/api/users/:id"
   ip: string;
   userAgent?: string;
 }
