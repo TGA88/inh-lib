@@ -860,7 +860,7 @@ const typedUser = context.getRegistryItem('user') as User;
 
 For detailed examples, patterns, and best practices for all three methods, see:
 
-**[→ Context in Middleware - Complete Guide](./CONTEXT-IN-MIDDLEWARE.Readme.md)**
+**[→ Context in Middleware - Complete Guide](https://github.com/TGA88/inh-lib/blob/main/packages/api-util-fastify/CONTEXT-IN-MIDDLEWARE.Readme.md)**
 
 ```typescript
 // Custom middleware using unified context
