@@ -2,6 +2,8 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.2.2](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.2.1...api-util-fastify-1.2.2) (2025-08-14)
+
 ## [1.2.1](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.2.0...api-util-fastify-1.2.1) (2025-08-14)
 
 ## [1.2.0](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.1.0...api-util-fastify-1.2.0) (2025-08-14)
