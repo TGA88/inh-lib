@@ -22,7 +22,7 @@ scrape_configs:
   # Application server metrics (direct scraping)
   - job_name: 'fastify-telemetry-app'
     static_configs:
-      - targets: ['app-server:9464']
+      - targets: ['app-unified:9464']
     scrape_interval: 10s
     metrics_path: /metrics
     scrape_timeout: 5s
@@ -33,7 +33,7 @@ scrape_configs:
   # Node.js application metrics (if using prom-client)
   - job_name: 'nodejs-app-metrics'
     static_configs:
-      - targets: ['app-server:3001']
+      - targets: ['app-unified:3001']
     scrape_interval: 15s
     metrics_path: /metrics
     scrape_timeout: 10s

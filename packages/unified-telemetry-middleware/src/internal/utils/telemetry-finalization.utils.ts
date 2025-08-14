@@ -59,7 +59,8 @@ export async function finalizeTelemetryForRequest(
   statusCode: number,
   config: InternalTelemetryMiddlewareConfig,
   resourceTracker: InternalResourceTracker,
-  metricsCollector: InternalMetricsCollector
+  metricsCollector: InternalMetricsCollector,
+  contextScope: "API_CONTEXT" | "BUSINESS_LOGIC_CONTEXT"
 ): Promise<void> {
   const performanceData = getPerformanceData(context);
   if (performanceData instanceof Error) {
@@ -108,21 +109,33 @@ if (!routeInfo || routeInfo instanceof Error) {
     statusCode
   );
 
-  metricsCollector.recordHttpRequest(labels);
-  metricsCollector.recordHttpDuration(durationSeconds, labels);
-
-  if (config.enableResourceTracking) {
-    metricsCollector.recordHttpMemoryUsage(memoryUsageBytes, labels);
-    metricsCollector.recordHttpCpuUsage(cpuTimeSeconds, labels);
-  }
-
-  // Log request completion
-  performanceData.logger.info('Unified Request completed', {
+  if (contextScope === "API_CONTEXT") {
+    metricsCollector.recordHttpRequest(labels);
+    metricsCollector.recordHttpDuration(durationSeconds, labels);
+    if (config.enableResourceTracking) {
+      metricsCollector.recordHttpMemoryUsage(memoryUsageBytes, labels);
+      metricsCollector.recordHttpCpuUsage(cpuTimeSeconds, labels);
+    }
+      // Log request completion
+  performanceData.logger.info('API_LOGIC is completed', {
     statusCode,
     durationSeconds: durationSeconds.toFixed(3),
     memoryUsageBytes,
     cpuTimeMs: (cpuTimeSeconds * 1000).toFixed(2),
   });
+  }
+  else {
+    // Log business logic completion
+    performanceData.logger.info('BUSINESS_LOGIC is completed', {
+      statusCode,
+      durationSeconds: durationSeconds.toFixed(3),
+      memoryUsageBytes,
+      cpuTimeMs: (cpuTimeSeconds * 1000).toFixed(2),
+    });
+  }
+
+
+
 
   // Finish span and cleanup
   performanceData.logger.finishSpan();

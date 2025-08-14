@@ -21,6 +21,7 @@ export function createMockContext(overrides: Partial<UnifiedHttpContext> = {}): 
       headers: {},
       method: 'GET',
       url: '/test',
+      route: '/test', // Default route
       ip: '127.0.0.1',
       userAgent: 'test-agent',
       ...overrides.request,
@@ -51,6 +52,7 @@ export function createMockContextWithRequest(
     headers: {},
     method: 'GET',
     url: '/test',
+    route: '/test', // Default route
     ip: '127.0.0.1',
     userAgent: 'test-agent',
   };

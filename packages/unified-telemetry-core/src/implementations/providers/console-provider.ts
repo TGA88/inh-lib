@@ -78,6 +78,7 @@ class ConsoleTracer implements UnifiedTelemetryTracer {
 class ConsoleSpan implements UnifiedTelemetrySpan {
   private readonly spanId: string;
   private readonly traceId: string;
+  private readonly parentSpan? : UnifiedTelemetrySpan
   public readonly startTime: Date;  // Changed from private to public
   private finished = false;
 
@@ -87,6 +88,7 @@ class ConsoleSpan implements UnifiedTelemetrySpan {
   ) {
     this.spanId = generateSpanId();
     this.traceId = generateTraceId();
+    this.parentSpan = options?.parent;
     this.startTime = new Date();
     
     console.debug(`[SPAN-START] ${name} (${this.spanId})`, {
@@ -148,6 +150,10 @@ class ConsoleSpan implements UnifiedTelemetrySpan {
 
   getSpanId(): string {
     return this.spanId;
+  }
+  
+  getParentSpanId(): string | undefined {
+    return this.parentSpan?.getSpanId();
   }
 }
 

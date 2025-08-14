@@ -15,7 +15,9 @@ import { DEFAULT_TELEMETRY_PLUGIN_OPTIONS } from '../constants/telemetry.const';
 
 import { INTERNAL_TELEMETRY_CONSTANTS } from '../internal/constants/telemetry-plugin.const';
 import { shouldSkipTelemetry } from '../internal/utils/telemetry-plugin.utils';
-import { executeGetOrCreateSpan } from '../internal/utils/decorator.utils';
+import { TelemetryRequestUtils } from '../utils/telemetry-request.utils';
+import { RequestTelemetryContext } from '../internal/types/telemetry-plugin.types';
+// 
 
 // Type alias for telemetry span attributes (using middleware types)
 type TelemetrySpanAttributes = Record<string, string | number | boolean>;
@@ -23,7 +25,7 @@ type TelemetryOperationType = (typeof TELEMETRY_OPERATION_TYPES)[keyof typeof TE
 type TelemetryLayer = (typeof TELEMETRY_LAYERS)[keyof typeof TELEMETRY_LAYERS];
 
 // Simplified telemetry decorator interface with only essential methods
-interface TelemetryDecorator {
+export interface TelemetryDecorator {
   /** Direct access to telemetry provider */
   provider: UnifiedTelemetryProvider;
 
@@ -62,9 +64,10 @@ declare module 'fastify' {
     // startRequestMeasurement?: UnifiedResourceMeasurement;
     unifiedAppContext?: UnifiedHttpContext;
     businessLogicContext?: UnifiedHttpContext;
+    requestTelemetryContext?: RequestTelemetryContext;
   }
 }
-
+  
 export class TelemetryPluginService {
   static createPlugin(options: TelemetryPluginOptions): FastifyPluginAsync {
     const pluginOptions: TelemetryDecoratorOptions = {
@@ -113,7 +116,7 @@ export class TelemetryPluginService {
         //   return executeGetOrCreateSpan(middlewareService, headers, options);
         // },
       });
-
+     
       // System metrics are now handled by TelemetryMiddlewareService
       // No need for separate collection logic
 
@@ -150,13 +153,18 @@ export class TelemetryPluginService {
       request.unifiedAppContext = createUnifiedContext(request, reply);
 
       // Initialize root span in UnifiedHttpContext
-      middlewareService.createRootSpan(request.unifiedAppContext);
+      middlewareService.initializeContext(request.unifiedAppContext);
+      const initContext = middlewareService.getInitializeContext(request.unifiedAppContext);
 
+      const res = TelemetryRequestUtils.createTelemetryContext(request, initContext);
+      if (res) {
+        request.requestTelemetryContext = res.requestTelemetryContext;
+      }
     });
     // preHandler hook - start to update route info in UnifiedHttpContext
     fastify.addHook('preHandler', async (request: FastifyRequest) => {
       if (request.unifiedAppContext) {
-        const routeInfo = { method: request.method, route: request.routerPath, url: request.url };
+        const routeInfo = { method: request.method, route: request.routeOptions.url as string, url: request.url };
         middlewareService.updateRouteInfo(request.unifiedAppContext, routeInfo.method, routeInfo.route, routeInfo.url);
       }
 
@@ -167,7 +175,7 @@ export class TelemetryPluginService {
 
       if(request.unifiedAppContext) {
         // Finalize telemetry for the request
-        await middlewareService.finalizeRootSpan(request.unifiedAppContext, reply.statusCode);
+        await middlewareService.finalizeContext(request.unifiedAppContext, reply.statusCode);
       }
       // const startMeasurement = request.startRequestMeasurement
       // if (!startMeasurement) {
@@ -190,7 +198,7 @@ export class TelemetryPluginService {
       // Error will propagate through middleware's try-catch
        if(request.unifiedAppContext) {
         // Finalize telemetry for the request
-        await middlewareService.finalizeRootSpan(request.unifiedAppContext, reply.statusCode);
+        await middlewareService.finalizeContext(request.unifiedAppContext, reply.statusCode);
       }
     });
   }

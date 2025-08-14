@@ -4,7 +4,7 @@
     "module": "commonjs",
     "lib": ["ES2020"],
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "../",
     "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -15,18 +15,18 @@
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "baseUrl": ".",
-    "paths": {
-      "@inh-lib/common": ["dist/packages/common/src"],
-      "@inh-lib/inh-logger": ["dist/packages/inh-logger/src"],
-      "@inh-lib/ddd": ["dist/packages/ddd/src"],
-      "@inh-lib/ui-router": ["dist/packages/ui-router/src"],
-      "@inh-lib/unified-route": ["dist/packages/unified-route/src"],
-      "@inh-lib/unified-telemetry-core": ["dist/packages/unified-telemetry-core/src"],
-      "@inh-lib/unified-telemetry-http": ["dist/packages/unified-telemetry-http/src"],
-      "@inh-lib/unified-telemetry-middleware": ["dist/packages/unified-telemetry-middleware/src"],
-      "@inh-lib/unified-telemetry-otel": ["dist/packages/unified-telemetry-otel/src"],
-      "@inh-lib/api-util-fastify": ["dist/packages/api-util-fastify/src"]
-    }
+    // "paths": {
+    //   "@inh-lib/common": ["dist/packages/common/src"],
+    //   "@inh-lib/inh-logger": ["dist/packages/inh-logger/src"],
+    //   "@inh-lib/ddd": ["dist/packages/ddd/src"],
+    //   "@inh-lib/ui-router": ["dist/packages/ui-router/src"],
+    //   "@inh-lib/unified-route": ["dist/packages/unified-route/src"],
+    //   "@inh-lib/unified-telemetry-core": ["dist/packages/unified-telemetry-core/src"],
+    //   "@inh-lib/unified-telemetry-http": ["dist/packages/unified-telemetry-http/src"],
+    //   "@inh-lib/unified-telemetry-middleware": ["dist/packages/unified-telemetry-middleware/src"],
+    //   "@inh-lib/unified-telemetry-otel": ["dist/packages/unified-telemetry-otel/src"],
+    //   "@inh-lib/api-util-fastify": ["dist/packages/api-util-fastify/src"]
+    // }
   },
   "include": [
     "fastify-with-telemetry-example.ts",
@@ -34,7 +34,8 @@
     "telemetry-enhanced-app.ts",
     "fastify-hybrid-telemetry.ts",
     "otel-config.ts",
-    "otel-config-new.ts"
+    "otel-config-new.ts",
+    "processor.ts"
   ],
   "exclude": [
     "node_modules",

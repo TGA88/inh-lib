@@ -99,7 +99,7 @@ export function getOperationMetadataFromSpan(): {
   // In a real implementation, you'd extract these from span attributes
   // For now, return defaults (could be enhanced based on span implementation)
   return {
-    operationType: 'business',
+    operationType: 'logic',
     layer: 'service', 
     operationName: 'operation'
   };

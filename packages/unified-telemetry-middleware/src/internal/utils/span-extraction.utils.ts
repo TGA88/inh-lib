@@ -121,6 +121,7 @@ export function createMinimalContextFromHeaders(
       headers: headers,
       method: 'GET', // Default method
       url: '/', // Default URL
+      route: '/', // Default route
       body: {}, // Required property
       params: {}, // Required property
       query: {}, // Required property

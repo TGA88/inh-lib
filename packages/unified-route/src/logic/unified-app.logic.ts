@@ -303,6 +303,7 @@ export class UnifiedApp {
       url: request.url || '/',
       ip: request.ip || '127.0.0.1',
       userAgent: request.headers['user-agent'],
+      route: request.route || this.getPathFromUrl(request.url)
     };
 
     const unifiedResponse = responseBuilder.createResponseContext();

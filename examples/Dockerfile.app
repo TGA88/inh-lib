@@ -66,14 +66,14 @@ RUN apk add --no-cache dumb-init && \
 
 # Copy built application and built dependencies (dist output)
 COPY --from=builder --chown=nodeuser:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodeuser:nodejs /app/dist ./dist
+COPY --from=builder --chown=nodeuser:nodejs /app/dist/app ./dist
 COPY --from=builder --chown=nodeuser:nodejs /dist/packages ../dist/packages/
 COPY --from=builder --chown=nodeuser:nodejs /app/package*.json ./
 
 # Copy the example applications
-COPY --from=builder --chown=nodeuser:nodejs /app/dist/*.js ./
-COPY --from=builder --chown=nodeuser:nodejs /app/dist/otel-config.js ./
-COPY --from=builder --chown=nodeuser:nodejs /app/dist/telemetry-enhanced-app.js ./
+COPY --from=builder --chown=nodeuser:nodejs /app/dist/app/*.js ./
+# COPY --from=builder --chown=nodeuser:nodejs /app/dist/otel-config.js ./
+# COPY --from=builder --chown=nodeuser:nodejs /app/dist/telemetry-enhanced-app.js ./
 
 # Copy the entrypoint script and create logs directory
 COPY --from=builder --chown=nodeuser:nodejs /app/docker-entrypoint.sh ./

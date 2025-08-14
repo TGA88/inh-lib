@@ -8,6 +8,7 @@
 export interface UnifiedHttpRequest {
   method: string;
   url: string;
+  route?: string; // Optional route, can be derived from URL
   headers: Record<string, string>;
   body?: unknown;
   ip?: string;

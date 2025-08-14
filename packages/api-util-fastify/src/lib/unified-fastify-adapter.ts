@@ -1,6 +1,7 @@
 // adapters/unified-fastify-adapter.ts
-import { FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyRequest, FastifyReply, FastifyBaseLogger } from 'fastify';
 import { UnifiedRequestContext, UnifiedResponseContext, UnifiedHttpContext, UnifiedRouteHandler } from '@inh-lib/unified-route';
+import { UnifiedBaseTelemetryLogger } from '@inh-lib/unified-telemetry-core';
 
  function createUnifiedRequest<TBody = Record<string, unknown>>(
   req: FastifyRequest
@@ -12,6 +13,7 @@ import { UnifiedRequestContext, UnifiedResponseContext, UnifiedHttpContext, Unif
     headers: req.headers as Record<string, string>,
     method: req.method,
     url: req.url,
+    route: req.routeOptions?.url || req.routerPath || '',
     ip: req.ip,
     userAgent: req.headers['user-agent'],
   } as UnifiedRequestContext & { body: TBody };
@@ -66,3 +68,22 @@ export function createUnifiedFastifyHandler(
 }
 
  
+export class FastifyTelemetryLoggerAdapter implements UnifiedBaseTelemetryLogger {
+  constructor(private readonly fastifyLog: FastifyBaseLogger) {}
+
+  debug(message: string, attributes?: Record<string, unknown>): void {
+    this.fastifyLog.debug(attributes, message);
+  }
+
+  info(message: string, attributes?: Record<string, unknown>): void {
+    this.fastifyLog.info(attributes,message);
+  }
+
+  warn(message: string, attributes?: Record<string, unknown>): void {
+    this.fastifyLog.warn(attributes,message );
+  }
+
+  error(message: string, attributes?: Record<string, unknown>): void {
+    this.fastifyLog.error(attributes,message);
+  }
+}

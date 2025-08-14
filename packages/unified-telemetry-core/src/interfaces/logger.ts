@@ -1,4 +1,5 @@
 
+
 import { UnifiedTelemetrySpan } from './tracer';
 
 /**
@@ -41,14 +42,45 @@ export interface UnifiedTelemetryLogger {
 //   attributes: Record<string, string | number | boolean>;
 //   startTime: Date;
 // }
+
+/**
+ * Valid operation types for telemetry spans
+ * endpoint - represents an API endpoint operation with http or api layer
+ * middleware - represents a middleware operation with http or api layer
+ * command - represents a command operation with service layer
+ * query - represents a query operation with  service layer
+ * produce - represents a message production operation with api or service layer
+ * consume - represents a message consumption operation with api or service layer
+ * database - represents a database operation with data layer
+ * logic - represents a business logic operation with http, api, service, data, core layer
+ * integration - represents an integration operation (e.g. external API calls) with integration layer
+ * auth - represents an authentication operation with http or api layer
+ * custom - represents a custom operation defined by the user with custom layer
+ */
+export type LogOperationType = 'endpoint' | 'middleware' | 'command' | 'query' |  'produce' | 'consume' | 'database' | 'logic' | 'integration' | 'auth' | 'custom';
+
+
+/**
+ * Valid layer types for telemetry spans
+ * http - represent to Framework HTTP layer (e.g. Fastify, Express)
+ * api - represent to Unified Route
+ * service - represent to Service layer
+ * data - represent to Data layer
+ * core - represent to Core layer
+ * integration - represent to Integration layer like message broker, external API requests
+ * custom - represent to Custom layer defined by user
+ */
+export type LogLayerType = 'http' | 'api' | 'service' | 'data' | 'core' | 'integration' | 'custom';
+
+
 export interface UnifiedLoggerContext {
 options: UnifiedLoggerOptions;
 span: UnifiedTelemetrySpan;
 }
 export type UnifiedLoggerOptions = {
-  operationType: 'http' | 'business' | 'database' | 'utility' | 'integration' | 'auth' | 'custom' ;
+  operationType: LogOperationType; // Operation type for the span
   operationName: string;
-  layer: 'http' | 'service' | 'data' | 'core' | 'integration' | 'custom';
+  layer: LogLayerType; // Layer type for the span
   autoAddSpanEvents?: boolean; // Automatically add span events for all log levels
   attributes?: Record<string, string | number | boolean>; // Additional attributes to include in all logs
 

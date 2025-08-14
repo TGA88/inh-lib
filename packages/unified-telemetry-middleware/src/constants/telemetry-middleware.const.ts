@@ -29,6 +29,7 @@ export const TELEMETRY_HEADERS = {
  */
 export const TELEMETRY_LAYERS = {
   HTTP: 'http',
+  API: 'api',
   SERVICE: 'service', 
   DATA: 'data',
   CORE: 'core',
@@ -40,10 +41,14 @@ export const TELEMETRY_LAYERS = {
  * Telemetry operation types
  */
 export const TELEMETRY_OPERATION_TYPES = {
-  HTTP: 'http',
-  BUSINESS: 'business',
+  ENDPOINT: 'endpoint',
+  MIDDLEWARE: 'middleware',
+  PRODUCE: 'produce',
+  CONSUME: 'consume',
   DATABASE: 'database',
-  UTILITY: 'utility',
+  COMMAND: 'command',
+  QUERY: 'query',
+  LOGIC: 'logic',
   INTEGRATION: 'integration',
   AUTH: 'auth',
   CUSTOM: 'custom',

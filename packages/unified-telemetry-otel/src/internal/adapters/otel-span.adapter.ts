@@ -16,8 +16,8 @@ import { convertSpanStatus, extractTraceIdFromSpan, extractSpanIdFromSpan } from
 
 export class OtelSpanAdapter implements UnifiedTelemetrySpan {
   public readonly startTime: Date;
-  
-  constructor(private readonly otelSpan: OtelSpanInstance, startTime: Date) {
+
+  constructor(private readonly otelSpan: OtelSpanInstance, startTime: Date, private readonly parentSpan?: UnifiedTelemetrySpan) {
     this.startTime = startTime;
   }
   
@@ -60,6 +60,11 @@ export class OtelSpanAdapter implements UnifiedTelemetrySpan {
 
   getSpanId(): string {
     return extractSpanIdFromSpan(this.otelSpan);
+  }
+
+  getParentSpanId(): string | undefined {
+    const parent = this.parentSpan;
+    return parent ? parent.getSpanId() : undefined;
   }
 
 

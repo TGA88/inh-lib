@@ -22,6 +22,7 @@ import {
   hasValidTraceHeaders
 } from '../utils/span-extraction.utils';
 import { SPAN_EXTRACTION_DEFAULTS } from '../constants/span-extraction.const';
+import { TelemetryLayerType, TelemetryOperationType } from '../types/telemetry.types';
 
 /**
  * Execute span extraction strategy with fallbacks
@@ -162,9 +163,9 @@ export function createChildSpanWithoutContext(
   const childLogger = provider.logger.getLogger({
     span: childSpan,
     options: {
-      operationType: opType as 'http' | 'business' | 'database' | 'utility' | 'integration' | 'auth' | 'custom',
+      operationType: opType as TelemetryOperationType,
       operationName: operationName,
-      layer: layerType as 'http' | 'service' | 'data' | 'core' | 'integration' | 'custom',
+      layer: layerType as TelemetryLayerType,
       autoAddSpanEvents: true,
     }
   });
