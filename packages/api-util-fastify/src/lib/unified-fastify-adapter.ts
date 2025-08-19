@@ -56,12 +56,12 @@ export function createUnifiedFastifyHandler(
   handler: UnifiedRouteHandler
 ) {
   const fastifyHandler = async (req: FastifyRequest, reply: FastifyReply) => {
-    if (!req.businessLogicContext) {
+    if (!req.unifiedAppContext) {
       const context = createUnifiedContext(req, reply);
-      req.businessLogicContext = context;
+      req.unifiedAppContext = context;
     }
 
-    await handler(req.businessLogicContext);
+    await handler(req.unifiedAppContext);
   };
 
   return fastifyHandler
