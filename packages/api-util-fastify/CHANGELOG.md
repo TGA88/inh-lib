@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.2.3](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.2.2...api-util-fastify-1.2.3) (2025-08-19)
+
+
+### Bug Fixes
+
+* **api-util-fastify:** createUnifiedFastifyHandler use unifiedAppContext instead of businessLogicContext ([3f63115](https://github.com/TGA88/inh-lib/commit/3f63115b5a3b90e64f7ad3b3db5bdf4c4831ee41))
+
 ## [1.2.2](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.2.1...api-util-fastify-1.2.2) (2025-08-14)
 
 ## [1.2.1](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.2.0...api-util-fastify-1.2.1) (2025-08-14)
