@@ -72,6 +72,7 @@ export class TelemetryPluginService {
   static createPlugin(options: TelemetryPluginOptions): FastifyPluginAsync {
     const pluginOptions: TelemetryDecoratorOptions = {
       provider: options.telemetryProvider,
+      middlewareService: options.telemetryMiddleware,
       autoTracing: options.autoTracing ?? DEFAULT_TELEMETRY_PLUGIN_OPTIONS.autoTracing,
       serviceName: options.serviceName ?? DEFAULT_TELEMETRY_PLUGIN_OPTIONS.serviceName,
       skipRoutes: options.skipRoutes ?? [...DEFAULT_TELEMETRY_PLUGIN_OPTIONS.skipRoutes],
@@ -80,8 +81,9 @@ export class TelemetryPluginService {
       systemMetricsInterval: options.systemMetricsInterval ?? INTERNAL_TELEMETRY_CONSTANTS.SYSTEM_METRICS_INTERVAL
     };
 
+    
     // Create TelemetryMiddlewareService instance with plugin options
-    const middlewareService = new TelemetryMiddlewareService(
+    const middlewareService = pluginOptions.middlewareService ?? new TelemetryMiddlewareService(
       pluginOptions.provider,
       {
         serviceName: pluginOptions.serviceName,

@@ -1,8 +1,10 @@
 import { UnifiedTelemetryProvider } from '@inh-lib/unified-telemetry-core';
 import { UnifiedHttpContext } from '@inh-lib/unified-route';
+import { TelemetryMiddlewareService } from '@inh-lib/unified-telemetry-middleware';
 
 export interface TelemetryPluginOptions {
   telemetryProvider: UnifiedTelemetryProvider;
+  telemetryMiddleware?: TelemetryMiddlewareService;
   autoTracing?: boolean;
   serviceName?: string;
   skipRoutes?: string[];
@@ -17,6 +19,7 @@ export interface EnhancedUnifiedHttpContext extends UnifiedHttpContext {
 
 export interface TelemetryDecoratorOptions {
   provider: UnifiedTelemetryProvider;
+  middlewareService?: TelemetryMiddlewareService;
   autoTracing: boolean;
   serviceName: string;
   skipRoutes: string[];
