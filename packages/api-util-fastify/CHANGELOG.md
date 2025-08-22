@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.2.4](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.2.3...api-util-fastify-1.2.4) (2025-08-22)
+
+
+### Bug Fixes
+
+* **api-util-fastify:**  crete telemetryMiddleware when it is null at create plugin ([993caf9](https://github.com/TGA88/inh-lib/commit/993caf9fdbbb34c50648ec355944b2dde094df33))
+
 ## [1.2.3](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.2.2...api-util-fastify-1.2.3) (2025-08-19)
 
 
