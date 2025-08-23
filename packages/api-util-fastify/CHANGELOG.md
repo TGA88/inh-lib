@@ -1,7 +1,8 @@
 # Changelog
 
-
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
+
+## [1.3.1](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.0...api-util-fastify-1.3.1) (2025-08-23)
 
 ## [1.3.0](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.2.4...api-util-fastify-1.3.0) (2025-08-23)
 
