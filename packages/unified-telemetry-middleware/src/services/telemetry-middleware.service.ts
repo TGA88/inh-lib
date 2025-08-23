@@ -745,8 +745,10 @@ export class TelemetryMiddlewareService {
         method: performanceData.requestContext.method,
         route: performanceData.requestContext.route,
         url: performanceData.requestContext.url,
-        traceId: performanceData.traceContext.traceId,
-        spanId: performanceData.traceContext.spanId,
+        traceId: performanceData.span.getTraceId(),
+        spanId: performanceData.span.getSpanId(),
+        originTraceId: performanceData.traceContext.traceId,
+        originSpanId: performanceData.traceContext.spanId,
         requestId: performanceData.requestContext.requestId,
         correlationId: performanceData.requestContext.correlationId,
       });

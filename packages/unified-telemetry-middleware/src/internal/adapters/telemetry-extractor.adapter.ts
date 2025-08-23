@@ -150,16 +150,24 @@ export function createTelemetryExtractorAdapter(dependencies: InternalTelemetryD
         parent: parentSpanMetadata
         
       });
-
-      // Set trace context attributes
-      if (traceContext.traceId) {
-        span.setTag('trace.id', traceContext.traceId);
-      }
-      if (traceContext.spanId) {
-        span.setTag('span.id', traceContext.spanId);
-      }
-      if (traceContext.parentSpanId) {
-        span.setTag('span.parent_id', traceContext.parentSpanId);
+      if (traceContext.format !== 'none') {
+        // Set trace context attributes
+        if (traceContext.traceId) {
+          span.setTag('trace.id', traceContext.traceId);
+        }
+        if (traceContext.spanId) {
+          span.setTag('span.id', traceContext.spanId);
+        }
+        if (traceContext.parentSpanId) {
+          span.setTag('span.parent_id', traceContext.parentSpanId);
+        }
+      } else {
+        span.setTag('trace.id', span.getTraceId());
+        span.setTag('span.id', span.getSpanId());
+        const parentSpanId = span.getParentSpanId();
+        if (parentSpanId !== undefined) {
+          span.setTag('span.parent_id', parentSpanId);
+        }
       }
 
       return span;
