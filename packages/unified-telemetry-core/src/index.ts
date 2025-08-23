@@ -49,3 +49,5 @@ export {
   UNIFIED_SPAN_STATUS_CODE,
   DEFAULT_TELEMETRY_CONFIG
 } from './interfaces';
+
+export * from './constants/telemetry.const';

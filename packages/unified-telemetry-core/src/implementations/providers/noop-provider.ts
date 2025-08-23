@@ -8,7 +8,8 @@ import {
   UnifiedTelemetryGauge,
   UnifiedTelemetryConfig,
   UnifiedSpanOptions,
-  UnifiedTelemetryLoggerService
+  UnifiedTelemetryLoggerService,
+  UnifiedTelemetrySpanMetadata
 } from '../../interfaces';
 import { UnifiedLoggerService } from '../../services/unified-logger.service';
 
@@ -62,6 +63,14 @@ class NoOpTracer implements UnifiedTelemetryTracer {
  * No-op implementation of span
  */
 class NoOpSpan implements UnifiedTelemetrySpan {
+  getSpanMetadata(): UnifiedTelemetrySpanMetadata | undefined {
+    // Return a default metadata object for no-op
+    return {
+      traceId: this.getTraceId(),
+      spanId: this.getSpanId(),
+      parentSpanId: this.getParentSpanId()
+    };
+  }
   public readonly startTime: Date = new Date();
 
   getStartTime(): Date {
@@ -98,6 +107,8 @@ class NoOpSpan implements UnifiedTelemetrySpan {
   getParentSpanId(): string {
     return 'noop-parent-span-id';
   }
+
+
 }
 
 /**

@@ -6,7 +6,8 @@
 import type { 
   UnifiedTelemetryProvider, 
   UnifiedTelemetrySpan,
-  UnifiedTelemetryLogger
+  UnifiedTelemetryLogger,
+  UnifiedTelemetrySpanMetadata
 } from '@inh-lib/unified-telemetry-core';
 import type { 
   InternalTelemetryMiddlewareConfig 
@@ -104,7 +105,7 @@ export function executeSpanExtractionStrategy(
  * Create child span without UnifiedHttpContext using parent span or headers
  */
 export function createChildSpanWithoutContext(
-  parentSpanOrHeaders: UnifiedTelemetrySpan | { headers: Record<string, string> },
+  parentSpanOrHeaders: UnifiedTelemetrySpanMetadata | { headers: Record<string, string> },
   operationName: string,
   provider: UnifiedTelemetryProvider,
   config: InternalTelemetryMiddlewareConfig,
@@ -119,7 +120,7 @@ export function createChildSpanWithoutContext(
   finish: () => void 
 } {
   
-  let parentSpan: UnifiedTelemetrySpan;
+  let parentSpan: UnifiedTelemetrySpanMetadata | undefined;
   
   if ('headers' in parentSpanOrHeaders) {
     // Get parent span using extraction strategy
@@ -137,7 +138,7 @@ export function createChildSpanWithoutContext(
       throw new Error('Unable to get or create parent span');
     }
     
-    parentSpan = extractionResult.span;
+    parentSpan = extractionResult.span.getSpanMetadata();
   } else {
     parentSpan = parentSpanOrHeaders;
   }

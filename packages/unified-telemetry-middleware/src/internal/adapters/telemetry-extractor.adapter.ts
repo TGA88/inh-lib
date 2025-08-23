@@ -138,10 +138,17 @@ export function createTelemetryExtractorAdapter(dependencies: InternalTelemetryD
     try {
       const spanName = createSpanName(requestContext);
       const spanAttributes = createSpanAttributes(requestContext, traceContext);
+      const parentSpanMetadata = traceContext.format  !== 'none' ? {
+        traceId: traceContext.traceId,
+        spanId: traceContext.spanId,
+        parentSpanId: traceContext.parentSpanId
+      } : undefined;
 
       const span = provider.tracer.startSpan(spanName, {
         kind: TELEMETRY_SPAN_KINDS.SERVER,
         attributes: spanAttributes,
+        parent: parentSpanMetadata
+        
       });
 
       // Set trace context attributes
@@ -266,6 +273,7 @@ export function createNoOpSpan(): UnifiedTelemetrySpan {
     getSpanId: () => '',
     getStartTime: () => new Date(),
     getParentSpanId: () => undefined, // No parent span in no-op
+    getSpanMetadata: () => undefined, // No metadata in no-op
   };
 }
 

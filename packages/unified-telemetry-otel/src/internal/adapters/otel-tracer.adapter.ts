@@ -27,8 +27,8 @@ export class OtelTracerAdapter implements UnifiedTelemetryTracer {
     let parentContext: Context | undefined;
 
     if (options?.parent) {
-      const parentSpanId = options.parent.getSpanId();
-      const traceId = options.parent.getTraceId();
+      const parentSpanId = options.parent.spanId;
+      const traceId = options.parent.traceId;
       parentContext = createContextFromSpanIds(
        traceId,
        parentSpanId

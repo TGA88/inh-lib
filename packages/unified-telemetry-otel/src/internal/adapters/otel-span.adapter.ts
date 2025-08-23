@@ -9,7 +9,8 @@
 
 import { 
   UnifiedTelemetrySpan, 
-  UnifiedSpanStatus 
+  UnifiedSpanStatus, 
+  UnifiedTelemetrySpanMetadata
 } from '@inh-lib/unified-telemetry-core';
 import { OtelSpanInstance } from '../types/otel.types';
 import { convertSpanStatus, extractTraceIdFromSpan, extractSpanIdFromSpan } from '../logic/otel.logic';
@@ -17,7 +18,7 @@ import { convertSpanStatus, extractTraceIdFromSpan, extractSpanIdFromSpan } from
 export class OtelSpanAdapter implements UnifiedTelemetrySpan {
   public readonly startTime: Date;
 
-  constructor(private readonly otelSpan: OtelSpanInstance, startTime: Date, private readonly parentSpan?: UnifiedTelemetrySpan) {
+  constructor(private readonly otelSpan: OtelSpanInstance, startTime: Date, private readonly parentSpan?: UnifiedTelemetrySpanMetadata) {
     this.startTime = startTime;
   }
   
@@ -64,8 +65,14 @@ export class OtelSpanAdapter implements UnifiedTelemetrySpan {
 
   getParentSpanId(): string | undefined {
     const parent = this.parentSpan;
-    return parent ? parent.getSpanId() : undefined;
+    return parent ? parent.spanId : undefined;
   }
-
+getSpanMetadata(): UnifiedTelemetrySpanMetadata | undefined {
+  return {
+    traceId: this.getTraceId(),
+    spanId: this.getSpanId(),
+    parentSpanId: this.getParentSpanId()
+  };
+}
 
 }

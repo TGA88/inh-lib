@@ -8,7 +8,8 @@ import {
   UnifiedTelemetryCounter,
   UnifiedTelemetryHistogram,
   UnifiedTelemetryGauge,
-  UnifiedTelemetryLoggerService
+  UnifiedTelemetryLoggerService,
+  UnifiedTelemetrySpanMetadata
 } from '../../interfaces';
 import { UnifiedLoggerService } from '../../services/unified-logger.service';
 import { 
@@ -78,7 +79,7 @@ class ConsoleTracer implements UnifiedTelemetryTracer {
 class ConsoleSpan implements UnifiedTelemetrySpan {
   private readonly spanId: string;
   private readonly traceId: string;
-  private readonly parentSpan? : UnifiedTelemetrySpan
+  private readonly parentSpan? : UnifiedTelemetrySpanMetadata;
   public readonly startTime: Date;  // Changed from private to public
   private finished = false;
 
@@ -96,6 +97,9 @@ class ConsoleSpan implements UnifiedTelemetrySpan {
       attributes: options?.attributes || {},
       startTime: this.startTime.toISOString(),
     });
+  }
+  getSpanMetadata(): UnifiedTelemetrySpanMetadata | undefined {
+    throw new Error('Method not implemented.');
   }
 
   getStartTime(): Date {
@@ -153,7 +157,7 @@ class ConsoleSpan implements UnifiedTelemetrySpan {
   }
   
   getParentSpanId(): string | undefined {
-    return this.parentSpan?.getSpanId();
+    return this.parentSpan?.spanId;
   }
 }
 

@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import fp from 'fastify-plugin';
-import { UnifiedHttpContext } from '@inh-lib/unified-route';
-import { UnifiedTelemetryProvider } from '@inh-lib/unified-telemetry-core';
+import { addRegistryItem, UnifiedHttpContext } from '@inh-lib/unified-route';
+import { TELEMETRY_CONTEXT_KEYS, UnifiedTelemetryProvider } from '@inh-lib/unified-telemetry-core';
 import {
   TelemetryMiddlewareService,
   TELEMETRY_OPERATION_TYPES,
@@ -17,6 +17,7 @@ import { INTERNAL_TELEMETRY_CONSTANTS } from '../internal/constants/telemetry-pl
 import { shouldSkipTelemetry } from '../internal/utils/telemetry-plugin.utils';
 import { TelemetryRequestUtils } from '../utils/telemetry-request.utils';
 import { RequestTelemetryContext } from '../internal/types/telemetry-plugin.types';
+import { log } from 'console';
 // 
 
 // Type alias for telemetry span attributes (using middleware types)
@@ -67,7 +68,7 @@ declare module 'fastify' {
     requestTelemetryContext?: RequestTelemetryContext;
   }
 }
-  
+
 export class TelemetryPluginService {
   static createPlugin(options: TelemetryPluginOptions): FastifyPluginAsync {
     const pluginOptions: TelemetryDecoratorOptions = {
@@ -81,7 +82,7 @@ export class TelemetryPluginService {
       systemMetricsInterval: options.systemMetricsInterval ?? INTERNAL_TELEMETRY_CONSTANTS.SYSTEM_METRICS_INTERVAL
     };
 
-    
+
     // Create TelemetryMiddlewareService instance with plugin options
     const middlewareService = pluginOptions.middlewareService ?? new TelemetryMiddlewareService(
       pluginOptions.provider,
@@ -118,7 +119,7 @@ export class TelemetryPluginService {
         //   return executeGetOrCreateSpan(middlewareService, headers, options);
         // },
       });
-     
+
       // System metrics are now handled by TelemetryMiddlewareService
       // No need for separate collection logic
 
@@ -146,26 +147,43 @@ export class TelemetryPluginService {
   ): void {
     // onRequest hook - start telemetry using middleware
     fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
+      const logger = request.log;
+      logger.debug('TelemetryPluginService - onRequest hook triggered');
+
       if (shouldSkipTelemetry(request.url, options.skipRoutes)) {
+        logger.debug(`Skipping telemetry for route: ${request.url}`);
         return;
       }
       // const startMeasurement = ResourceTrackingService.startTracking();
       // request.startRequestMeasurement = startMeasurement;
 
+      logger.debug('Creating UnifiedHttpContext for request');
       request.unifiedAppContext = createUnifiedContext(request, reply);
 
       // Initialize root span in UnifiedHttpContext
+      logger.debug('Initializing telemetry context in UnifiedHttpContext');
       middlewareService.initializeContext(request.unifiedAppContext);
       const initContext = middlewareService.getInitializeContext(request.unifiedAppContext);
 
+      logger.debug('Attaching telemetry context to Fastify request');
       const res = TelemetryRequestUtils.createTelemetryContext(request, initContext);
       if (res) {
         request.requestTelemetryContext = res.requestTelemetryContext;
       }
+      logger.debug('Telemetry context attached successfully');
+
+      logger.debug('Adding telemetryMiddleware to UnifiedHttpContext registry');
+      addRegistryItem(request.unifiedAppContext, TELEMETRY_CONTEXT_KEYS.MIDDLEWARE_SERVICE, middlewareService);
+      
+      logger.debug('Adding telemetryProvider to UnifiedHttpContext registry');
+      addRegistryItem(request.unifiedAppContext, TELEMETRY_CONTEXT_KEYS.PROVIDER, options.provider);
     });
     // preHandler hook - start to update route info in UnifiedHttpContext
     fastify.addHook('preHandler', async (request: FastifyRequest) => {
+      const logger = request.log;
+      logger.debug('TelemetryPluginService - preHandler hook triggered');
       if (request.unifiedAppContext) {
+        logger.debug('Updating route info in UnifiedHttpContext');
         const routeInfo = { method: request.method, route: request.routeOptions.url as string, url: request.url };
         middlewareService.updateRouteInfo(request.unifiedAppContext, routeInfo.method, routeInfo.route, routeInfo.url);
       }
@@ -174,9 +192,11 @@ export class TelemetryPluginService {
 
     // onResponse hook - finish telemetry using middleware
     fastify.addHook('onResponse', async (request: FastifyRequest, reply: FastifyReply) => {
-
-      if(request.unifiedAppContext) {
+      const logger = request.log;
+      logger.debug('TelemetryPluginService - onResponse hook triggered');
+      if (request.unifiedAppContext) {
         // Finalize telemetry for the request
+        logger.debug('Finalizing telemetry for request in UnifiedHttpContext');
         await middlewareService.finalizeContext(request.unifiedAppContext, reply.statusCode);
       }
       // const startMeasurement = request.startRequestMeasurement
@@ -196,9 +216,12 @@ export class TelemetryPluginService {
 
     // onError hook - let middleware handle errors
     fastify.addHook('onError', async (request: FastifyRequest, reply: FastifyReply) => {
+      const logger = request.log;
+      logger.debug('TelemetryPluginService - onError hook triggered');
       // Middleware should handle error recording in its catch block
       // Error will propagate through middleware's try-catch
-       if(request.unifiedAppContext) {
+      if (request.unifiedAppContext) {
+        logger.debug('Finalizing telemetry for Error request in UnifiedHttpContext');
         // Finalize telemetry for the request
         await middlewareService.finalizeContext(request.unifiedAppContext, reply.statusCode);
       }

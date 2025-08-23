@@ -71,7 +71,18 @@ export interface UnifiedTelemetrySpan {
    * This is used to calculate the duration of the span by UnifiedTelemetryLogger for each log entry
    */
   getStartTime(): Date;
-  
+
+  // Get metadata
+  getSpanMetadata(): UnifiedTelemetrySpanMetadata | undefined;
+
+}
+
+// Telemetry span metadata interface
+export interface UnifiedTelemetrySpanMetadata {
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string;
+
 }
 
 /**
@@ -81,7 +92,7 @@ export interface UnifiedSpanOptions {
   kind?: UnifiedSpanKind;
   attributes?: Record<string, string | number | boolean>;
   startTime?: Date;
-  parent?: UnifiedTelemetrySpan
+  parent?: UnifiedTelemetrySpanMetadata;
 }
 
 /**

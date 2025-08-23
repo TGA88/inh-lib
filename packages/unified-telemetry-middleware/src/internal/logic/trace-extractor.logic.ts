@@ -34,9 +34,9 @@ export function extractTraceContextFromHeaders(context: UnifiedHttpContext): Int
   const headers = context.request.headers;
 
  const res= extractTraceContextFromRequestHeaders(headers);
-  if (res.format === 'none') {
-    return generateNewTraceContext();
-  }
+  // if (res.format === 'none') {
+  //   return generateNewTraceContext();
+  // }
   return res;
 }
 

@@ -15,7 +15,8 @@ import type { UnifiedMiddleware, UnifiedHttpContext } from '@inh-lib/unified-rou
 import type { 
   UnifiedTelemetryProvider, 
   UnifiedTelemetrySpan, 
-  UnifiedTelemetryLogger 
+  UnifiedTelemetryLogger, 
+  UnifiedTelemetrySpanMetadata
 } from '@inh-lib/unified-telemetry-core';
 import type { 
   InternalTelemetryMiddlewareConfig,
@@ -297,7 +298,7 @@ export class TelemetryMiddlewareService {
     const layerType = options?.layer || 'custom';
 
     const childSpan = this.dependencies.provider.tracer.startSpan(operationName, {
-      parent: parentSpan,
+      parent: parentSpan.getSpanMetadata(),
       kind: 'internal',
       attributes: {
         'operation.type': opType,
@@ -370,7 +371,7 @@ export class TelemetryMiddlewareService {
     const layerType = options?.layer || TELEMETRY_LAYERS.CUSTOM;
 
     const childSpan = this.dependencies.provider.tracer.startSpan(operationName, {
-      parent: parentSpan,
+      parent: parentSpan.getSpanMetadata(),
       kind: 'internal',
       attributes: {
         'operation.type': opType,
@@ -705,7 +706,7 @@ export class TelemetryMiddlewareService {
    * Useful for framework-specific hooks where UnifiedHttpContext is not available
    */
   createChildSpanWithoutUnifiedContext(
-    parentSpanOrHeaders: UnifiedTelemetrySpan | { headers: Record<string, string> },
+    parentSpanOrHeaders: UnifiedTelemetrySpanMetadata | { headers: Record<string, string> },
     operationName: string,
     options?: {
       operationType?: TelemetryOperationType;
