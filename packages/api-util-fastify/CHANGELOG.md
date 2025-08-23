@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.3.0](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.2.4...api-util-fastify-1.3.0) (2025-08-23)
+
+
+### Features
+
+* **telemetry:** to support  create childSpan with UnifiedTelemetrySpanMetadata instead UnifiedTelemetrySpan ([7e3d3b4](https://github.com/TGA88/inh-lib/commit/7e3d3b440654329b0b58cd8ad36aa7b0c49be122))
+
 ## [1.2.4](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.2.3...api-util-fastify-1.2.4) (2025-08-22)
 
 
