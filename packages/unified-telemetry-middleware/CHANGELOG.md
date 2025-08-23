@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.1](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.0...unified-telemetry-middleware-0.3.1) (2025-08-23)
+
+
+### Bug Fixes
+
+* **telemetry-middleware:** add log for start telemetry ([6741228](https://github.com/TGA88/inh-lib/commit/6741228e23d49c01e9a8579872289e39d96082ad))
+
 ## [0.3.0](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.2.0...unified-telemetry-middleware-0.3.0) (2025-08-23)
 
 
