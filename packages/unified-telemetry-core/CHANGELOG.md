@@ -2,6 +2,14 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.1](https://github.com/TGA88/inh-lib/compare/unified-telemetry-core-0.3.0...unified-telemetry-core-0.3.1) (2025-09-25)
+
+
+### Bug Fixes
+
+* add requestId to releate fastifyLog and unifiedTelemetryLogger ([4bc3e21](https://github.com/TGA88/inh-lib/commit/4bc3e21298af297217dd29f14913d42318c8e8c2))
+* **unified-telemetry-core:** build fail ([ecc080c](https://github.com/TGA88/inh-lib/commit/ecc080c524ae90ffdc614c0d93344a85885435c1))
+
 ## [0.3.0](https://github.com/TGA88/inh-lib/compare/unified-telemetry-core-0.2.0...unified-telemetry-core-0.3.0) (2025-08-23)
 
 
