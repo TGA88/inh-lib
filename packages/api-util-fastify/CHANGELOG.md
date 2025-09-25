@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.3.3](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.2...api-util-fastify-1.3.3) (2025-09-25)
+
+
+### Bug Fixes
+
+* add requestId to releate fastifyLog and unifiedTelemetryLogger ([4bc3e21](https://github.com/TGA88/inh-lib/commit/4bc3e21298af297217dd29f14913d42318c8e8c2))
+
 ## [1.3.2](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.1...api-util-fastify-1.3.2) (2025-09-25)
 
 
