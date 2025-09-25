@@ -49,28 +49,43 @@ export class UnifiedLoggerService implements UnifiedTelemetryLoggerService {
   }
 }
 
-
 /**
- * Default console-based logger implementation
- * 
- * @remarks
- * Simple logger that outputs to console. This is the default base logger
- * used when no custom base logger is provided to the service.
+ * Simple console-based base logger.
+ * Keeps an optional scope and base attributes and produces child loggers by composing scope/attributes.
  */
 class ConsoleBaseTelemetryLogger implements UnifiedBaseTelemetryLogger {
+  constructor(
+    private readonly scope?: string,
+    private readonly baseAttributes?: Record<string, unknown>
+  ) {}
+
+  private merge(attrs?: Record<string, unknown>) {
+    return {
+      ...(this.baseAttributes ?? {}),
+      ...(attrs ?? {}),
+      ...(this.scope ? { scope: this.scope } : {})
+    };
+  }
+
   debug(message: string, attributes?: Record<string, unknown>): void {
-    console.debug('[DEBUG]', message, attributes);
+    console.debug('[DEBUG]', message, this.merge(attributes));
   }
 
   info(message: string, attributes?: Record<string, unknown>): void {
-    console.info('[INFO]', message, attributes);
+    console.info('[INFO]', message, this.merge(attributes));
   }
 
   warn(message: string, attributes?: Record<string, unknown>): void {
-    console.warn('[WARN]', message, attributes);
+    console.warn('[WARN]', message, this.merge(attributes));
   }
 
   error(message: string, attributes?: Record<string, unknown>): void {
-    console.error('[ERROR]', message, attributes);
+    console.error('[ERROR]', message, this.merge(attributes));
+  }
+
+  createChildLogger(scope: string, attributes?: Record<string, unknown>): UnifiedBaseTelemetryLogger {
+    const composedScope = this.scope ? `${this.scope}.${scope}` : scope;
+    const composedAttrs = { ...(this.baseAttributes ?? {}), ...(attributes ?? {}) };
+    return new ConsoleBaseTelemetryLogger(composedScope, composedAttrs);
   }
 }

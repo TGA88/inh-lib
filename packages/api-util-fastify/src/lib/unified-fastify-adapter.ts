@@ -70,6 +70,10 @@ export function createUnifiedFastifyHandler(
  
 export class FastifyTelemetryLoggerAdapter implements UnifiedBaseTelemetryLogger {
   constructor(private readonly fastifyLog: FastifyBaseLogger) {}
+  createChildLogger(scope: string, attributes?: Record<string, unknown>): UnifiedBaseTelemetryLogger {
+    const childLogger = this.fastifyLog.child({ scope, ...(attributes || {}) });
+    return new FastifyTelemetryLoggerAdapter(childLogger);
+  }
 
   debug(message: string, attributes?: Record<string, unknown>): void {
     this.fastifyLog.debug(attributes, message);

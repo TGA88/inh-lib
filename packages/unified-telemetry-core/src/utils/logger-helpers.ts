@@ -16,15 +16,15 @@ export function enrichLogAttributes(
   attributes?: Record<string, unknown>
 ): Record<string, unknown> {
   return {
-    // Trace context
-    traceId: context.span.getTraceId(),
-    spanId: context.span.getSpanId(),
-    parentSpanId: context.span.getParentSpanId(),
+    // // Trace context
+    // traceId: context.span.getTraceId(),
+    // spanId: context.span.getSpanId(),
+    // parentSpanId: context.span.getParentSpanId(),
 
-    // Operation context
-    layer: context.options.layer,
-    operationType: context.options.operationType,
-    operationName: context.options.operationName,
+    // // Operation context
+    // layer: context.options.layer,
+    // operationType: context.options.operationType,
+    // operationName: context.options.operationName,
 
     // Timing information
     timestamp: new Date().toISOString(),

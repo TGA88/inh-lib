@@ -1,4 +1,4 @@
-import { TelemetryAttributes, TelemetryLayerType, TelemetryMiddlewareService, TelemetryOperationType,TELEMETRY_OPERATION_TYPES,TELEMETRY_LAYERS } from "@inh-lib/unified-telemetry-middleware";
+import { TelemetryAttributes, TelemetryLayerType, TelemetryMiddlewareService, TelemetryOperationType,TELEMETRY_OPERATION_TYPES,TELEMETRY_LAYERS } from "../index";
 import { UnifiedHttpContext } from "@inh-lib/unified-route";
 
 

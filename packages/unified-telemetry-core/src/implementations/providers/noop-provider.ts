@@ -174,6 +174,10 @@ class NoOpLoggerService extends UnifiedLoggerService {
       error: (_message: string, _attributes?: Record<string, unknown>) => {
         // No-op
       },
+      createChildLogger: (_scope: string, _attributes?: Record<string, unknown>) => {
+        return noOpBaseLogger;
+      }
+
     };
     
     super(noOpBaseLogger);

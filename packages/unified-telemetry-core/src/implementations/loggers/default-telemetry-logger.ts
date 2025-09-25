@@ -1,3 +1,4 @@
+import { request } from 'http';
 import { 
   UnifiedTelemetryLogger,  
   UnifiedBaseTelemetryLogger,
@@ -30,6 +31,21 @@ export class DefaultUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
   ) {
     this.span = context.span;
     this.options = context.options;
+ 
+    const childAttributes = {
+    requestId: context.options.requestId,
+       // Trace context
+    traceId: context.span.getTraceId(),
+    spanId: context.span.getSpanId(),
+    parentSpanId: context.span.getParentSpanId(),
+
+    // Operation context
+    layer: context.options.layer,
+    operationType: context.options.operationType,
+    operationName: context.options.operationName
+  };
+
+    this.baseLogger = baseLogger.createChildLogger(context.options.operationName, childAttributes);
   }
 
   debug(message: string, attributes?: Record<string, unknown>): void {

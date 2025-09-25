@@ -148,11 +148,11 @@ export class TelemetryPluginService {
     fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
       const logger = request.log;
       logger.debug('TelemetryPluginService - onRequest hook triggered');
-
       if (shouldSkipTelemetry(request.url, options.skipRoutes)) {
         logger.debug(`Skipping telemetry for route: ${request.url}`);
         return;
       }
+
       // const startMeasurement = ResourceTrackingService.startTracking();
       // request.startRequestMeasurement = startMeasurement;
 
@@ -171,8 +171,11 @@ export class TelemetryPluginService {
         
         request.log = request.log.child({
         traceId: res.requestTelemetryContext?.span.getTraceId(),
-        spanId: res.requestTelemetryContext?.span.getSpanId()
+        spanId: res.requestTelemetryContext?.span.getSpanId(),
+        requestId: res.requestTelemetryContext?.requestId
+
       });
+   
 
       }
       logger.debug('Telemetry context attached successfully');

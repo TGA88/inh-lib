@@ -82,6 +82,8 @@ export type UnifiedLoggerOptions = {
   operationName: string;
   layer: LogLayerType; // Layer type for the span
   autoAddSpanEvents?: boolean; // Automatically add span events for all log levels
+  requestId?: string; // Optional request ID for correlation
+  correlationId?: string; // Optional correlation ID for correlation
   attributes?: Record<string, string | number | boolean>; // Additional attributes to include in all logs
 
 }
@@ -95,6 +97,13 @@ export interface UnifiedBaseTelemetryLogger {
   info(message: string, attributes?: Record<string, unknown>): void;
   warn(message: string, attributes?: Record<string, unknown>): void;
   error(message: string, attributes?: Record<string, unknown>): void;
+  /**
+   * Create a child logger that inherits parent's settings.
+   * Useful for scoping logs to a specific module or operation.
+   * @param scope - name of the child scope (e.g. module or operation)
+   * @param attributes - optional attributes to attach to every log emitted by the child
+   */
+  createChildLogger(scope: string, attributes?: Record<string, unknown>): UnifiedBaseTelemetryLogger;
 }
 
 export interface UnifiedTelemetryLoggerService{

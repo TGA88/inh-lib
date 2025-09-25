@@ -61,6 +61,25 @@ export class OtelProviderService {
       error: (message: string, attributes?: Record<string, unknown>) => {
         console.error(message, attributes);
       },
+      createChildLogger: (scope: string, attributes?: Record<string, unknown>): UnifiedBaseTelemetryLogger => {
+        return {
+          debug: (message: string, attrs?: Record<string, unknown>) => {
+            console.debug(`[${scope}] ${message}`, { ...attributes, ...attrs });
+          },
+          info: (message: string, attrs?: Record<string, unknown>) => {
+            console.info(`[${scope}] ${message}`, { ...attributes, ...attrs });
+          },
+          warn: (message: string, attrs?: Record<string, unknown>) => {
+            console.warn(`[${scope}] ${message}`, { ...attributes, ...attrs });
+          },
+          error: (message: string, attrs?: Record<string, unknown>) => {
+            console.error(`[${scope}] ${message}`, { ...attributes, ...attrs });
+          },
+          createChildLogger: (childScope: string, childAttrs?: Record<string, unknown>): UnifiedBaseTelemetryLogger => {
+            return consoleLogger.createChildLogger(`${scope}:${childScope}`, { ...attributes, ...childAttrs });
+          },
+        };
+      },
     };
 
     return new OtelProviderAdapter(options, consoleLogger, sdk);

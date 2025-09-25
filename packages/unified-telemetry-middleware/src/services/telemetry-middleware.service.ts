@@ -11,7 +11,7 @@
  * and do not affect functionality.
  */
 
-import type { UnifiedMiddleware, UnifiedHttpContext } from '@inh-lib/unified-route';
+import { type UnifiedMiddleware, type UnifiedHttpContext, getRegistryItem } from '@inh-lib/unified-route';
 import type { 
   UnifiedTelemetryProvider, 
   UnifiedTelemetrySpan, 
@@ -660,7 +660,11 @@ export class TelemetryMiddlewareService {
     
     // Get operation metadata from current span
     const metadata = getOperationMetadataFromSpan();
-    
+
+    const requestIdOrError = getRegistryItem<string>(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_REQUEST_ID);
+ 
+    const requestId = requestIdOrError instanceof Error ? undefined : requestIdOrError;  
+
     // Create fresh logger for current span
     return this.dependencies.provider.logger.getLogger({
       span: currentSpan,
@@ -669,6 +673,7 @@ export class TelemetryMiddlewareService {
         operationName: metadata.operationName,
         layer: metadata.layer,
         autoAddSpanEvents: true,
+        requestId: requestId ,
       }
     });
   }

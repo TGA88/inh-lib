@@ -9,9 +9,11 @@ import {
   UnifiedTelemetryHistogram,
   UnifiedTelemetryGauge,
   UnifiedTelemetryLoggerService,
-  UnifiedTelemetrySpanMetadata
+  UnifiedTelemetrySpanMetadata,
+  UnifiedBaseTelemetryLogger
 } from '../../interfaces';
 import { UnifiedLoggerService } from '../../services/unified-logger.service';
+
 import { 
   generateTraceId,
   generateSpanId
@@ -220,18 +222,47 @@ class ConsoleGauge implements UnifiedTelemetryGauge {
  */
 class ConsoleLoggerService extends UnifiedLoggerService {
   constructor() {
-    // Create a console base logger
-    const consoleBaseLogger = {
-      debug: (message: string, attributes?: Record<string, unknown>) => 
-        console.debug('[DEBUG]', message, attributes),
-      info: (message: string, attributes?: Record<string, unknown>) => 
-        console.info('[INFO]', message, attributes),
-      warn: (message: string, attributes?: Record<string, unknown>) => 
-        console.warn('[WARN]', message, attributes),
-      error: (message: string, attributes?: Record<string, unknown>) => 
-        console.error('[ERROR]', message, attributes),
-    };
+
+    const consoleBaseLogger = new ConsoleBaseTelemetryLogger();
     
     super(consoleBaseLogger);
+  }
+}
+
+
+class ConsoleBaseTelemetryLogger implements UnifiedBaseTelemetryLogger {
+  constructor(
+    private readonly scope?: string,
+    private readonly baseAttributes?: Record<string, unknown>
+  ) {}
+
+  private merge(attrs?: Record<string, unknown>) {
+    return {
+      ...(this.baseAttributes ?? {}),
+      ...(attrs ?? {}),
+      ...(this.scope ? { scope: this.scope } : {})
+    };
+  }
+
+  debug(message: string, attributes?: Record<string, unknown>): void {
+    console.debug('[DEBUG]', message, this.merge(attributes));
+  }
+
+  info(message: string, attributes?: Record<string, unknown>): void {
+    console.info('[INFO]', message, this.merge(attributes));
+  }
+
+  warn(message: string, attributes?: Record<string, unknown>): void {
+    console.warn('[WARN]', message, this.merge(attributes));
+  }
+
+  error(message: string, attributes?: Record<string, unknown>): void {
+    console.error('[ERROR]', message, this.merge(attributes));
+  }
+
+  createChildLogger(scope: string, attributes?: Record<string, unknown>): UnifiedBaseTelemetryLogger {
+    const composedScope = this.scope ? `${this.scope}.${scope}` : scope;
+    const composedAttrs = { ...(this.baseAttributes ?? {}), ...(attributes ?? {}) };
+    return new ConsoleBaseTelemetryLogger(composedScope, composedAttrs);
   }
 }
