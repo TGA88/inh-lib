@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.3.2](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.1...api-util-fastify-1.3.2) (2025-09-25)
+
+
+### Bug Fixes
+
+* **api-util-fastify:** correleate trace and span to fastify logger ([d19c537](https://github.com/TGA88/inh-lib/commit/d19c5374b4fe1e2e2b33e0841b437747d436dc87))
+
 ## [1.3.1](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.0...api-util-fastify-1.3.1) (2025-08-23)
 
 ## [1.3.0](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.2.4...api-util-fastify-1.3.0) (2025-08-23)
