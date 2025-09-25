@@ -17,8 +17,7 @@ import { INTERNAL_TELEMETRY_CONSTANTS } from '../internal/constants/telemetry-pl
 import { shouldSkipTelemetry } from '../internal/utils/telemetry-plugin.utils';
 import { TelemetryRequestUtils } from '../utils/telemetry-request.utils';
 import { RequestTelemetryContext } from '../internal/types/telemetry-plugin.types';
-import { log } from 'console';
-// 
+
 
 // Type alias for telemetry span attributes (using middleware types)
 type TelemetrySpanAttributes = Record<string, string | number | boolean>;
@@ -164,11 +163,17 @@ export class TelemetryPluginService {
       logger.debug('Initializing telemetry context in UnifiedHttpContext');
       middlewareService.initializeContext(request.unifiedAppContext);
       const initContext = middlewareService.getInitializeContext(request.unifiedAppContext);
-
+  
       logger.debug('Attaching telemetry context to Fastify request');
       const res = TelemetryRequestUtils.createTelemetryContext(request, initContext);
       if (res) {
         request.requestTelemetryContext = res.requestTelemetryContext;
+        
+        request.log = request.log.child({
+        traceId: res.requestTelemetryContext?.span.getTraceId(),
+        spanId: res.requestTelemetryContext?.span.getSpanId()
+      });
+
       }
       logger.debug('Telemetry context attached successfully');
 
