@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.1](https://github.com/TGA88/inh-lib/compare/unified-route-0.3.0...unified-route-0.3.1) (2025-09-25)
+
+
+### Bug Fixes
+
+* **unified-route:** add unified-registry but not finish ([1f21351](https://github.com/TGA88/inh-lib/commit/1f213515efa522c654ffd38cb7cda40264db96ad))
+
 ## [0.3.0](https://github.com/TGA88/inh-lib/compare/unified-route-0.2.0...unified-route-0.3.0) (2025-08-23)
 
 
