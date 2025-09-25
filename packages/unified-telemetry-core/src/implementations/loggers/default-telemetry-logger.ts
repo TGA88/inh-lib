@@ -1,4 +1,4 @@
-import { request } from 'http';
+
 import { 
   UnifiedTelemetryLogger,  
   UnifiedBaseTelemetryLogger,
