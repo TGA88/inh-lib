@@ -389,6 +389,9 @@ export class TelemetryMiddlewareService {
     // Push new span to stack (becomes current active span)
     pushSpanToStack(context, childSpan, operationName);
 
+    // get requestId from registry
+    const requestIdOrError = getRegistryItem<string>(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_REQUEST_ID);
+    const requestId = requestIdOrError instanceof Error ? undefined : requestIdOrError; 
     // Create logger for the new child span (always fresh logger for current span)
     const childLogger = this.dependencies.provider.logger.getLogger({
       span: childSpan,
@@ -397,6 +400,7 @@ export class TelemetryMiddlewareService {
         operationName: operationName,
         layer: layerType,
         autoAddSpanEvents: true,
+        requestId: requestId 
       }
     });
 
