@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.3](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.2...unified-telemetry-middleware-0.3.3) (2025-09-25)
+
+
+### Bug Fixes
+
+* **unified-telemetry-middleware:**  requestId is lost when using createProcessor ([1976291](https://github.com/TGA88/inh-lib/commit/1976291e8644cb05abfacfdadf60f67ad65935f3))
+
 ## [0.3.2](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.1...unified-telemetry-middleware-0.3.2) (2025-09-25)
 
 
