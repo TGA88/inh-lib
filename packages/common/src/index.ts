@@ -2,6 +2,7 @@
 export * from './lib/AppError';
 export * from './lib/Guard';
 export * from './lib/Result';
+export { Result as ResultV2, isSuccess, isFailure, sequence } from './lib/ResultV2';
 export * from './lib/UseCaseError';
 export * from './lib/FunctionChain';
 

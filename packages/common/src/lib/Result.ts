@@ -3,7 +3,7 @@ export class Result<T,F=unknown> {
   public isSuccess: boolean;
   public isFailure: boolean
   public error?: F | string;
-  private _value?: T;
+  private readonly _value?: T;
 
   public constructor (isSuccess: boolean, error?: F | string, value?: T) {
     if (isSuccess && error) {
@@ -39,7 +39,7 @@ export class Result<T,F=unknown> {
   }
 
   public static fail<T,F> (error: F): Result<T,F> {
-    return new Result<T,F>(false, error as F);
+    return new Result<T,F>(false, error);
   }
 
   public static combine (Results: Result<unknown,unknown>[]) : Result<unknown,unknown> {
@@ -91,3 +91,5 @@ export const left = <L, A>(l: L): Either<L, A> => {
 export const right = <L, A>(a: A): Either<L, A> => {
   return new Right<L, A>(a);
 };
+
+
