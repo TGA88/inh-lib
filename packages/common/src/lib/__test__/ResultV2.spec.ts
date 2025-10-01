@@ -145,7 +145,7 @@ describe('ResultV2 Complete Test Suite', () => {
     });
 
     it('chainAsync() should work with async functions', async () => {
-      const asyncOperation = async (value: number): Promise<Result<string, string>> => {
+      const asyncOperation = async (value: number): Promise<Result<string>> => {
         return Result.ok<string>(`Async: ${value}`);
       };
 
@@ -156,7 +156,7 @@ describe('ResultV2 Complete Test Suite', () => {
     });
 
     it('chainAsync() should propagate error from failed Result', async () => {
-      const asyncOperation = async (value: number): Promise<Result<string, string>> => {
+      const asyncOperation = async (value: number): Promise<Result<string>> => {
         return Result.ok<string>(`Async: ${value}`);
       };
 
@@ -167,14 +167,14 @@ describe('ResultV2 Complete Test Suite', () => {
     });
 
     it('chainAsync() should handle async operation errors', async () => {
-      const asyncOperation = async (): Promise<Result<string, string>> => {
-        return Result.fail<string>('async error');
+      const asyncOperation = async (): Promise<Result<string, Error>> => {
+        return Result.fail<string,Error>(new Error('async error'));
       };
 
       const result = await Result.ok<number>(42).chainAsync(asyncOperation);
       
       expect(result.isFailure).toBe(true);
-      expect(result.errorValue()).toBe('async error');
+      expect(result.errorValue()).toBeInstanceOf(Error);
     });
   });
 

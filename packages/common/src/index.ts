@@ -19,11 +19,7 @@ export * from './lib/type/communication/inh-queue'
 
 
 export * from './lib/type/endpoint/data-response'
-// middleware
-export * from './lib/type/unified/unified-context'
-export * from './lib/type/unified/unified-middleware'
-export * from './lib/unified-middleware/compose'
-export * from './lib/unified-context.logic'
+
 // =============
 export * from './lib/type/inh-http-client'
 

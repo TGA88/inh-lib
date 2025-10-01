@@ -1,5 +1,8 @@
 {
   "name": "@inh-lib/common",
   "version": "1.9.0",
-  "type": "commonjs"
+  "type": "commonjs",
+    "publishConfig": {
+    "access": "public"
+  }
 }

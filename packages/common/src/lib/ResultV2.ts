@@ -1,4 +1,4 @@
-export class Result<T, F = string> {
+export class Result<T, F = unknown> {
   public readonly isSuccess: boolean;
   public readonly isFailure: boolean;
   public readonly error?: F;
@@ -125,15 +125,15 @@ export class Result<T, F = string> {
 
   // ========== Static Methods ==========
 
-  public static ok<T, F = string>(value?: T): Result<T, F> {
+  public static ok<T, F = unknown>(value?: T): Result<T, F> {
     return new Result<T, F>(true, undefined, value);
   }
 
-  public static fail<T, F = string>(error: F): Result<T, F> {
+  public static fail<T, F = unknown>(error: F): Result<T, F> {
     return new Result<T, F>(false, error);
   }
 
-  public static from<T, F = string>(
+  public static from<T, F = unknown>(
     fn: () => T, 
     errorMapper?: (error: unknown) => F
   ): Result<T, F> {

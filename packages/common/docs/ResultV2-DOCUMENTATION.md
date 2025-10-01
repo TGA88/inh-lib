@@ -1,7 +1,3 @@
-# @inh-lib/common
-
-this lib for sharing type and utility function for service and core layer.
-
 # ResultV2 Documentation
 
 ## 📋 สารบัญ
