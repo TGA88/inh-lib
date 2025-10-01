@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.9.1](https://github.com/TGA88/inh-lib/compare/common-1.9.0...common-1.9.1) (2025-10-01)
+
+
+### Bug Fixes
+
+* **common:** to default error type of ResultV2  as unknown ([750b668](https://github.com/TGA88/inh-lib/commit/750b668ee5cdfe67335625f480baa26bd11e93a7))
+
 ## [1.9.0](https://github.com/TGA88/inh-lib/compare/common-1.8.0...common-1.9.0) (2025-09-26)
 
 
