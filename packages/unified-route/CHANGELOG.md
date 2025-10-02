@@ -2,6 +2,18 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.4.0](https://github.com/TGA88/inh-lib/compare/unified-route-0.3.1...unified-route-0.4.0) (2025-10-02)
+
+
+### Features
+
+* **common:** add ResultV2 to support pipe processing with chain method ([bcefa4b](https://github.com/TGA88/inh-lib/commit/bcefa4b4971d058078cb62a5f997dca41fd471de))
+
+
+### Bug Fixes
+
+* **common:** to default error type of ResultV2  as unknown ([750b668](https://github.com/TGA88/inh-lib/commit/750b668ee5cdfe67335625f480baa26bd11e93a7))
+
 ## [0.3.1](https://github.com/TGA88/inh-lib/compare/unified-route-0.3.0...unified-route-0.3.1) (2025-09-25)
 
 
