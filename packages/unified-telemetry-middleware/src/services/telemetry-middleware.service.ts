@@ -359,7 +359,8 @@ export class TelemetryMiddlewareService {
       console.log('No current span found, extracting from performance data');
       const performanceData = getPerformanceData(context);
       if (performanceData instanceof Error) {
-        throw new Error('No telemetry data found in context. Ensure telemetry middleware is applied first.');
+
+        throw new Error(`No telemetry data found in context. Ensure telemetry middleware is applied first. : ${performanceData.message}`);
       }
       parentSpan = performanceData.span;
       // Initialize span stack with root span
@@ -636,14 +637,14 @@ export class TelemetryMiddlewareService {
   /**
    * Get current span from context (for manual span operations)
    */
-  getCurrentSpan(context: UnifiedHttpContext): UnifiedTelemetrySpan | null {
+  getCurrentSpan(context: UnifiedHttpContext): UnifiedTelemetrySpan | Error {
     const res = getCurrentSpanFromContext(context);
     if (res) {
       return res;
     }
     const performanceData = getPerformanceData(context);
     if (performanceData instanceof Error) {
-      return null;
+      return  new Error(`No telemetry data found in context. Ensure telemetry middleware is applied first. : ${performanceData.message}`);
     }
     return performanceData.span;
   }
@@ -651,13 +652,13 @@ export class TelemetryMiddlewareService {
   /**
    * Get current logger from context (creates new logger for current span)
    */
-  getCurrentLogger(context: UnifiedHttpContext): UnifiedTelemetryLogger | null {
+  getCurrentLogger(context: UnifiedHttpContext): UnifiedTelemetryLogger | Error {
     const currentSpan = getCurrentSpanFromContext(context);
     if (!currentSpan) {
       // Fallback to root logger if no current span
       const performanceData = getPerformanceData(context);
       if (performanceData instanceof Error) {
-        return null;
+        return new Error(`No telemetry data found in context. Ensure telemetry middleware is applied first. : ${performanceData.message}`);
       }
       return performanceData.logger;
     }
@@ -774,7 +775,7 @@ export class TelemetryMiddlewareService {
       const performanceData = getPerformanceData(context);
 
       if (performanceData instanceof Error) {
-        throw new Error('No telemetry data found in context. Ensure telemetry middleware is applied first.');
+       throw new Error(`No telemetry data found in context. Ensure telemetry middleware is applied first. : ${performanceData.message}`);
       }
 
       return performanceData;
