@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.4](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.3...unified-telemetry-middleware-0.3.4) (2025-10-02)
+
+
+### Bug Fixes
+
+* **telemetry-middleware:** show Error when getPerfomanceData Error ([3859bf8](https://github.com/TGA88/inh-lib/commit/3859bf8043f1cad043866f3ce2052192f1e99950))
+
 ## [0.3.3](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.2...unified-telemetry-middleware-0.3.3) (2025-09-25)
 
 
