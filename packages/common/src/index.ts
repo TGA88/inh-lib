@@ -20,7 +20,13 @@ export * from './lib/type/communication/inh-queue'
 
 export * from './lib/type/endpoint/data-response'
 
-// =============
+export * from './lib/Failure/BaseFailure'
+export * from './lib/Failure/ResponseBuilder'
+export * from './lib/Failure/CommonFailures'
+
+
+
+// ==============
 export * from './lib/type/inh-http-client'
 
 

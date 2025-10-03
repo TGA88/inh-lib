@@ -1,0 +1,691 @@
+// ========== Response Types ==========
+
+export type DataResponse<T> = {
+  statusCode: number;
+  isSuccess: boolean;
+  traceId?: string;
+  codeResult: 'SUCCESS' | string;
+  message: string;
+  dataResult: T;
+};
+
+// ========== Fastify Types ==========
+
+export interface FastifyRequest<TBody = unknown, TParams = Record<string, string>> {
+  id?: string;
+  traceId?: string;
+  body: TBody;
+  params: TParams;
+  query: Record<string, string | string[]>;
+  headers: Record<string, string | string[] | undefined>;
+  url: string;
+  method: string;
+}
+
+export interface FastifyReply {
+  status(code: number): FastifyReply;
+  send(data: unknown): FastifyReply;
+  code(statusCode: number): FastifyReply;
+}
+
+export interface FastifyInstance {
+  addHook(name: string, handler: (request: FastifyRequest, reply: FastifyReply) => Promise<void>): void;
+  setErrorHandler(handler: ErrorHandler): void;
+  get(path: string, handler: RouteHandler): void;
+  post(path: string, handler: RouteHandler): void;
+  put(path: string, handler: RouteHandler): void;
+  delete(path: string, handler: RouteHandler): void;
+  listen(options: { port: number }): Promise<string>;
+}
+
+export type RouteHandler = (request: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply> | FastifyReply;
+export type ErrorHandler = (error: unknown, request: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply> | FastifyReply;
+
+// ========== Domain Types ==========
+
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  isActive: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface CreateUserDto {
+  email: string;
+  name?: string;
+  password: string;
+}
+
+export interface UpdateUserDto {
+  email?: string;
+  name?: string;
+  isActive?: boolean;
+}
+
+// ========== Base Failure Class ==========
+
+export abstract class BaseFailure extends Error {
+  public readonly code: string;
+  public readonly statusCode: number;
+  public readonly details?: unknown;
+  public traceId?: string;
+
+  constructor(
+    code: string,
+    message: string,
+    statusCode: number,
+    details?: unknown
+  ) {
+    super(message);
+    this.name = this.constructor.name;
+    this.code = code;
+    this.statusCode = statusCode;
+    this.details = details;
+
+    // ทำให้ instanceof ทำงานได้ถูกต้องใน TypeScript
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+
+  // Set traceId (เรียกใช้ตอน catch error)
+  withTraceId(traceId: string): this {
+    this.traceId = traceId;
+    return this;
+  }
+
+  // แปลงเป็น DataResponse
+  toResponse<T = null>(dataResult: T = null as T): DataResponse<T> {
+    return {
+      statusCode: this.statusCode,
+      isSuccess: false,
+      traceId: this.traceId,
+      codeResult: this.code,
+      message: this.message,
+      dataResult,
+    };
+  }
+
+  toJSON() {
+    return {
+      code: this.code,
+      message: this.message,
+      statusCode: this.statusCode,
+      details: this.details,
+      traceId: this.traceId,
+    };
+  }
+}
+
+// ========== Specific Failure Classes ==========
+
+export namespace Failures {
+  export class ParseFail extends BaseFailure {
+    constructor(message?: string, details?: unknown) {
+      super(
+        'PARSE_FAIL',
+        message || 'Failed to parse request data',
+        422,
+        details
+      );
+    }
+  }
+
+  export class ValidationFail extends BaseFailure {
+    constructor(message?: string, details?: unknown) {
+      super(
+        'VALIDATION_FAIL',
+        message || 'Validation failed',
+        422,
+        details
+      );
+    }
+  }
+
+  export class GetFail extends BaseFailure {
+    constructor(message?: string, details?: unknown) {
+      super(
+        'GET_FAIL',
+        message || 'Failed to retrieve data',
+        400,
+        details
+      );
+    }
+  }
+
+  export class CreateFail extends BaseFailure {
+    constructor(message?: string, details?: unknown) {
+      super(
+        'CREATE_FAIL',
+        message || 'Failed to create resource',
+        400,
+        details
+      );
+    }
+  }
+
+  export class UpdateFail extends BaseFailure {
+    constructor(message?: string, details?: unknown) {
+      super(
+        'UPDATE_FAIL',
+        message || 'Failed to update resource',
+        400,
+        details
+      );
+    }
+  }
+
+  export class DeleteFail extends BaseFailure {
+    constructor(message?: string, details?: unknown) {
+      super(
+        'DELETE_FAIL',
+        message || 'Failed to delete resource',
+        400,
+        details
+      );
+    }
+  }
+
+  export class NotFoundFail extends BaseFailure {
+    constructor(resource?: string, details?: unknown) {
+      super(
+        'NOT_FOUND',
+        resource ? `${resource} not found` : 'Resource not found',
+        404,
+        details
+      );
+    }
+  }
+
+  export class UnauthorizedFail extends BaseFailure {
+    constructor(message?: string, details?: unknown) {
+      super(
+        'UNAUTHORIZED',
+        message || 'Unauthorized access',
+        401,
+        details
+      );
+    }
+  }
+
+  export class ForbiddenFail extends BaseFailure {
+    constructor(message?: string, details?: unknown) {
+      super(
+        'FORBIDDEN',
+        message || 'Access forbidden',
+        403,
+        details
+      );
+    }
+  }
+
+  export class ConflictFail extends BaseFailure {
+    constructor(message?: string, details?: unknown) {
+      super(
+        'CONFLICT',
+        message || 'Resource conflict',
+        409,
+        details
+      );
+    }
+  }
+
+  export class InternalFail extends BaseFailure {
+    constructor(message?: string, details?: unknown) {
+      super(
+        'INTERNAL_ERROR',
+        message || 'Internal server error',
+        500,
+        details
+      );
+    }
+  }
+
+  export class ServiceUnavailableFail extends BaseFailure {
+    constructor(message?: string, details?: unknown) {
+      super(
+        'SERVICE_UNAVAILABLE',
+        message || 'Service temporarily unavailable',
+        503,
+        details
+      );
+    }
+  }
+
+  export class BadRequestFail extends BaseFailure {
+    constructor(message?: string, details?: unknown) {
+      super(
+        'BAD_REQUEST',
+        message || 'Bad request',
+        400,
+        details
+      );
+    }
+  }
+}
+
+// ========== Response Helpers ==========
+
+export class ResponseBuilder {
+  // สร้าง Success Response
+  static success<T>(
+    data: T,
+    message: string = 'Success',
+    traceId?: string
+  ): DataResponse<T> {
+    return {
+      statusCode: 200,
+      isSuccess: true,
+      traceId,
+      codeResult: 'SUCCESS',
+      message,
+      dataResult: data,
+    };
+  }
+
+  // สร้าง Success Response (Created)
+  static created<T>(
+    data: T,
+    message: string = 'Resource created successfully',
+    traceId?: string
+  ): DataResponse<T> {
+    return {
+      statusCode: 201,
+      isSuccess: true,
+      traceId,
+      codeResult: 'SUCCESS',
+      message,
+      dataResult: data,
+    };
+  }
+
+  // สร้าง Error Response จาก BaseFailure
+  static error<T = null>(
+    failure: BaseFailure,
+    dataResult: T = null as T
+  ): DataResponse<T> {
+    return failure.toResponse(dataResult);
+  }
+
+  // สร้าง Error Response จาก unknown error
+  static fromError<T = null>(
+    error: unknown,
+    traceId?: string,
+    dataResult: T = null as T
+  ): DataResponse<T> {
+    if (error instanceof BaseFailure) {
+      if (traceId) {
+        error.withTraceId(traceId);
+      }
+      return error.toResponse(dataResult);
+    }
+
+    if (error instanceof Error) {
+      const failure = new Failures.InternalFail(error.message, {
+        originalError: error.name,
+      });
+      if (traceId) {
+        failure.withTraceId(traceId);
+      }
+      return failure.toResponse(dataResult);
+    }
+
+    const failure = new Failures.InternalFail('Unknown error occurred', { error });
+    if (traceId) {
+      failure.withTraceId(traceId);
+    }
+    return failure.toResponse(dataResult);
+  }
+}
+
+// ========== Integration กับ Result Pattern ==========
+
+// สมมติว่ามี Result class จากไฟล์เดิม
+export class Result<T, F = unknown> {
+  public readonly isSuccess: boolean;
+  public readonly isFailure: boolean;
+  public readonly error?: F;
+  private readonly _value?: T;
+
+  private constructor(isSuccess: boolean, error?: F, value?: T) {
+    this.isSuccess = isSuccess;
+    this.isFailure = !isSuccess;
+    this.error = error;
+    this._value = value;
+  }
+
+  public getValue(): T {
+    if (!this.isSuccess) {
+      throw new Error("Can't get the value of an error Result");
+    }
+    return this._value as T;
+  }
+
+  public static ok<T, F = unknown>(value?: T): Result<T, F> {
+    return new Result<T, F>(true, undefined, value);
+  }
+
+  public static fail<T, F = unknown>(error: F): Result<T, F> {
+    return new Result<T, F>(false, error);
+  }
+}
+
+// Helper function สำหรับแปลง Failure เป็น Result
+export const failureToResult = <T>(failure: BaseFailure): Result<T, BaseFailure> => {
+  return Result.fail<T, BaseFailure>(failure);
+};
+
+// Helper function สำหรับแปลง Result เป็น DataResponse
+export const resultToResponse = <T>(
+  result: Result<T, BaseFailure>,
+  successMessage: string = 'Success',
+  traceId?: string
+): DataResponse<T | null> => {
+  if (result.isSuccess) {
+    return ResponseBuilder.success(result.getValue(), successMessage, traceId);
+  }
+
+  const error = result.error!;
+  if (traceId) {
+    error.withTraceId(traceId);
+  }
+  return ResponseBuilder.error(error);
+};
+
+// ========== Error Handler Middleware ==========
+
+export interface ErrorHandlerOptions {
+  includeStack?: boolean;
+  logger?: (error: unknown) => void;
+}
+
+// สำหรับ Fastify
+export const createErrorHandler = (options?: ErrorHandlerOptions): ErrorHandler => {
+  return (error: unknown, request: FastifyRequest, reply: FastifyReply) => {
+    // Generate traceId
+    const traceId = request.id || generateTraceId();
+
+    // Log error
+    if (options?.logger) {
+      options.logger(error);
+    } else {
+      console.error('Error:', {
+        traceId,
+        error: error instanceof Error ? error.message : String(error),
+        path: request.url,
+        method: request.method,
+      });
+    }
+
+    // Build response
+    const response = ResponseBuilder.fromError(error, traceId);
+
+    return reply.status(response.statusCode).send(response);
+  };
+};
+
+// Helper สำหรับ generate traceId
+const generateTraceId = (): string => {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
+// ========== Route Handler Helpers ==========
+
+export type AsyncRouteHandler<T> = (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => Promise<DataResponse<T>>;
+
+// Wrapper สำหรับ async route handlers
+export const asyncHandler = <T>(
+  handler: AsyncRouteHandler<T>
+): RouteHandler => {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const traceId = request.id || generateTraceId();
+      request.traceId = traceId; // เก็บไว้ใน request
+
+      const response = await handler(request, reply);
+      
+      // เพิ่ม traceId ถ้ายังไม่มี
+      if (!response.traceId) {
+        response.traceId = traceId;
+      }
+
+      return reply.status(response.statusCode).send(response);
+    } catch (error) {
+      const traceId = request.traceId || generateTraceId();
+      const response = ResponseBuilder.fromError(error, traceId);
+      return reply.status(response.statusCode).send(response);
+    }
+  };
+};
+
+// ========== ตัวอย่างการใช้งาน ==========
+
+// 1. UseCase/Service Layer
+class UserService {
+  async getUser(userId: string): Promise<Result<User, BaseFailure>> {
+    try {
+      // Validation
+      if (!userId) {
+        return failureToResult(
+          new Failures.ValidationFail('User ID is required', { field: 'userId' })
+        );
+      }
+
+      // Get from database
+      const user = await this.findUserById(userId);
+      if (!user) {
+        return failureToResult(new Failures.NotFoundFail('User', { userId }));
+      }
+
+      // Check permission
+      if (!user.isActive) {
+        return failureToResult(
+          new Failures.ForbiddenFail('User account is not active')
+        );
+      }
+
+      return Result.ok(user);
+    } catch (error) {
+      // จับ error ที่ไม่คาดคิด
+      if (error instanceof BaseFailure) {
+        return failureToResult(error);
+      }
+      return failureToResult(
+        new Failures.InternalFail(
+          error instanceof Error ? error.message : 'Unknown error'
+        )
+      );
+    }
+  }
+
+  async createUser(data: CreateUserDto): Promise<Result<User, BaseFailure>> {
+    try {
+      // Validation
+      if (!data.email) {
+        return failureToResult(
+          new Failures.ValidationFail('Email is required', { field: 'email' })
+        );
+      }
+
+      // Check duplicate
+      const existing = await this.findUserByEmail(data.email);
+      if (existing) {
+        return failureToResult(
+          new Failures.ConflictFail('Email already exists', { email: data.email })
+        );
+      }
+
+      // Create
+      const user = await this.saveUser(data);
+      return Result.ok(user);
+    } catch (error) {
+      if (error instanceof BaseFailure) {
+        return failureToResult(error);
+      }
+      return failureToResult(new Failures.CreateFail('Failed to create user'));
+    }
+  }
+
+  private async findUserById(userId: string): Promise<User | null> {
+    // Simulate database call
+    return { 
+      id: userId, 
+      isActive: true, 
+      email: 'user@example.com',
+      name: 'Test User'
+    };
+  }
+
+  private async findUserByEmail(email: string): Promise<User | null> {
+    return null; // Simulate
+  }
+
+  private async saveUser(data: CreateUserDto): Promise<User> {
+    return { 
+      id: '123', 
+      email: data.email,
+      name: data.name,
+      isActive: true 
+    };
+  }
+}
+
+// 2. Route Handler - แบบใช้ Result Pattern
+export const getUserHandler = asyncHandler<User>(async (request, reply) => {
+  const service = new UserService();
+  const result = await service.getUser(request.params.userId || '');
+
+  return resultToResponse(
+    result,
+    'User retrieved successfully',
+    request.traceId
+  );
+});
+
+// 3. Route Handler - แบบ throw error โดยตรง
+export const createUserHandler = asyncHandler<User>(async (request, reply) => {
+  const service = new UserService();
+  const data = request.body as CreateUserDto;
+
+  // Validate
+  if (!data.email) {
+    throw new Failures.ValidationFail('Email is required', { field: 'email' });
+  }
+
+  const result = await service.createUser(data);
+
+  if (result.isFailure) {
+    throw result.error; // throw failure ออกไป asyncHandler จะจัดการให้
+  }
+
+  return ResponseBuilder.created(
+    result.getValue(),
+    'User created successfully',
+    request.traceId
+  );
+});
+
+// 4. Route Handler - แบบจัดการเอง (ไม่ใช้ asyncHandler)
+export const updateUserHandler = async (
+  request: FastifyRequest<UpdateUserDto>,
+  reply: FastifyReply
+): Promise<FastifyReply> => {
+  const traceId = request.id || generateTraceId();
+
+  try {
+    const data = request.body;
+
+    if (!data) {
+      const response: DataResponse<null> = {
+        statusCode: 422,
+        isSuccess: false,
+        traceId,
+        codeResult: 'PARSE_FAIL',
+        message: 'Request body is required',
+        dataResult: null,
+      };
+      return reply.status(422).send(response);
+    }
+
+    // Update logic here...
+    const user: User = { 
+      id: request.params.userId || '', 
+      email: data.email || 'user@example.com',
+      name: data.name,
+      isActive: data.isActive ?? true
+    };
+
+    const response = ResponseBuilder.success(
+      user,
+      'User updated successfully',
+      traceId
+    );
+
+    return reply.status(200).send(response);
+  } catch (error) {
+    const response = ResponseBuilder.fromError(error, traceId);
+    return reply.status(response.statusCode).send(response);
+  }
+};
+
+// 5. Setup Global Error Handler
+export const setupErrorHandling = (app: FastifyInstance): void => {
+  // Request ID plugin (สำหรับ traceId)
+  app.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
+    request.id = (request.headers['x-request-id'] as string) || generateTraceId();
+  });
+
+  // Global error handler
+  app.setErrorHandler(createErrorHandler({
+    includeStack: process.env.NODE_ENV === 'development',
+    logger: (error) => {
+      // ใช้ logger library ของคุณ
+      console.error('Global Error:', error);
+    },
+  }));
+};
+
+// 6. ตัวอย่างการใช้ Result Pattern แบบเต็ม
+export const complexOperationHandler = asyncHandler<User>(async (request, reply) => {
+  const service = new UserService();
+  const traceId = request.traceId;
+
+  // Chain multiple operations
+  const result = await service
+    .getUser(request.params.userId || '')
+    .then((r) => {
+      if (r.isFailure) return r;
+      // Do something with user...
+      return Result.ok(r.getValue());
+    });
+
+  return resultToResponse(result, 'Operation completed successfully', traceId);
+});
+
+// ========== Type Guards ==========
+
+export const isBaseFailure = (error: unknown): error is BaseFailure => {
+  return error instanceof BaseFailure;
+};
+
+export const isFailureResult = <T>(
+  result: Result<T, unknown>
+): result is Result<T, BaseFailure> => {
+  return result.isFailure && result.error instanceof BaseFailure;
+};
+
+// ========== Export Summary ==========
+
+export {
+  BaseFailure,
+  Failures,
+  ResponseBuilder,
+  asyncHandler,
+  createErrorHandler,
+  setupErrorHandling,
+  resultToResponse,
+  failureToResult,
+};

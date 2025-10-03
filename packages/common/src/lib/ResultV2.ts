@@ -261,6 +261,15 @@ const exampleUsage = () => {
     Result.ok<string, string>('success')
   ]);
 
+//   // ✅ วิธีง่ายๆ ที่ไม่ต้องใช้ helper functions
+// const processUser = async (userId: string) => {
+//   let result = Result.ok(userId);
+//   result = await result.chainAsync(fetchUser);
+//   result = await result.chainAsync(validateUser);
+//   result = await result.chainAsync(saveUser);
+//   return result;
+// };
+
   // HTTP response simulation
   const mockRes = {
     json: (data: unknown) => console.log('Response:', data),
@@ -272,6 +281,8 @@ const exampleUsage = () => {
   result1.toHttpResponse(mockRes);
   
   return { result1, result2, result3 };
+
+  
 };
 
 // Export example usage เพื่อป้องกัน unused warning
@@ -296,7 +307,7 @@ export { exampleUsage };
    → เพิ่ม readonly keyword
 
 5. ✅ This assertion is unnecessary since it does not change the type
-   → ใช้ ! assertion แทน as T เมื่อเราแน่ใจว่าค่าไม่เป็น undefined
+   → ใช้ ! assertion แทน as casting เมื่อเราแน่ใจว่าค่าไม่เป็น undefined
 
 🎯 การปรับปรุงเพิ่มเติม:
 - ใช้ ! assertion แทน as casting เมื่อเราแน่ใจว่าค่าไม่เป็น null/undefined
