@@ -5,6 +5,7 @@ this lib for sharing type and utility function for service and core layer.
 ## Content
  - [ResultV2](#resultv2-documentation) 
  - [ResponseBuilder](#responsebuilder-usage-examples)
+    - [Helper Function](#-helper-functions-usage-examples)
 
 # ResultV2 Documentation
 
@@ -1948,3 +1949,539 @@ const getUserHandler = createController(
 5. Handle errors อย่างสม่ำเสมอ
 
 ResponseBuilder ช่วยให้ API development มีประสิทธิภาพและเชื่อถือได้มากขึ้น! 🚀
+
+## 🔧 Helper Functions Usage Examples
+
+### 1. `failureToResult` Helper Function
+
+Helper function นี้ช่วยแปลง `BaseFailure` เป็น `Result<T, BaseFailure>` เพื่อใช้ใน Result chains
+
+```typescript
+import { failureToResult, CommonFailures } from './ResponseBuilder';
+
+// ✅ ตัวอย่างการใช้งาน failureToResult
+const validateEmail = (email: string): Result<string, BaseFailure> => {
+  if (!email?.includes('@')) {
+    const failure = new CommonFailures.ValidationFail('Invalid email format', {
+      field: 'email',
+      value: email
+    });
+    return failureToResult<string>(failure);
+  }
+  return Result.ok(email);
+};
+
+const findUser = (userId: string): Result<{ id: string; name: string }, BaseFailure> => {
+  if (userId === 'notfound') {
+    const failure = new CommonFailures.NotFoundFail(`User with ID ${userId} not found`, {
+      userId,
+      resource: 'user'
+    });
+    return failureToResult(failure);
+  }
+  
+  return Result.ok({ id: userId, name: 'John Doe' });
+};
+
+// ✅ การใช้ใน Result chain
+const processUserRegistration = (userData: { email: string; userId: string }) => {
+  return Result.ok(userData)
+    .chain(data => validateEmail(data.email).map(() => data))
+    .chain(data => findUser(data.userId).map(() => data))
+    .map(data => ({
+      ...data,
+      registeredAt: new Date(),
+      status: 'active'
+    }));
+};
+
+// การทดสอบ
+const successCase = processUserRegistration({ 
+  email: 'john@example.com', 
+  userId: 'user123' 
+});
+
+const emailErrorCase = processUserRegistration({ 
+  email: 'invalid-email', 
+  userId: 'user123' 
+});
+
+const userNotFoundCase = processUserRegistration({ 
+  email: 'john@example.com', 
+  userId: 'notfound' 
+});
+```
+
+### 2. `resultToResponse` Helper Function
+
+Helper function นี้แปลง `Result<T, BaseFailure>` เป็น `DataResponse<T>` พร้อม options ต่างๆ
+
+```typescript
+import { resultToResponse, ResultToResponseOptions } from './ResponseBuilder';
+
+// ✅ Basic usage
+const basicExample = () => {
+  const result = Result.ok({ id: '1', name: 'John' });
+  
+  return resultToResponse(result, {
+    successMessage: 'User retrieved successfully',
+    traceId: 'trace-001'
+  });
+};
+
+// ✅ Error case with custom data
+const errorWithDataExample = () => {
+  const failure = new CommonFailures.ValidationFail('Validation failed', {
+    fields: ['name', 'email']
+  });
+  const result = Result.fail<never, BaseFailure>(failure);
+  
+  return resultToResponse(result, {
+    errorDataResult: { 
+      submittedData: { name: '', email: 'invalid' },
+      validationRules: { name: 'required', email: 'valid email format' }
+    },
+    traceId: 'validation-error-001'
+  });
+};
+
+// ✅ Complex validation with multiple steps
+interface UserRegistrationData {
+  name: string;
+  email: string;
+  password: string;
+  age: number;
+}
+
+const validateUserRegistration = (data: Partial<UserRegistrationData>): Result<UserRegistrationData, BaseFailure> => {
+  // Name validation
+  if (!data.name || data.name.trim().length === 0) {
+    return failureToResult(new CommonFailures.ValidationFail('Name is required'));
+  }
+
+  // Email validation
+  if (!data.email?.includes('@')) {
+    return failureToResult(new CommonFailures.ValidationFail('Valid email is required'));
+  }
+
+  // Password validation
+  if (!data.password || data.password.length < 8) {
+    return failureToResult(new CommonFailures.ValidationFail('Password must be at least 8 characters'));
+  }
+
+  // Age validation
+  if (!data.age || data.age < 18) {
+    return failureToResult(new CommonFailures.ValidationFail('Age must be 18 or older'));
+  }
+
+  return Result.ok(data as UserRegistrationData);
+};
+
+const registerUser = (userData: Partial<UserRegistrationData>, traceId?: string) => {
+  const result = validateUserRegistration(userData)
+    .map(validData => ({
+      ...validData,
+      id: `user_${Date.now()}`,
+      createdAt: new Date()
+    }));
+
+  return resultToResponse(result, {
+    successMessage: 'User registered successfully',
+    errorDataResult: userData,
+    traceId
+  });
+};
+
+// การทดสอบ registration
+const validRegistration = registerUser({
+  name: 'John Doe',
+  email: 'john@example.com',
+  password: 'securepassword123',
+  age: 25
+}, 'register-success-001');
+
+const invalidRegistration = registerUser({
+  name: '',
+  email: 'invalid-email',
+  password: '123',
+  age: 16
+}, 'register-error-001');
+```
+
+### 3. Async Operations with Helper Functions
+
+```typescript
+// ✅ Async validation และการใช้ helper functions
+const asyncUserProcessing = {
+  // Database simulation
+  checkEmailExists: async (email: string): Promise<Result<boolean, BaseFailure>> => {
+    return Result.fromAsync(
+      async () => {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return email === 'exists@example.com';
+      },
+      () => new CommonFailures.GetFail('Database error while checking email')
+    );
+  },
+
+  saveUser: async (userData: UserRegistrationData): Promise<Result<UserRegistrationData & { id: string }, BaseFailure>> => {
+    return Result.fromAsync(
+      async () => {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        return {
+          ...userData,
+          id: `saved_${Date.now()}`
+        };
+      },
+      () => new CommonFailures.CreateFail('Failed to save user to database')
+    );
+  },
+
+  // ✅ Complete async registration flow
+  processRegistration: async (userData: Partial<UserRegistrationData>, traceId?: string) => {
+    const result = await validateUserRegistration(userData)
+      .chainAsync(async (validData) => {
+        const emailExists = await asyncUserProcessing.checkEmailExists(validData.email);
+        if (emailExists.isSuccess && emailExists.getValue()) {
+          return failureToResult(new CommonFailures.CreateFail('Email already exists'));
+        }
+        return Result.ok(validData);
+      })
+      .then(result => result.chainAsync(asyncUserProcessing.saveUser));
+
+    return resultToResponse(result, {
+      successMessage: 'User registration completed successfully',
+      errorDataResult: userData,
+      traceId
+    });
+  }
+};
+
+// การทดสอบ async registration
+const testAsyncRegistration = async () => {
+  const newUser = {
+    name: 'Jane Doe',
+    email: 'jane@example.com',
+    password: 'newpassword123',
+    age: 30
+  };
+
+  const existingUser = {
+    name: 'John Doe',
+    email: 'exists@example.com',
+    password: 'password123',
+    age: 25
+  };
+
+  const successResult = await asyncUserProcessing.processRegistration(newUser, 'async-success');
+  const errorResult = await asyncUserProcessing.processRegistration(existingUser, 'async-error');
+  
+  return { successResult, errorResult };
+};
+```
+
+### 4. Express.js Integration with Helper Functions
+
+```typescript
+// ✅ Express controller ที่ใช้ helper functions
+interface ExpressController {
+  // POST /users - Create user with full validation
+  createUser: (req: { body: unknown }, res: { status: (code: number) => { json: (data: unknown) => void } }) => Promise<void>;
+  
+  // GET /users/:id - Get user with validation
+  getUser: (req: { params: { id: string } }, res: { status: (code: number) => { json: (data: unknown) => void } }) => Promise<void>;
+  
+  // PUT /users/:id - Update user
+  updateUser: (req: { params: { id: string }; body: unknown }, res: { status: (code: number) => { json: (data: unknown) => void } }) => Promise<void>;
+}
+
+const createExpressControllers = (): ExpressController => ({
+  createUser: async (req, res) => {
+    const userData = req.body;
+    const traceId = `create-user-${Date.now()}`;
+
+    // ใช้ helper functions ใน complex validation chain
+    const result = await Result.ok(userData)
+      .chain(data => {
+        if (!data || typeof data !== 'object') {
+          return failureToResult(new CommonFailures.ValidationFail('Request body must be an object'));
+        }
+        return Result.ok(data);
+      })
+      .chain(data => validateUserRegistration(data as Partial<UserRegistrationData>))
+      .chainAsync(async (validData) => {
+        // Check if email exists
+        const emailCheck = await asyncUserProcessing.checkEmailExists(validData.email);
+        if (emailCheck.isSuccess && emailCheck.getValue()) {
+          return failureToResult(new CommonFailures.CreateFail('Email already registered'));
+        }
+        return Result.ok(validData);
+      })
+      .then(result => result.chainAsync(asyncUserProcessing.saveUser));
+
+    // ใช้ resultToResponse เพื่อแปลงเป็น API response
+    const response = resultToResponse(result, {
+      successMessage: 'User created successfully',
+      errorDataResult: userData,
+      traceId
+    });
+
+    res.status(response.statusCode).json(response);
+  },
+
+  getUser: async (req, res) => {
+    const userId = req.params.id;
+    const traceId = `get-user-${Date.now()}`;
+
+    // Validation และ fetch user
+    const result = await Result.ok(userId)
+      .chain(id => {
+        if (!id || id.trim().length === 0) {
+          return failureToResult(new CommonFailures.ValidationFail('User ID is required'));
+        }
+        return Result.ok(id);
+      })
+      .chain(findUser)
+      .chainAsync(async (user) => {
+        // Enrich user data
+        return Result.ok({
+          ...user,
+          lastAccessed: new Date(),
+          status: 'active'
+        });
+      });
+
+    const response = resultToResponse(result, {
+      successMessage: 'User retrieved successfully',
+      traceId
+    });
+
+    res.status(response.statusCode).json(response);
+  },
+
+  updateUser: async (req, res) => {
+    const userId = req.params.id;
+    const updateData = req.body;
+    const traceId = `update-user-${Date.now()}`;
+
+    const result = await Result.ok({ userId, updateData })
+      .chain(({ userId, updateData }) => {
+        // Validate user ID
+        if (!userId) {
+          return failureToResult(new CommonFailures.ValidationFail('User ID is required'));
+        }
+        
+        // Validate update data
+        if (!updateData || typeof updateData !== 'object') {
+          return failureToResult(new CommonFailures.ValidationFail('Update data must be an object'));
+        }
+
+        return Result.ok({ userId, updateData });
+      })
+      .chain(({ userId }) => findUser(userId)) // Check if user exists
+      .chainAsync(async (existingUser) => {
+        // Apply updates
+        const updatedUser = {
+          ...existingUser,
+          ...(updateData as object),
+          updatedAt: new Date()
+        };
+
+        // Simulate save
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return Result.ok(updatedUser);
+      });
+
+    const response = resultToResponse(result, {
+      successMessage: 'User updated successfully',
+      errorDataResult: { userId, updateData },
+      traceId
+    });
+
+    res.status(response.statusCode).json(response);
+  }
+});
+
+// การใช้งาน controllers
+const controllers = createExpressControllers();
+
+// Test requests simulation
+const simulateRequests = async () => {
+  console.log('=== Testing Express Controllers with Helper Functions ===');
+
+  // Mock response object
+  const createMockResponse = () => ({
+    status: (code: number) => ({
+      json: (data: unknown) => console.log(`Status ${code}:`, JSON.stringify(data, null, 2))
+    })
+  });
+
+  // Test create user
+  console.log('\n1. Create User Test:');
+  await controllers.createUser(
+    { body: { name: 'Test User', email: 'test@example.com', password: 'password123', age: 25 } },
+    createMockResponse()
+  );
+
+  // Test create user with validation error
+  console.log('\n2. Create User Validation Error:');
+  await controllers.createUser(
+    { body: { name: '', email: 'invalid-email' } },
+    createMockResponse()
+  );
+
+  // Test get user
+  console.log('\n3. Get User Test:');
+  await controllers.getUser(
+    { params: { id: 'user123' } },
+    createMockResponse()
+  );
+
+  // Test get user not found
+  console.log('\n4. Get User Not Found:');
+  await controllers.getUser(
+    { params: { id: 'notfound' } },
+    createMockResponse()
+  );
+
+  // Test update user
+  console.log('\n5. Update User Test:');
+  await controllers.updateUser(
+    { params: { id: 'user123' }, body: { name: 'Updated Name' } },
+    createMockResponse()
+  );
+};
+```
+
+### 5. Advanced Helper Function Patterns
+
+```typescript
+// ✅ Creating custom helper functions
+const createCustomHelpers = () => {
+  // Helper สำหรับ validation chains
+  const validateRequired = <T>(value: T, fieldName: string): Result<T, BaseFailure> => {
+    if (value === null || value === undefined || value === '') {
+      return failureToResult(new CommonFailures.ValidationFail(`${fieldName} is required`));
+    }
+    return Result.ok(value);
+  };
+
+  const validateLength = (value: string, min: number, max: number, fieldName: string): Result<string, BaseFailure> => {
+    if (value.length < min || value.length > max) {
+      return failureToResult(new CommonFailures.ValidationFail(
+        `${fieldName} must be between ${min} and ${max} characters`
+      ));
+    }
+    return Result.ok(value);
+  };
+
+  const validateEmail = (email: string): Result<string, BaseFailure> => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return failureToResult(new CommonFailures.ValidationFail('Invalid email format'));
+    }
+    return Result.ok(email);
+  };
+
+  // Helper สำหรับสร้าง standardized responses
+  const createSuccessResponse = <T>(data: T, message: string, traceId?: string) => {
+    return resultToResponse(Result.ok(data), {
+      successMessage: message,
+      traceId
+    });
+  };
+
+  const createErrorResponse = (error: BaseFailure, data?: unknown, traceId?: string) => {
+    return resultToResponse(Result.fail(error), {
+      errorDataResult: data,
+      traceId
+    });
+  };
+
+  // Complex validation helper
+  const validateUserInput = (input: {
+    name?: string;
+    email?: string;
+    password?: string;
+  }): Result<{ name: string; email: string; password: string }, BaseFailure> => {
+    return Result.ok(input)
+      .chain(data => validateRequired(data.name, 'name').map(() => data))
+      .chain(data => validateLength(data.name!, 2, 50, 'name').map(() => data))
+      .chain(data => validateRequired(data.email, 'email').map(() => data))
+      .chain(data => validateEmail(data.email!).map(() => data))
+      .chain(data => validateRequired(data.password, 'password').map(() => data))
+      .chain(data => validateLength(data.password!, 8, 100, 'password').map(() => data))
+      .map(data => ({
+        name: data.name!,
+        email: data.email!,
+        password: data.password!
+      }));
+  };
+
+  return {
+    validateRequired,
+    validateLength,
+    validateEmail,
+    createSuccessResponse,
+    createErrorResponse,
+    validateUserInput
+  };
+};
+
+// การใช้งาน custom helpers
+const customHelpersExample = () => {
+  const helpers = createCustomHelpers();
+
+  // Test validation
+  const validInput = {
+    name: 'John Doe',
+    email: 'john@example.com',
+    password: 'securepassword123'
+  };
+
+  const invalidInput = {
+    name: '',
+    email: 'invalid-email',
+    password: '123'
+  };
+
+  const validResult = helpers.validateUserInput(validInput);
+  const invalidResult = helpers.validateUserInput(invalidInput);
+
+  // Convert to responses
+  const successResponse = resultToResponse(validResult, {
+    successMessage: 'User input validated successfully',
+    traceId: 'validation-success'
+  });
+
+  const errorResponse = resultToResponse(invalidResult, {
+    errorDataResult: invalidInput,
+    traceId: 'validation-error'
+  });
+
+  return { successResponse, errorResponse };
+};
+```
+
+---
+
+## 🎯 Helper Functions Best Practices
+
+### ✅ การใช้ `failureToResult`
+- ใช้เมื่อต้องการแปลง `BaseFailure` เป็น `Result` สำหรับ chaining
+- เหมาะสำหรับ validation functions ที่คืน `Result`
+- ช่วยให้ code สอดคล้องกับ Result pattern
+
+### ✅ การใช้ `resultToResponse`
+- ใช้เป็น final step ในการแปลง `Result` เป็น API response
+- รองรับ custom success message และ error data
+- จำเป็นต้องมี traceId สำหรับ tracking
+
+### ✅ การรวมใช้ทั้งสอง Helper Functions
+- `failureToResult` สำหรับสร้าง `Result` จาก errors
+- `resultToResponse` สำหรับแปลงเป็น API response
+- ใช้ร่วมกันใน validation chains และ controller patterns
+
+Helper functions เหล่านี้ช่วยให้การใช้งาน ResponseBuilder มีประสิทธิภาพและสม่ำเสมอมากขึ้น! 🚀
+
+---
