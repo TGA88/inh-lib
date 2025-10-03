@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.10.2](https://github.com/TGA88/inh-lib/compare/common-1.10.1...common-1.10.2) (2025-10-03)
+
+
+### Bug Fixes
+
+* **common:**  return Fail type as unknown of funciton fronAsync ([1e69f54](https://github.com/TGA88/inh-lib/commit/1e69f5453cdfdea1e60ee01625c604d53458cb88))
+
 ## [1.10.1](https://github.com/TGA88/inh-lib/compare/common-1.10.0...common-1.10.1) (2025-10-03)
 
 ## [1.10.0](https://github.com/TGA88/inh-lib/compare/common-1.9.1...common-1.10.0) (2025-10-03)
