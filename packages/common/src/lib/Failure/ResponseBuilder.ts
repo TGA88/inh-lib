@@ -118,98 +118,113 @@ export const resultToResponse = <T, E = null>(
   return ResponseBuilder.error(error, errorDataResult ?? null);
 };
 
-// ========== Helper Functions Usage Examples ==========
+// ========== Helper / Example Functions (Refactored) ==========
+// NOTE:
+// 1. These are example utilities. Consider moving to a separate docs/examples file or test suite.
+// 2. Kept exports so existing imports do not break.
+// 3. Replaced any with stricter typing, added small helpers for cleanliness.
+
+interface User {
+  id: string;
+  name: string;
+  email?: string;
+  processedAt?: Date;
+}
+
+interface ControllerReq<P = any, B = any> {
+  params: P;
+  body: B;
+}
+
+interface ControllerRes {
+  status(code: number): this;
+  json(data: unknown): this;
+}
 
 /**
- * ตัวอย่างการใช้งาน failureToResult helper function
+ * Examples using failureToResult
  */
 export const failureToResultExamples = {
-  // ✅ แปลง ValidationFail เป็น Result
   validateEmail: (email: string): Result<string, BaseFailure> => {
     if (!email || !email.includes('@')) {
-      const failure = new CommonFailures.ValidationFail('Invalid email format', {
-        field: 'email',
-        value: email
-      });
-      return failureToResult<string>(failure);
+      return failureToResult(
+        new CommonFailures.ValidationFail('Invalid email format', {
+          field: 'email',
+          value: email,
+        })
+      );
     }
     return Result.ok(email);
   },
 
-  // ✅ แปลง NotFoundFail เป็น Result
   findUser: (userId: string): Result<{ id: string; name: string }, BaseFailure> => {
     if (userId === 'notfound') {
-      const failure = new CommonFailures.NotFoundFail(`User with ID ${userId} not found`, {
-        userId,
-        resource: 'user'
-      });
-      return failureToResult(failure);
+      return failureToResult(
+        new CommonFailures.NotFoundFail(`User with ID ${userId} not found`, {
+          userId,
+          resource: 'user',
+        })
+      );
     }
-    
     return Result.ok({ id: userId, name: 'John Doe' });
   },
 
-  // ✅ การใช้ใน chain operations
   processUserChain: (userId: string, email: string) => {
     return Result.ok(userId)
       .chain(id => failureToResultExamples.findUser(id))
-      .chain(user => failureToResultExamples.validateEmail(email).map(() => user))
+      .chain(user =>
+        failureToResultExamples
+          .validateEmail(email)
+          .map(() => user)
+      )
       .map(user => ({ ...user, email, processedAt: new Date() }));
-  }
+  },
 };
 
 /**
- * ตัวอย่างการใช้งาน resultToResponse helper function
+ * Examples using resultToResponse
  */
 export const resultToResponseExamples = {
-  // ✅ Basic success response
   simpleSuccess: () => {
-    const result = Result.ok({ id: '1', name: 'John' });
+    const result = Result.ok<{ id: string; name: string }, BaseFailure>({ id: '1', name: 'John' });
     return resultToResponse(result, {
       successMessage: 'User retrieved successfully',
-      traceId: 'trace-001'
+      traceId: 'trace-001',
     });
   },
 
-  // ✅ Basic error response  
   simpleError: () => {
     const failure = new CommonFailures.ValidationFail('Email is required');
     const result = Result.fail<never, BaseFailure>(failure);
-    return resultToResponse(result, {
-      traceId: 'trace-002'
-    });
+    return resultToResponse(result, { traceId: 'trace-002' });
   },
 
-  // ✅ Success response with custom options
   successWithOptions: () => {
     const userData = { id: '1', name: 'John', email: 'john@example.com' };
-    const result = Result.ok(userData);
-    
-    return resultToResponse(result, {
+    return resultToResponse(Result.ok(userData), {
       successMessage: 'User profile loaded successfully',
-      traceId: 'user-profile-001'
+      traceId: 'user-profile-001',
     });
   },
 
-  // ✅ Error response with error data
   errorWithData: () => {
     const failure = new CommonFailures.ValidationFail('Validation failed', {
-      fields: ['name', 'email']
+      fields: ['name', 'email'],
     });
     const result = Result.fail<never, BaseFailure>(failure);
-    
     return resultToResponse(result, {
-      errorDataResult: { 
+      errorDataResult: {
         submittedData: { name: '', email: 'invalid' },
-        validationRules: { name: 'required', email: 'valid email format' }
+        validationRules: { name: 'required', email: 'valid email format' },
       },
-      traceId: 'validation-error-001'
+      traceId: 'validation-error-001',
     });
   },
 
-  // ✅ การใช้กับ async operations
   asyncExample: async () => {
-    const fetchUserData = async (id: string): Promise<Result<{ id: string; name: string }, BaseFailure>> => {
+    const fetchUserData = async (
+      id: string
+    ): Promise<Result<{ id: string; name: string }, BaseFailure>> => {
       if (id === 'error') {
         return Result.fail(new CommonFailures.GetFail('Database error'));
       }
@@ -219,37 +234,43 @@ export const resultToResponseExamples = {
     const result = await fetchUserData('123');
     return resultToResponse(result, {
       successMessage: 'User data fetched asynchronously',
-      traceId: 'async-fetch-001'
+      traceId: 'async-fetch-001',
     });
   },
 
-  // ✅ การใช้กับ Result chain
   chainExample: () => {
-    interface User { id: string; name: string; email: string; }
-    
-    const validateAndCreateUser = (userData: { name?: string; email?: string }): Result<User, BaseFailure> => {
-      return Result.ok(userData)
-        .chain(data => {
+
+    const validateAndCreateUser = (
+      userData: { name?: string; email?: string }
+    ): Result<{ id: string; name: string; email: string }, BaseFailure> => {
+      return Result.ok<typeof userData,BaseFailure>(userData)
+        .chain<{ name: string; email?: string }>(data => {
           if (!data.name) {
-            return Result.fail(new CommonFailures.ValidationFail('Name is required'));
+            return Result.fail(
+              new CommonFailures.ValidationFail('Name is required')
+            );
           }
-          return Result.ok(data);
+          // Narrow type: name is now guaranteed
+          return Result.ok({ ...data, name: data.name });
         })
-        .chain(data => {
-          if (!data.email || !data.email.includes('@')) {
-            return Result.fail(new CommonFailures.ValidationFail('Valid email is required'));
+        .chain<{ name: string; email: string }>(data => {
+          if (!data.email?.includes('@')) {
+            return Result.fail(
+              new CommonFailures.ValidationFail('Valid email is required')
+            );
           }
-          return Result.ok(data);
+          // Narrow type: email is now guaranteed
+          return Result.ok({ ...data, email: data.email });
         })
         .map(data => ({
           id: `user_${Date.now()}`,
-          name: data.name!,
-          email: data.email!
+          name: data.name,
+          email: data.email,
         }));
     };
 
     const validData = { name: 'John', email: 'john@example.com' };
-    const invalidData = { name: 'John' }; // missing email
+    const invalidData = { name: 'John' };
 
     const successResult = validateAndCreateUser(validData);
     const errorResult = validateAndCreateUser(invalidData);
@@ -257,64 +278,68 @@ export const resultToResponseExamples = {
     return {
       success: resultToResponse(successResult, {
         successMessage: 'User created successfully',
-        traceId: 'chain-success-001'
+        traceId: 'chain-success-001',
       }),
       error: resultToResponse(errorResult, {
         errorDataResult: invalidData,
-        traceId: 'chain-error-001'
-      })
+        traceId: 'chain-error-001',
+      }),
     };
-  }
+  },
 };
 
 /**
- * ตัวอย่างการใช้ Helper Functions ใน Express Controllers
+ * Express-like controller examples (keep minimal / typed)
  */
 export const controllerExamples = {
-  // ✅ GET Controller with helper functions
-  getUserController: async (req: { params: { id: string } }, res: any) => {
+  getUserController: async (
+    req: ControllerReq<{ id: string }>,
+    res: ControllerRes
+  ) => {
     const userId = req.params.id;
     const traceId = `get-user-${Date.now()}`;
 
-    // ใช้ failureToResult เพื่อสร้าง Result จาก validation
     const validateId = (id: string): Result<string, BaseFailure> => {
-      if (!id || id.length === 0) {
-        return failureToResult(new CommonFailures.ValidationFail('User ID is required'));
+      if (!id) {
+        return failureToResult(
+          new CommonFailures.ValidationFail('User ID is required')
+        );
       }
       if (!/^[a-zA-Z0-9]+$/.test(id)) {
-        return failureToResult(new CommonFailures.ValidationFail('Invalid user ID format'));
+        return failureToResult(
+          new CommonFailures.ValidationFail('Invalid user ID format')
+        );
       }
       return Result.ok(id);
     };
 
-    const fetchUser = async (id: string): Promise<Result<{ id: string; name: string; email: string }, BaseFailure>> => {
-      // Simulate database call
+    const fetchUser = async (
+      id: string
+    ): Promise<Result<User, BaseFailure>> => {
       if (id === 'notfound') {
         return failureToResult(new CommonFailures.NotFoundFail('User not found'));
       }
-      
       return Result.ok({
         id,
         name: 'John Doe',
-        email: 'john@example.com'
+        email: 'john@example.com',
       });
     };
 
-    // Process with Result chain
-    const result = await validateId(userId)
-      .chainAsync(fetchUser);
+    const result = await validateId(userId).chainAsync(fetchUser);
 
-    // ใช้ resultToResponse เพื่อแปลงเป็น API response
     const response = resultToResponse(result, {
       successMessage: 'User retrieved successfully',
-      traceId
+      traceId,
     });
 
     return res.status(response.statusCode).json(response);
   },
 
-  // ✅ POST Controller with comprehensive validation
-  createUserController: async (req: { body: any }, res: any) => {
+  createUserController: async (
+    req: ControllerReq<unknown, { name?: unknown; email?: unknown; age?: unknown }>,
+    res: ControllerRes
+  ) => {
     const userData = req.body;
     const traceId = `create-user-${Date.now()}`;
 
@@ -324,131 +349,181 @@ export const controllerExamples = {
       age?: number;
     }
 
-    // Validation functions using failureToResult
     const validateName = (name: unknown): Result<string, BaseFailure> => {
       if (!name || typeof name !== 'string' || name.trim().length === 0) {
-        return failureToResult(new CommonFailures.ValidationFail('Name is required and must be a non-empty string'));
+        return failureToResult(
+          new CommonFailures.ValidationFail(
+            'Name is required and must be a non-empty string'
+          )
+        );
       }
       return Result.ok(name.trim());
     };
 
     const validateEmail = (email: unknown): Result<string, BaseFailure> => {
       if (!email || typeof email !== 'string') {
-        return failureToResult(new CommonFailures.ValidationFail('Email is required'));
+        return failureToResult(
+          new CommonFailures.ValidationFail('Email is required')
+        );
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        return failureToResult(new CommonFailures.ValidationFail('Invalid email format'));
+        return failureToResult(
+          new CommonFailures.ValidationFail('Invalid email format')
+        );
       }
       return Result.ok(email);
     };
 
-    const validateAge = (age: unknown): Result<number | undefined, BaseFailure> => {
+    const validateAge = (
+      age: unknown
+    ): Result<number | undefined, BaseFailure> => {
       if (age === undefined || age === null) {
         return Result.ok(undefined);
       }
       if (typeof age !== 'number' || age < 0 || age > 150) {
-        return failureToResult(new CommonFailures.ValidationFail('Age must be a number between 0 and 150'));
+        return failureToResult(
+          new CommonFailures.ValidationFail(
+            'Age must be a number between 0 and 150'
+          )
+        );
       }
       return Result.ok(age);
     };
 
-    const createUser = async (data: CreateUserData): Promise<Result<CreateUserData & { id: string; createdAt: Date }, BaseFailure>> => {
-      // Simulate database save
+    const createUser = async (
+      data: CreateUserData
+    ): Promise<Result<CreateUserData & { id: string; createdAt: Date }, BaseFailure>> => {
       if (data.email === 'exists@example.com') {
-        return failureToResult(new CommonFailures.CreateFail('Email already exists'));
+        return failureToResult(
+          new CommonFailures.CreateFail('Email already exists')
+        );
       }
-
       return Result.ok({
         ...data,
         id: `user_${Date.now()}`,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
     };
 
-    // Validation chain
     const nameResult = validateName(userData.name);
     const emailResult = validateEmail(userData.email);
     const ageResult = validateAge(userData.age);
 
-    // Combine validation results
-    const validationResult = Result.combine([nameResult, emailResult, ageResult])
-      .map(([name, email, age]) => ({ name, email, age }));
+    // Preserve tuple types with 'as const' and map explicitly to CreateUserData
+    const validationResult = Result
+      .combine([nameResult, emailResult, ageResult] as const)
+      .map<CreateUserData>(([name, email, age]) => ({ name, email, age })) as Result<CreateUserData, BaseFailure>;
+      
 
-    // Process creation
-    const result = await validationResult
-      .chainAsync(createUser);
+    const result = await validationResult.chainAsync(createUser);
 
-    // Convert to response using resultToResponse
     const response = resultToResponse(result, {
       successMessage: 'User created successfully',
-      errorDataResult: userData, // Include submitted data in error response
-      traceId
+      errorDataResult: userData,
+      traceId,
     });
 
     return res.status(response.statusCode).json(response);
   },
 
-  // ✅ Batch processing with helper functions
-  batchProcessController: async (req: { body: { items: any[] } }, res: any) => {
-    const items = req.body.items || [];
+  batchProcessController: async (
+    req: ControllerReq<unknown, { items?: unknown }>,
+    res: ControllerRes
+  ) => {
+    const rawItems = req.body?.items;
+    const items: unknown[] = Array.isArray(rawItems) ? rawItems : [];
     const traceId = `batch-process-${Date.now()}`;
 
-    const processItem = async (item: any, index: number): Promise<Result<{ index: number; processed: any }, BaseFailure>> => {
+    interface ProcessedItem {
+      index: number;
+      processed: {
+        id: string;
+        [k: string]: unknown;
+        processedAt: Date;
+        status: string;
+      };
+    }
+
+    const processItem = async (
+      item: unknown,
+      index: number
+    ): Promise<Result<ProcessedItem, BaseFailure>> => {
       if (!item || typeof item !== 'object') {
-        return failureToResult(new CommonFailures.ValidationFail(`Item at index ${index} is invalid`));
+        return failureToResult(
+          new CommonFailures.ValidationFail(`Item at index ${index} is invalid`)
+        );
+      }
+      const typed = item as { id?: unknown; [k: string]: unknown };
+      if (!typed.id || typeof typed.id !== 'string') {
+        return failureToResult(
+          new CommonFailures.ValidationFail(
+            `Item at index ${index} missing required field: id`
+          )
+        );
       }
 
-      if (!item.id) {
-        return failureToResult(new CommonFailures.ValidationFail(`Item at index ${index} missing required field: id`));
-      }
-
-      // Simulate processing
       return Result.ok({
         index,
         processed: {
-          ...item,
+          ...typed,
+          id: typed.id,
           processedAt: new Date(),
-          status: 'completed'
-        }
+          status: 'completed',
+        },
       });
     };
 
-    // Process all items
     const results = await Promise.all(
-      items.map((item, index) => processItem(item, index))
+      items.map((item, i) => processItem(item, i))
     );
 
-    // Separate successes and failures
-    const successes: any[] = [];
-    const failures: any[] = [];
+    const successes: ProcessedItem[] = [];
+    const failures: Array<{
+      index: number;
+      error: BaseFailure | undefined;
+      originalItem: unknown;
+    }> = [];
 
-    results.forEach((result, index) => {
-      if (result.isSuccess) {
-        successes.push(result.getValue());
+    results.forEach((r, i) => {
+      if (r.isSuccess) {
+        successes.push(r.getValue());
       } else {
         failures.push({
-          index,
-          error: result.errorValue(),
-          originalItem: items[index]
+          index: i,
+          error: r.error,
+          originalItem: items[i],
         });
       }
     });
 
-    // Create final result
-    const finalResult = failures.length === 0
-      ? Result.ok({
-          totalItems: items.length,
-          processedItems: successes.length,
-          failedItems: 0,
-          successes,
-          failures: []
-        })
-      : Result.fail(new CommonFailures.ValidationFail(
-          `${failures.length} out of ${items.length} items failed to process`,
-          { failures }
-        ));
+    type BatchProcessSummary = {
+      totalItems: number;
+      processedItems: number;
+      failedItems: number;
+      successes: ProcessedItem[];
+      failures: {
+        index: number;
+        error: BaseFailure | undefined;
+        originalItem: unknown;
+      }[];
+    };
 
-    // Convert to response
+    const finalResult: Result<BatchProcessSummary, BaseFailure> =
+      failures.length === 0
+        ? Result.ok<BatchProcessSummary, BaseFailure>({
+            totalItems: items.length,
+            processedItems: successes.length,
+            failedItems: 0,
+            successes,
+            failures: [] as BatchProcessSummary['failures'],
+          })
+        : Result.fail<BatchProcessSummary, BaseFailure>(
+            new CommonFailures.ValidationFail(
+              `${failures.length} out of ${items.length} items failed to process`,
+              { failures }
+            )
+          );
+
     const response = resultToResponse(finalResult, {
       successMessage: `Successfully processed ${successes.length} out of ${items.length} items`,
       errorDataResult: {
@@ -456,13 +531,13 @@ export const controllerExamples = {
         processedItems: successes.length,
         failedItems: failures.length,
         successes,
-        failures
+        failures,
       },
-      traceId
+      traceId,
     });
 
     return res.status(response.statusCode).json(response);
-  }
+  },
 };
 
 

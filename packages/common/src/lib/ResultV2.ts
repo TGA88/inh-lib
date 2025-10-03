@@ -146,7 +146,7 @@ export class Result<T, F = unknown> {
     }
   }
 
-  public static async fromAsync<T, F = string>(
+  public static async fromAsync<T, F = unknown>(
     fn: () => Promise<T>, 
     errorMapper?: (error: unknown) => F
   ): Promise<Result<T, F>> {
@@ -314,3 +314,24 @@ export { exampleUsage };
 - ปรับปรุง error handling ให้ชัดเจนขึ้น  
 - เพิ่ม example usage เพื่อป้องกัน linting warnings
 */
+
+
+// ตัวอย่างการใช้ chain ต่อกันหลายขั้น แล้วปิดท้ายด้วย match
+export const chainMatchExample = () => {
+  const output = Result
+    .ok<number, string>(10)                  // เริ่มจากค่าเริ่มต้น
+    .chain(v => Result.ok<number, string>(v + 5)) // เพิ่ม 5
+    .chain(v => v % 2 === 0
+      ? Result.fail<number, string>('even not allowed') // บังคับให้เป็นเลขคี่
+      : Result.ok<number, string>(v * 3))               // คูณ 3 ถ้าเป็นเลขคี่
+    .chain(v => v > 40
+      ? Result.fail<number, string>('too large')
+      : Result.ok<number, string>(v))
+    .match(
+      value => `Success: final value = ${value}`,
+      error => `Error: ${error}`
+    );
+
+  console.log('chain + match example ->', output);
+  return output;
+};
