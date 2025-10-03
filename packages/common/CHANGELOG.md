@@ -2,6 +2,8 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.10.1](https://github.com/TGA88/inh-lib/compare/common-1.10.0...common-1.10.1) (2025-10-03)
+
 ## [1.10.0](https://github.com/TGA88/inh-lib/compare/common-1.9.1...common-1.10.0) (2025-10-03)
 
 
