@@ -156,10 +156,7 @@ export class TelemetryPluginService {
       // const startMeasurement = ResourceTrackingService.startTracking();
       // request.startRequestMeasurement = startMeasurement;
 
-      logger.debug(request.body,'OnRequest:request.body');
-      logger.debug(request.headers,'OnRequest:request.headers');
-      logger.debug(request.params,'OnRequest:request.params');
-      logger.debug(request.query,'OnRequest:request.query');
+  
 
       logger.debug('Creating UnifiedHttpContext for request');
       request.unifiedAppContext = createUnifiedContext(request, reply);
@@ -193,8 +190,6 @@ export class TelemetryPluginService {
       addRegistryItem(request.unifiedAppContext, TELEMETRY_CONTEXT_KEYS.PROVIDER, options.provider);
 
 
-      logger.debug(request,'TelemetryPluginService - onRequest: FastifyRequest');
-      logger.debug(request.unifiedAppContext.request,'TelemetryPluginService - onRequest: UnifiedRequest');
 
     });
     // preHandler hook - start to update route info in UnifiedHttpContext
@@ -212,7 +207,7 @@ export class TelemetryPluginService {
         logger.debug(request.body,'TelemetryPluginService - preHandler hook triggered: FastifyRequest.body');
         logger.debug(request.params,'TelemetryPluginService - preHandler hook triggered: FastifyRequest.params');
         logger.debug(request.query,'TelemetryPluginService - preHandler hook triggered: FastifyRequest.query');
-        logger.debug(request.unifiedAppContext.request,'TelemetryPluginService - preHandler hook triggered: Request');
+        logger.debug(request.unifiedAppContext.request,'TelemetryPluginService - preHandler hook triggered: UnifiedRequest');
         const nCtx = createUnifiedContext(request,reply)
         request.unifiedAppContext.request = nCtx.request;
         logger.debug(request.unifiedAppContext.request,'TelemetryPluginService - preHandler hook triggered: Updated UnifiedRequest');
