@@ -185,6 +185,11 @@ export class TelemetryPluginService {
       
       logger.debug('Adding telemetryProvider to UnifiedHttpContext registry');
       addRegistryItem(request.unifiedAppContext, TELEMETRY_CONTEXT_KEYS.PROVIDER, options.provider);
+
+
+      logger.debug(request,'TelemetryPluginService - onRequest: FastifyRequest',request);
+      logger.debug(request.unifiedAppContext.request,'TelemetryPluginService - onRequest: UnifiedRequest',request);
+
     });
     // preHandler hook - start to update route info in UnifiedHttpContext
     fastify.addHook('preHandler', async (request: FastifyRequest) => {
@@ -194,6 +199,8 @@ export class TelemetryPluginService {
         logger.debug('Updating route info in UnifiedHttpContext');
         const routeInfo = { method: request.method, route: request.routeOptions.url as string, url: request.url };
         middlewareService.updateRouteInfo(request.unifiedAppContext, routeInfo.method, routeInfo.route, routeInfo.url);
+
+        logger.debug(request.unifiedAppContext.request,'TelemetryPluginService - preHandler hook triggered: Request');
       }
 
     });

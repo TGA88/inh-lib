@@ -1,17 +1,45 @@
 // __tests__/adapters/unified-fastify-adapter.test.ts
 import { FastifyRequest, FastifyReply } from 'fastify';
-import {
-  adaptFastifyRequest,
-  adaptFastifyResponse,
-  createFastifyContext
-} from '../unified-fastify-adapter';
+import { createUnifiedContext } from '../unified-fastify-adapter';
+
+// Helper functions to create proper types from unified context
+const adaptFastifyRequest = <TBody = Record<string, string>>(req: FastifyRequest) => {
+  const unifiedRequest = createUnifiedContext<TBody>(req, {} as FastifyReply).request;
+  return unifiedRequest;
+};
+
+const adaptFastifyResponse = (reply: FastifyReply) => {
+  // Create a mock request with required properties for testing response only
+  const mockRequest = {
+    headers: {},
+    ip: '127.0.0.1',
+    method: 'GET',
+    url: '/',
+    body: {},
+    params: {},
+    query: {}
+  } as FastifyRequest;
+  
+  const unifiedResponse = createUnifiedContext(
+    mockRequest, 
+    reply
+  ).response;
+  return unifiedResponse;
+};
+
+const createFastifyContext = <TBody = Record<string, string>>(
+  req: FastifyRequest,
+  reply: FastifyReply
+) => {
+  return createUnifiedContext<TBody>(req, reply);
+};
 
 
 // Type-safe mock interfaces
 interface MockFastifyRequest extends Partial<FastifyRequest> {
-  body?: unknown;
-  params?: Record<string, unknown>;
-  query?: Record<string, unknown>;
+  body?: unknown; // Changed back to unknown to accept any body type
+  params?: Record<string, string>;
+  query?: Record<string, string | string[]>;
   headers?: Record<string, string | string[]>;
   method: string;
   url: string;
@@ -21,7 +49,7 @@ interface MockFastifyRequest extends Partial<FastifyRequest> {
 // Create a mock type that matches FastifyReply's method signatures
 type MockFastifyReply = {
   status: jest.Mock<FastifyReply, [number]>;
-  send: jest.Mock<FastifyReply, [unknown]>;
+  send: jest.Mock<FastifyReply, [unknown]>; // Changed back to unknown
   header: jest.Mock<FastifyReply, [string, string | number | string[]]>;
   redirect: jest.Mock<FastifyReply, [string, number?]>;
 }
@@ -78,7 +106,7 @@ const createProductRequestBody = (overrides: Partial<ProductRequestBody> = {}): 
 
 // Custom Jest matchers for better assertions
 expect.extend({
-  toBeValidUnifiedRequestContext(received: unknown): jest.CustomMatcherResult {
+  toBeValidUnifiedRequestContext(received: Record<string, string | number | boolean | object>): jest.CustomMatcherResult {
     const isValid = received &&
       typeof received === 'object' &&
       'body' in received &&
@@ -90,12 +118,12 @@ expect.extend({
       'ip' in received;
 
     return {
-      message: () => `expected ${received} to ${isValid ? 'not ' : ''}be a valid UnifiedRequestContext`,
+      message: () => `expected object to ${isValid ? 'not ' : ''}be a valid UnifiedRequestContext`,
       pass: Boolean(isValid),
     };
   },
 
-  toBeValidUnifiedResponseContext(received: unknown): jest.CustomMatcherResult {
+  toBeValidUnifiedResponseContext(received: Record<string, string | number | boolean | object | ((...args: never[]) => void)>): jest.CustomMatcherResult {
     const isValid = received &&
       typeof received === 'object' &&
       'status' in received &&
@@ -103,11 +131,11 @@ expect.extend({
       'send' in received &&
       'header' in received &&
       'redirect' in received &&
-      typeof (received as Record<string, unknown>)['status'] === 'function' &&
-      typeof (received as Record<string, unknown>)['json'] === 'function';
+      typeof (received as Record<string, (...args: never[]) => void>)['status'] === 'function' &&
+      typeof (received as Record<string, (...args: never[]) => void>)['json'] === 'function';
 
     return {
-      message: () => `expected ${received} to ${isValid ? 'not ' : ''}be a valid UnifiedResponseContext`,
+      message: () => `expected object to ${isValid ? 'not ' : ''}be a valid UnifiedResponseContext`,
       pass: Boolean(isValid),
     };
   },
@@ -134,7 +162,7 @@ describe('Unified Fastify Adapter', () => {
           ip: '192.168.1.1',
         });
 
-        const result = adaptFastifyRequest(mockRequest as unknown as FastifyRequest);
+        const result = adaptFastifyRequest(mockRequest as FastifyRequest);
 
         expect(result).toBeValidUnifiedRequestContext();
         expect(result.method).toBe('GET');
@@ -162,7 +190,7 @@ describe('Unified Fastify Adapter', () => {
           ip: '10.0.0.1',
         });
 
-        const result = adaptFastifyRequest<UserRequestBody>(mockRequest as unknown as FastifyRequest);
+        const result = adaptFastifyRequest<UserRequestBody>(mockRequest as FastifyRequest);
 
         expect(result).toBeValidUnifiedRequestContext();
         expect(result.body).toEqual(userBody);
@@ -182,7 +210,7 @@ describe('Unified Fastify Adapter', () => {
         });
 
         const mockRequest = createMockFastifyRequest({ body: userBody });
-        const result = adaptFastifyRequest<UserRequestBody>(mockRequest as unknown as FastifyRequest);
+        const result = adaptFastifyRequest<UserRequestBody>(mockRequest as FastifyRequest);
 
         expect(result.body.email).toBe('typed@example.com');
         expect(result.body.firstName).toBe('TypeScript');
@@ -199,7 +227,7 @@ describe('Unified Fastify Adapter', () => {
         });
 
         const mockRequest = createMockFastifyRequest({ body: productBody });
-        const result = adaptFastifyRequest<ProductRequestBody>(mockRequest as unknown as FastifyRequest);
+        const result = adaptFastifyRequest<ProductRequestBody>(mockRequest as FastifyRequest);
 
         expect(result.body.name).toBe('Laptop');
         expect(result.body.price).toBe(1299.99);
@@ -219,7 +247,7 @@ describe('Unified Fastify Adapter', () => {
         ];
 
         const mockRequest = createMockFastifyRequest({ body: arrayBody });
-        const result = adaptFastifyRequest<ItemBody[]>(mockRequest as unknown as FastifyRequest);
+        const result = adaptFastifyRequest<ItemBody[]>(mockRequest as FastifyRequest);
 
         expect(Array.isArray(result.body)).toBe(true);
         expect(result.body).toHaveLength(2);
@@ -230,14 +258,14 @@ describe('Unified Fastify Adapter', () => {
     describe('Edge cases and error handling', () => {
       it('should handle undefined body with empty object fallback', () => {
         const mockRequest = createMockFastifyRequest({ body: undefined });
-        const result = adaptFastifyRequest(mockRequest as unknown as FastifyRequest);
+        const result = adaptFastifyRequest(mockRequest as FastifyRequest);
 
         expect(result.body).toEqual({});
       });
 
       it('should handle null body gracefully', () => {
-        const mockRequest = createMockFastifyRequest({ body: null });
-        const result = adaptFastifyRequest(mockRequest as unknown as FastifyRequest);
+        const mockRequest = createMockFastifyRequest({ body: null as never });
+        const result = adaptFastifyRequest(mockRequest as FastifyRequest);
 
         expect(result.body).toEqual({});
       });
@@ -247,7 +275,7 @@ describe('Unified Fastify Adapter', () => {
           headers: { 'content-type': 'application/json' },
         });
 
-        const result = adaptFastifyRequest(mockRequest as unknown as FastifyRequest);
+        const result = adaptFastifyRequest(mockRequest as FastifyRequest);
 
         expect(result.userAgent).toBeUndefined();
       });
@@ -263,7 +291,7 @@ describe('Unified Fastify Adapter', () => {
         };
 
         const mockRequest = createMockFastifyRequest({ query: complexQuery });
-        const result = adaptFastifyRequest(mockRequest as unknown as FastifyRequest);
+        const result = adaptFastifyRequest(mockRequest as FastifyRequest);
 
         expect(result.query['search']).toBe('typescript testing');
         expect(result.query['filters']).toEqual(['active', 'verified', 'premium']);
@@ -386,7 +414,7 @@ describe('Unified Fastify Adapter', () => {
     describe('Context creation', () => {
       it('should create unified context with default types', () => {
         const context = createFastifyContext(
-          mockRequest as unknown as FastifyRequest,
+          mockRequest as FastifyRequest,
           mockReply as unknown as FastifyReply
         );
 
@@ -396,10 +424,10 @@ describe('Unified Fastify Adapter', () => {
 
       it('should create context with typed request body', () => {
         const userBody = createUserRequestBody();
-        mockRequest.body = userBody;
+        mockRequest.body = userBody as unknown; // Type assertion to avoid error
 
         const context = createFastifyContext<UserRequestBody>(
-          mockRequest as unknown as FastifyRequest,
+          mockRequest as FastifyRequest,
           mockReply as unknown as FastifyReply
         );
 
@@ -418,7 +446,7 @@ describe('Unified Fastify Adapter', () => {
         });
 
         mockRequest = createMockFastifyRequest({
-          body: updateBody,
+          body: updateBody as unknown, // Type assertion
           params: { id: '123' },
           query: { include: ['profile', 'settings'] },
           headers: {
@@ -430,7 +458,7 @@ describe('Unified Fastify Adapter', () => {
         });
 
         const context = createFastifyContext<UserRequestBody>(
-          mockRequest as unknown as FastifyRequest,
+          mockRequest as FastifyRequest,
           mockReply as unknown as FastifyReply
         );
 
@@ -466,7 +494,7 @@ describe('Unified Fastify Adapter', () => {
         });
 
         const context = createFastifyContext(
-          mockRequest as unknown as FastifyRequest,
+          mockRequest as FastifyRequest,
           mockReply as unknown as FastifyReply
         );
 
@@ -490,7 +518,7 @@ describe('Unified Fastify Adapter', () => {
         });
 
         const context = createFastifyContext(
-          mockRequest as unknown as FastifyRequest,
+          mockRequest as FastifyRequest,
           mockReply as unknown as FastifyReply
         );
 
@@ -520,8 +548,8 @@ describe('Unified Fastify Adapter', () => {
           nested: {},
         };
 
-        const mockRequest = createMockFastifyRequest({ body });
-        const result = adaptFastifyRequest<OptionalPropsBody>(mockRequest as unknown as FastifyRequest);
+        const mockRequest = createMockFastifyRequest({ body: body as unknown });
+        const result = adaptFastifyRequest<OptionalPropsBody>(mockRequest as FastifyRequest);
 
         expect(result.body.required).toBe('value');
         expect(result.body.optional).toBeUndefined();
@@ -547,8 +575,8 @@ describe('Unified Fastify Adapter', () => {
           content: 'Hello, world!',
         };
 
-        const mockRequest = createMockFastifyRequest({ body: textMessage });
-        const result = adaptFastifyRequest<Message>(mockRequest as unknown as FastifyRequest);
+        const mockRequest = createMockFastifyRequest({ body: textMessage as unknown });
+        const result = adaptFastifyRequest<Message>(mockRequest as FastifyRequest);
 
         expect(result.body.type).toBe('text');
         if (result.body.type === 'text') {

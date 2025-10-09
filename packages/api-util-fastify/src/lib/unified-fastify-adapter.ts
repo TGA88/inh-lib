@@ -3,6 +3,13 @@ import { FastifyRequest, FastifyReply, FastifyBaseLogger } from 'fastify';
 import { UnifiedRequestContext, UnifiedResponseContext, UnifiedHttpContext, UnifiedRouteHandler } from '@inh-lib/unified-route';
 import { UnifiedBaseTelemetryLogger } from '@inh-lib/unified-telemetry-core';
 
+// Extend FastifyRequest to include unifiedAppContext
+declare module 'fastify' {
+  interface FastifyRequest {
+    unifiedAppContext?: UnifiedHttpContext;
+  }
+}
+
  function createUnifiedRequest<TBody = Record<string, unknown>>(
   req: FastifyRequest
 ): UnifiedRequestContext & { body: TBody } {
