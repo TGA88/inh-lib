@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.3.5](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.4...api-util-fastify-1.3.5) (2025-10-09)
+
+
+### Bug Fixes
+
+* add log to onRequest ([5f013f4](https://github.com/TGA88/inh-lib/commit/5f013f4427d82e4a6b1fd1ae11aa90f659f7c598))
+
 ## [1.3.4](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.3...api-util-fastify-1.3.4) (2025-10-09)
 
 
