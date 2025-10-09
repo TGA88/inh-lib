@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.3.4](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.3...api-util-fastify-1.3.4) (2025-10-09)
+
+
+### Bug Fixes
+
+* **api-util-fastify:**  fix unit-test and add log debug at onRequest telemetry plugin ([f2e3143](https://github.com/TGA88/inh-lib/commit/f2e3143f501f0ab0afb158de4258161b3c532bcc))
+
 ## [1.3.3](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.2...api-util-fastify-1.3.3) (2025-09-25)
 
 

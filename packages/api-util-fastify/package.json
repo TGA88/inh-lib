@@ -1,6 +1,6 @@
 {
   "name": "@inh-lib/api-util-fastify",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "type": "commonjs",
   "publishConfig": {
     "access": "public"
