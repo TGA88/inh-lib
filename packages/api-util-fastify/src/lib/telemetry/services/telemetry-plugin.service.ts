@@ -156,8 +156,15 @@ export class TelemetryPluginService {
       // const startMeasurement = ResourceTrackingService.startTracking();
       // request.startRequestMeasurement = startMeasurement;
 
+
+  logger.debug('OnRequest:request.body',request.body);
+  logger.debug('OnRequest:request.headers',request.headers);
+  logger.debug('OnRequest:request.params',request.params);
+  logger.debug('OnRequest:request.query',request.query);
+
       logger.debug('Creating UnifiedHttpContext for request');
       request.unifiedAppContext = createUnifiedContext(request, reply);
+      logger.debug('OnRequest:request.unifiedAppContext', request.unifiedAppContext);
 
       // Initialize root span in UnifiedHttpContext
       logger.debug('Initializing telemetry context in UnifiedHttpContext');
