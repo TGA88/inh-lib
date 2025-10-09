@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.3.7](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.6...api-util-fastify-1.3.7) (2025-10-09)
+
+
+### Bug Fixes
+
+* **api-util-fastify:** remove unneccesary log in onRequest ([eaca9f2](https://github.com/TGA88/inh-lib/commit/eaca9f295746e54b6ec4488d422ea02036db27f0))
+
 ## [1.3.6](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.5...api-util-fastify-1.3.6) (2025-10-09)
 
 
