@@ -156,15 +156,14 @@ export class TelemetryPluginService {
       // const startMeasurement = ResourceTrackingService.startTracking();
       // request.startRequestMeasurement = startMeasurement;
 
-
-  logger.debug('OnRequest:request.body',request.body);
-  logger.debug('OnRequest:request.headers',request.headers);
-  logger.debug('OnRequest:request.params',request.params);
-  logger.debug('OnRequest:request.query',request.query);
+      logger.debug(request.body,'OnRequest:request.body');
+      logger.debug(request.headers,'OnRequest:request.headers');
+      logger.debug(request.params,'OnRequest:request.params');
+      logger.debug(request.query,'OnRequest:request.query');
 
       logger.debug('Creating UnifiedHttpContext for request');
       request.unifiedAppContext = createUnifiedContext(request, reply);
-      logger.debug('OnRequest:request.unifiedAppContext', request.unifiedAppContext);
+      logger.debug( request.unifiedAppContext,'OnRequest:request.unifiedAppContext');
 
       // Initialize root span in UnifiedHttpContext
       logger.debug('Initializing telemetry context in UnifiedHttpContext');
@@ -194,20 +193,29 @@ export class TelemetryPluginService {
       addRegistryItem(request.unifiedAppContext, TELEMETRY_CONTEXT_KEYS.PROVIDER, options.provider);
 
 
-      logger.debug(request,'TelemetryPluginService - onRequest: FastifyRequest',request);
-      logger.debug(request.unifiedAppContext.request,'TelemetryPluginService - onRequest: UnifiedRequest',request);
+      logger.debug(request,'TelemetryPluginService - onRequest: FastifyRequest');
+      logger.debug(request.unifiedAppContext.request,'TelemetryPluginService - onRequest: UnifiedRequest');
 
     });
     // preHandler hook - start to update route info in UnifiedHttpContext
-    fastify.addHook('preHandler', async (request: FastifyRequest) => {
+    fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
       const logger = request.log;
       logger.debug('TelemetryPluginService - preHandler hook triggered');
       if (request.unifiedAppContext) {
+
         logger.debug('Updating route info in UnifiedHttpContext');
         const routeInfo = { method: request.method, route: request.routeOptions.url as string, url: request.url };
         middlewareService.updateRouteInfo(request.unifiedAppContext, routeInfo.method, routeInfo.route, routeInfo.url);
 
+
+        logger.debug(request.headers,'TelemetryPluginService - preHandler hook triggered: FastifyRequest.headers');
+        logger.debug(request.body,'TelemetryPluginService - preHandler hook triggered: FastifyRequest.body');
+        logger.debug(request.params,'TelemetryPluginService - preHandler hook triggered: FastifyRequest.params');
+        logger.debug(request.query,'TelemetryPluginService - preHandler hook triggered: FastifyRequest.query');
         logger.debug(request.unifiedAppContext.request,'TelemetryPluginService - preHandler hook triggered: Request');
+        const nCtx = createUnifiedContext(request,reply)
+        request.unifiedAppContext.request = nCtx.request;
+        logger.debug(request.unifiedAppContext.request,'TelemetryPluginService - preHandler hook triggered: Updated UnifiedRequest');
       }
 
     });
