@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.3.6](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.5...api-util-fastify-1.3.6) (2025-10-09)
+
+
+### Bug Fixes
+
+* **api-util-fastify:** update unifiedRequest at pre-Handler ([b1aaab5](https://github.com/TGA88/inh-lib/commit/b1aaab5cdcb306bf8e63999200d6875035e37573))
+
 ## [1.3.5](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.4...api-util-fastify-1.3.5) (2025-10-09)
 
 
