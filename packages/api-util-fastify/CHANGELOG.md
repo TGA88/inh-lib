@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.3.8](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.7...api-util-fastify-1.3.8) (2025-10-22)
+
+
+### Bug Fixes
+
+* **api-util-fastify:** case return stream data then cannot openn file ([cd5d3d4](https://github.com/TGA88/inh-lib/commit/cd5d3d490d5cb6f5441031260c01e9f45ac66f22))
+
 ## [1.3.7](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.6...api-util-fastify-1.3.7) (2025-10-09)
 
 
