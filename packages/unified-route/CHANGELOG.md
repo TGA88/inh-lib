@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.4.1](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.0...unified-route-0.4.1) (2025-10-22)
+
+
+### Bug Fixes
+
+* **unified-route:** change type for response stream data ([26d3c0f](https://github.com/TGA88/inh-lib/commit/26d3c0f7a0102c40e196a11119c6218e8272ff33))
+
 ## [0.4.0](https://github.com/TGA88/inh-lib/compare/unified-route-0.3.1...unified-route-0.4.0) (2025-10-02)
 
 
