@@ -2,12 +2,19 @@
 import { FastifyRequest, FastifyReply, FastifyBaseLogger } from 'fastify';
 import { UnifiedRequestContext, UnifiedResponseContext, UnifiedHttpContext, UnifiedRouteHandler } from '@inh-lib/unified-route';
 import { UnifiedBaseTelemetryLogger } from '@inh-lib/unified-telemetry-core';
+import { Readable } from 'node:stream';
+
+
 
 // Extend FastifyRequest to include unifiedAppContext
 declare module 'fastify' {
   interface FastifyRequest {
     unifiedAppContext?: UnifiedHttpContext;
   }
+}
+
+function isReadableStream(data: unknown): data is Readable {
+  return data instanceof Readable;
 }
 
  function createUnifiedRequest<TBody = Record<string, unknown>>(
@@ -35,8 +42,12 @@ declare module 'fastify' {
     json: <T>(data: T) => {
       res.send(data);
     },
-    send: (data: string) => {
-      res.send(data);
+    send: (data: unknown): void | FastifyReply  => {
+      if (isReadableStream(data)) {
+        // ✅ Fastify รับได้เฉพาะ Readable stream
+        return res.send(data);
+      }
+       res.send(data);
     },
     header: (name: string, value: string) => {
       res.header(name, value);
@@ -44,7 +55,7 @@ declare module 'fastify' {
     },
     redirect: (url: string) => {
       res.redirect(url);
-    },
+    }
   };
 }
 
@@ -68,7 +79,7 @@ export function createUnifiedFastifyHandler(
       req.unifiedAppContext = context;
     }
 
-    await handler(req.unifiedAppContext);
+   return await handler(req.unifiedAppContext);
   };
 
   return fastifyHandler
