@@ -6,7 +6,7 @@ export type UnifiedMiddleware = (
   next: () => Promise<void>
 ) => Promise<void>;
 
-export type UnifiedRouteHandler = (context: UnifiedHttpContext) => Promise<void>;
+export type UnifiedRouteHandler = (context: UnifiedHttpContext) => Promise<unknown>;
 
 // export type UnifiedMiddlewareOptions = {
 //   order?: number;
