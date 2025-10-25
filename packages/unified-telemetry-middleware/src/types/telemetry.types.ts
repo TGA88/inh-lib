@@ -3,8 +3,10 @@
  * Types that consumer projects can use
  */
 
-import { LogLayerType, LogOperationType } from "@inh-lib/unified-telemetry-core";
+import { LogLayerType, LogOperationType, UnifiedTelemetryLogger, UnifiedTelemetrySpan } from "@inh-lib/unified-telemetry-core";
 import { getPerformanceData } from "../internal/utils/context.utils";
+import { UnifiedHttpContext } from "@inh-lib/unified-route";
+import { TelemetryMiddlewareService } from "../services/telemetry-middleware.service";
 
 /**
  * Valid operation types for telemetry spans
@@ -39,3 +41,10 @@ export type TelemetryAttributeValue = string | number | boolean;
 export type TelemetryAttributes = Record<string, TelemetryAttributeValue>;
 
 export type InitializeTelemetryContextResult = ReturnType<typeof getPerformanceData>;
+
+
+export type UnifiedTelemetryContext = UnifiedHttpContext & {
+    telemetryService: TelemetryMiddlewareService;
+    telemetrySpan: UnifiedTelemetrySpan; // Replace 'unknown' with actual span type by Processor
+    telemetryLogger: UnifiedTelemetryLogger; // Replace 'unknown' with actual logger type by Processor
+};

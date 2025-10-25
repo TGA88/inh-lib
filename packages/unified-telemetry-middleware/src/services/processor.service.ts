@@ -1,4 +1,4 @@
-import { TelemetryAttributes, TelemetryLayerType, TelemetryMiddlewareService, TelemetryOperationType,TELEMETRY_OPERATION_TYPES,TELEMETRY_LAYERS } from "../index";
+import { TelemetryAttributes, TelemetryLayerType, TelemetryMiddlewareService, TelemetryOperationType,TELEMETRY_OPERATION_TYPES,TELEMETRY_LAYERS, UnifiedTelemetryContext } from "../index";
 import { UnifiedHttpContext } from "@inh-lib/unified-route";
 
 
@@ -6,8 +6,13 @@ import { UnifiedHttpContext } from "@inh-lib/unified-route";
 // Import your telemetry types and constants
 // import { TelemetryOperationType, TelemetryLayerType, TELEMETRY_LAYERS, TELEMETRY_OPERATION_TYPES } from './telemetry-types';
 
-export type UnifiedProcessorFunction<Args extends readonly [UnifiedHttpContext, ...unknown[]], R> = 
+// export type UnifiedProcessorFunction<Args extends readonly [UnifiedHttpContext, ...unknown[]], R> = 
+//     (...args: Args) => R | Promise<R>;
+
+export type UnifiedTelemetryProcessorFunction<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R> = 
     (...args: Args) => R | Promise<R>;
+
+// export type UnifiedTelemetryProcessorHOF = (fn: UnifiedTelemetryProcessorFunction) => UnifiedProcessorFunction;
 
 export interface UnifiedProcessorOptions {
     operationType?: TelemetryOperationType;
@@ -15,18 +20,21 @@ export interface UnifiedProcessorOptions {
     attributes?: TelemetryAttributes;
 }
 
+
+
+
 export class UnifiedTelemetryProcessor<
-    Args extends readonly [UnifiedHttpContext, ...unknown[]],
+    TArgs extends readonly [UnifiedTelemetryContext, ...unknown[]],
     R
 > {
     constructor(
         private readonly telemetryService: TelemetryMiddlewareService,
-        private readonly fn: UnifiedProcessorFunction<Args, R>,
+        private readonly fn: UnifiedTelemetryProcessorFunction<TArgs, R>,
         private readonly operationName: string,
         private readonly options: UnifiedProcessorOptions = {}
     ) {}
 
-    async process(...args: Args): Promise<R> {
+    async process(...args: readonly [UnifiedHttpContext, ...unknown[]]): Promise<R> {
         // Validate function
         if (typeof this.fn !== 'function') {
             throw new Error('Provided fn is not a function');
@@ -56,8 +64,19 @@ export class UnifiedTelemetryProcessor<
         try {
             logger.debug(`Processing ${this.operationName} with args:`, { args });
             // Execute function
-            const result = await this.fn(...args);
-            
+
+            const tContext: UnifiedTelemetryContext = {
+                ...context,
+                telemetryService: this.telemetryService,
+                telemetrySpan: span,
+                telemetryLogger: logger
+            };
+
+            // Build telemetry args tuple; cast via unknown to satisfy generic safety
+            const withTelemetryArgs = [tContext, ...args.slice(1)] as unknown as TArgs;
+
+            const result = await this.fn(...withTelemetryArgs);
+
             // Log success
             const durationMs = Number(process.hrtime.bigint() - startTime) / 1000000;
             logger.info(`${this.operationName} completed`, { 
@@ -130,18 +149,18 @@ export class UnifiedTelemetryProcessor<
 // === Helper Functions for easier usage ===
 
 // Create processor without options
-export function createProcessor<Args extends readonly [UnifiedHttpContext, ...unknown[]], R>(
+export function createProcessor<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R>(
     telemetryService: TelemetryMiddlewareService,
-    fn: UnifiedProcessorFunction<Args, R>,
+    fn: UnifiedTelemetryProcessorFunction<Args, R>,
     operationName: string
 ) {
     return new UnifiedTelemetryProcessor(telemetryService, fn, operationName);
 }
 
 // Create database processor (database operation with data layer)
-export function createDatabaseProcessor<Args extends readonly [UnifiedHttpContext, ...unknown[]], R>(
+export function createDatabaseProcessor<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R>(
     telemetryService: TelemetryMiddlewareService,
-    fn: UnifiedProcessorFunction<Args, R>,
+    fn: UnifiedTelemetryProcessorFunction<Args, R>,
     operationName: string,
     tableName?: string
 ) {
@@ -155,9 +174,9 @@ export function createDatabaseProcessor<Args extends readonly [UnifiedHttpContex
 }
 
 // Create service query processor (query operation with service layer)
-export function createServiceQueryProcessor<Args extends readonly [UnifiedHttpContext, ...unknown[]], R>(
+export function createServiceQueryProcessor<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R>(
     telemetryService: TelemetryMiddlewareService,
-    fn: UnifiedProcessorFunction<Args, R>,
+    fn: UnifiedTelemetryProcessorFunction<Args, R>,
     operationName: string
 ) {
     return new UnifiedTelemetryProcessor(telemetryService, fn, operationName, {
@@ -167,9 +186,9 @@ export function createServiceQueryProcessor<Args extends readonly [UnifiedHttpCo
 }
 
 // Create service command processor (command operation with service layer)
-export function createServiceCommandProcessor<Args extends readonly [UnifiedHttpContext, ...unknown[]], R>(
+export function createServiceCommandProcessor<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R>(
     telemetryService: TelemetryMiddlewareService,
-    fn: UnifiedProcessorFunction<Args, R>,
+    fn: UnifiedTelemetryProcessorFunction<Args, R>,
     operationName: string
 ) {
     return new UnifiedTelemetryProcessor(telemetryService, fn, operationName, {
@@ -179,9 +198,9 @@ export function createServiceCommandProcessor<Args extends readonly [UnifiedHttp
 }
 
 // Create API endpoint processor (endpoint operation with api layer)
-export function createApiProcessor<Args extends readonly [UnifiedHttpContext, ...unknown[]], R>(
+export function createApiProcessor<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R>(
     telemetryService: TelemetryMiddlewareService,
-    fn: UnifiedProcessorFunction<Args, R>,
+    fn: UnifiedTelemetryProcessorFunction<Args, R>,
     operationName: string
 ) {
     return new UnifiedTelemetryProcessor(telemetryService, fn, operationName, {
@@ -191,9 +210,9 @@ export function createApiProcessor<Args extends readonly [UnifiedHttpContext, ..
 }
 
 // Create integration processor (integration operation with integration layer)
-export function createIntegrationProcessor<Args extends readonly [UnifiedHttpContext, ...unknown[]], R>(
+export function createIntegrationProcessor<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R>(
     telemetryService: TelemetryMiddlewareService,
-    fn: UnifiedProcessorFunction<Args, R>,
+    fn: UnifiedTelemetryProcessorFunction<Args, R>,
     operationName: string
 ) {
     return new UnifiedTelemetryProcessor(telemetryService, fn, operationName, {
@@ -203,9 +222,9 @@ export function createIntegrationProcessor<Args extends readonly [UnifiedHttpCon
 }
 
 // Create logic processor (logic operation - can be used with any layer)
-export function createLogicProcessor<Args extends readonly [UnifiedHttpContext, ...unknown[]], R>(
+export function createLogicProcessor<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R>(
     telemetryService: TelemetryMiddlewareService,
-    fn: UnifiedProcessorFunction<Args, R>,
+    fn: UnifiedTelemetryProcessorFunction<Args, R>,
     operationName: string,
     layer: TelemetryLayerType = TELEMETRY_LAYERS.CORE
 ) {

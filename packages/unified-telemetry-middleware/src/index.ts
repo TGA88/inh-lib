@@ -19,7 +19,8 @@ export type {
   TelemetryLayerType,
   TelemetryAttributeValue,
   TelemetryAttributes,
-  InitializeTelemetryContextResult
+  InitializeTelemetryContextResult,
+  UnifiedTelemetryContext
 } from './types/telemetry.types';
 
 // Export public constants
