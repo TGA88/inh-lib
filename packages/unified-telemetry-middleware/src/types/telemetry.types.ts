@@ -43,7 +43,7 @@ export type TelemetryAttributes = Record<string, TelemetryAttributeValue>;
 export type InitializeTelemetryContextResult = ReturnType<typeof getPerformanceData>;
 
 
-export type UnifiedTelemetryContext = UnifiedHttpContext & {
+export type UnifiedHttpTelemetryContext = UnifiedHttpContext & {
     telemetryService: TelemetryMiddlewareService;
     telemetrySpan: UnifiedTelemetrySpan; // Replace 'unknown' with actual span type by Processor
     telemetryLogger: UnifiedTelemetryLogger; // Replace 'unknown' with actual logger type by Processor

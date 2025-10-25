@@ -1,5 +1,6 @@
-import { TelemetryAttributes, TelemetryLayerType, TelemetryMiddlewareService, TelemetryOperationType,TELEMETRY_OPERATION_TYPES,TELEMETRY_LAYERS, UnifiedTelemetryContext } from "../index";
+import { TelemetryAttributes, TelemetryLayerType, TelemetryMiddlewareService, TelemetryOperationType,TELEMETRY_OPERATION_TYPES,TELEMETRY_LAYERS } from "../index";
 import { UnifiedHttpContext } from "@inh-lib/unified-route";
+import { UnifiedHttpTelemetryContext } from "../types/telemetry.types";
 
 
 
@@ -9,7 +10,7 @@ import { UnifiedHttpContext } from "@inh-lib/unified-route";
 // export type UnifiedProcessorFunction<Args extends readonly [UnifiedHttpContext, ...unknown[]], R> = 
 //     (...args: Args) => R | Promise<R>;
 
-export type UnifiedTelemetryProcessorFunction<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R> = 
+export type UnifiedTelemetryProcessorFunction<Args extends readonly [UnifiedHttpTelemetryContext, ...unknown[]], R> = 
     (...args: Args) => R | Promise<R>;
 
 // export type UnifiedTelemetryProcessorHOF = (fn: UnifiedTelemetryProcessorFunction) => UnifiedProcessorFunction;
@@ -24,7 +25,7 @@ export interface UnifiedProcessorOptions {
 
 
 export class UnifiedTelemetryProcessor<
-    TArgs extends readonly [UnifiedTelemetryContext, ...unknown[]],
+    TArgs extends readonly [UnifiedHttpTelemetryContext, ...unknown[]],
     R
 > {
     constructor(
@@ -65,7 +66,7 @@ export class UnifiedTelemetryProcessor<
             logger.debug(`Processing ${this.operationName} with args:`, { args });
             // Execute function
 
-            const tContext: UnifiedTelemetryContext = {
+            const tContext: UnifiedHttpTelemetryContext = {
                 ...context,
                 telemetryService: this.telemetryService,
                 telemetrySpan: span,
@@ -149,7 +150,7 @@ export class UnifiedTelemetryProcessor<
 // === Helper Functions for easier usage ===
 
 // Create processor without options
-export function createProcessor<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R>(
+export function createProcessor<Args extends readonly [UnifiedHttpTelemetryContext, ...unknown[]], R>(
     telemetryService: TelemetryMiddlewareService,
     fn: UnifiedTelemetryProcessorFunction<Args, R>,
     operationName: string
@@ -158,7 +159,7 @@ export function createProcessor<Args extends readonly [UnifiedTelemetryContext, 
 }
 
 // Create database processor (database operation with data layer)
-export function createDatabaseProcessor<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R>(
+export function createDatabaseProcessor<Args extends readonly [UnifiedHttpTelemetryContext, ...unknown[]], R>(
     telemetryService: TelemetryMiddlewareService,
     fn: UnifiedTelemetryProcessorFunction<Args, R>,
     operationName: string,
@@ -174,7 +175,7 @@ export function createDatabaseProcessor<Args extends readonly [UnifiedTelemetryC
 }
 
 // Create service query processor (query operation with service layer)
-export function createServiceQueryProcessor<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R>(
+export function createServiceQueryProcessor<Args extends readonly [UnifiedHttpTelemetryContext, ...unknown[]], R>(
     telemetryService: TelemetryMiddlewareService,
     fn: UnifiedTelemetryProcessorFunction<Args, R>,
     operationName: string
@@ -186,7 +187,7 @@ export function createServiceQueryProcessor<Args extends readonly [UnifiedTeleme
 }
 
 // Create service command processor (command operation with service layer)
-export function createServiceCommandProcessor<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R>(
+export function createServiceCommandProcessor<Args extends readonly [UnifiedHttpTelemetryContext, ...unknown[]], R>(
     telemetryService: TelemetryMiddlewareService,
     fn: UnifiedTelemetryProcessorFunction<Args, R>,
     operationName: string
@@ -198,7 +199,7 @@ export function createServiceCommandProcessor<Args extends readonly [UnifiedTele
 }
 
 // Create API endpoint processor (endpoint operation with api layer)
-export function createApiProcessor<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R>(
+export function createApiProcessor<Args extends readonly [UnifiedHttpTelemetryContext, ...unknown[]], R>(
     telemetryService: TelemetryMiddlewareService,
     fn: UnifiedTelemetryProcessorFunction<Args, R>,
     operationName: string
@@ -210,7 +211,7 @@ export function createApiProcessor<Args extends readonly [UnifiedTelemetryContex
 }
 
 // Create integration processor (integration operation with integration layer)
-export function createIntegrationProcessor<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R>(
+export function createIntegrationProcessor<Args extends readonly [UnifiedHttpTelemetryContext, ...unknown[]], R>(
     telemetryService: TelemetryMiddlewareService,
     fn: UnifiedTelemetryProcessorFunction<Args, R>,
     operationName: string
@@ -222,7 +223,7 @@ export function createIntegrationProcessor<Args extends readonly [UnifiedTelemet
 }
 
 // Create logic processor (logic operation - can be used with any layer)
-export function createLogicProcessor<Args extends readonly [UnifiedTelemetryContext, ...unknown[]], R>(
+export function createLogicProcessor<Args extends readonly [UnifiedHttpTelemetryContext, ...unknown[]], R>(
     telemetryService: TelemetryMiddlewareService,
     fn: UnifiedTelemetryProcessorFunction<Args, R>,
     operationName: string,

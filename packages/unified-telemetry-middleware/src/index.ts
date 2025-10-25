@@ -20,7 +20,7 @@ export type {
   TelemetryAttributeValue,
   TelemetryAttributes,
   InitializeTelemetryContextResult,
-  UnifiedTelemetryContext
+  UnifiedHttpTelemetryContext
 } from './types/telemetry.types';
 
 // Export public constants
