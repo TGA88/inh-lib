@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.6](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.5...unified-telemetry-middleware-0.3.6) (2025-10-25)
+
+
+### Bug Fixes
+
+* **unified-telemetry-middlware:** fix type UnifiedTelemetryContext conflict then change to UnifiedHttpTelemetryContext ([07cec98](https://github.com/TGA88/inh-lib/commit/07cec9824d72090c3ba6107a3dca8e1678562e7c))
+
 ## [0.3.5](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.4...unified-telemetry-middleware-0.3.5) (2025-10-25)
 
 
