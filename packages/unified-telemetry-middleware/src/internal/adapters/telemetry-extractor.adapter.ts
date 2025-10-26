@@ -300,6 +300,7 @@ export function createNoOpLogger(): UnifiedTelemetryLogger {
     addSpanEvent: noopFunction,
     setSpanAttribute: noopFunction,
     finishSpan: noopFunction,
+    createChildLogger: () => createNoOpLogger(),
   };
 }
 
