@@ -23,7 +23,9 @@ export interface UnifiedTelemetryLogger {
   // getSpanId(): string;
   
   // // Context management
-  // createChildLogger(operationName: string, attributes?: Record<string, string | number | boolean>): UnifiedTelemetryLogger;
+  // createChildLogger  just only create new BaseChildLogger for specific scope but keep Span context
+  // eg. createOrderEndpoint there are many functions called inside but all should keep same Span context.
+  createChildLogger(operationName: string, attributes?: Record<string, string | number | boolean>): UnifiedTelemetryLogger;
   // createChildContext(operationName: string): UnifiedLoggerContext;
   // getTraceId(): string;
 }

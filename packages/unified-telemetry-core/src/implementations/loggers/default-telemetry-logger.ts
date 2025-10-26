@@ -1,13 +1,15 @@
 
-import { 
-  UnifiedTelemetryLogger,  
+import {
+  UnifiedTelemetryLogger,
   UnifiedBaseTelemetryLogger,
-  UnifiedTelemetrySpan, 
+  UnifiedTelemetrySpan,
   UnifiedLoggerContext,
   UnifiedLoggerOptions
 } from '../../interfaces';
 
 import {
+  createBaseLoggerAttributes,
+  createChildLoggerWithSameSpan,
   enrichLogAttributes,
   extractErrorInfo
 } from '../../utils/logger-helpers';
@@ -31,21 +33,33 @@ export class DefaultUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
   ) {
     this.span = context.span;
     this.options = context.options;
- 
-    const childAttributes = {
-    requestId: context.options.requestId,
-       // Trace context
-    traceId: context.span.getTraceId(),
-    spanId: context.span.getSpanId(),
-    parentSpanId: context.span.getParentSpanId(),
 
-    // Operation context
-    layer: context.options.layer,
-    operationType: context.options.operationType,
-    operationName: context.options.operationName
-  };
+    const childAttributes = {
+      ...this.options.attributes,
+      requestId: context.options.requestId,
+      // Trace context
+      traceId: context.span.getTraceId(),
+      spanId: context.span.getSpanId(),
+      parentSpanId: context.span.getParentSpanId(),
+
+      // Operation context
+      layer: context.options.layer,
+      operationType: context.options.operationType,
+      operationName: context.options.operationName
+    };
 
     this.baseLogger = baseLogger.createChildLogger(context.options.operationName, childAttributes);
+  }
+  createChildLogger(operationName: string, attributes?: Record<string, string | number | boolean>): UnifiedTelemetryLogger {
+
+
+    const childContext = createChildLoggerWithSameSpan(this.context, operationName, attributes);
+    if (this.options.autoAddSpanEvents && this.span) {
+      const eventAttributes = attributes ? { operationName, ...attributes } : { operationName };
+      this.span.addEvent('childLogger.created', eventAttributes);
+    }
+
+    return new DefaultUnifiedTelemetryLogger(this.baseLogger, childContext);
   }
 
   debug(message: string, attributes?: Record<string, unknown>): void {
@@ -58,7 +72,7 @@ export class DefaultUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
 
   warn(message: string, attributes?: Record<string, unknown>): void {
     this.logWithSpan('warn', message, attributes);
-    
+
     if (this.span) {
       this.span.addEvent('warning', { message, ...attributes });
     }
@@ -69,7 +83,7 @@ export class DefaultUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
     const combinedAttrs = { ...errorAttrs, ...attributes };
 
     this.logWithSpan('error', message, combinedAttrs);
-    
+
     if (this.span) {
       if (error) {
         this.span.recordException(error);
@@ -131,9 +145,9 @@ export class DefaultUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
     const data = enrichLogAttributes(this.context, attributes);
     // console.log(`console-[${level.toUpperCase()}] ${message}`, data);
     const enrichedAttrs = {
-   data:data
+      data: data
     };
-    
+
     switch (level) {
       case 'debug':
         this.baseLogger.debug(message, enrichedAttrs);

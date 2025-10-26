@@ -3,6 +3,7 @@ import {
   UnifiedLoggerContext 
 } from '../../interfaces';
 import {
+  createChildLoggerWithSameSpan,
   enrichLogAttributes,
   extractErrorInfo
 } from '../../utils/logger-helpers';
@@ -20,6 +21,11 @@ export class ConsoleUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
   constructor(
     private readonly context: UnifiedLoggerContext
   ) {}
+  createChildLogger(operationName: string, attributes?: Record<string, string | number | boolean>): UnifiedTelemetryLogger {
+   const childContext = createChildLoggerWithSameSpan(this.context, operationName, attributes);
+
+    return new ConsoleUnifiedTelemetryLogger(childContext);
+  }
 
   debug(message: string, attributes?: Record<string, unknown>): void {
     const enrichedAttributes = enrichLogAttributes(this.context, attributes);

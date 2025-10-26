@@ -15,6 +15,9 @@ import {
  */
 export class NoOpUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
   constructor(private readonly context?: UnifiedLoggerContext) {}
+  createChildLogger(operationName: string, attributes?: Record<string, string | number | boolean>): UnifiedTelemetryLogger {
+    return new NoOpUnifiedTelemetryLogger(this.context);
+  }
 
   debug(message: string, attributes?: Record<string, unknown>): void {
     // No-op

@@ -1,4 +1,5 @@
-import { UnifiedLoggerContext } from '../interfaces/logger';
+import { UnifiedTelemetrySpan } from '../interfaces';
+import { UnifiedLoggerContext,UnifiedTelemetryLogger } from '../interfaces/logger';
 // import { generateSpanId } from './id-generators';
 
 /**
@@ -37,6 +38,49 @@ export function enrichLogAttributes(
     ...attributes,
   };
 }
+
+
+export function createBaseLoggerAttributes(
+  context: UnifiedLoggerContext
+): Record<string, string | number | boolean | undefined> {
+
+  const childAttributes = {
+    requestId: context.options.requestId,
+    // Trace context
+    traceId: context.span.getTraceId(),
+    spanId: context.span.getSpanId(),
+    parentSpanId: context.span.getParentSpanId(),
+
+    // Operation context
+    layer: context.options.layer,
+    operationType: context.options.operationType,
+    operationName: context.options.operationName
+  };
+
+  return childAttributes;
+}
+
+  export function createChildLoggerWithSameSpan(currentContext: UnifiedLoggerContext,operationName: string, attributes?: Record<string, string | number | boolean>): UnifiedLoggerContext {
+    const {options,span} = currentContext;
+    const childContext: UnifiedLoggerContext = {
+      span: span , // reuse current span (no child span API exposed here)
+      options: {
+        ...options,
+        attributes,
+        operationName
+
+      }
+    };
+
+    if (options.autoAddSpanEvents && span) {
+      const eventAttributes = attributes ? { operationName, ...attributes } : { operationName };
+      span.addEvent('childLogger.created', eventAttributes);
+    }
+
+    return childContext;
+
+    
+  }
 
 // /**
 //  * Create child logger context from parent context
