@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.2](https://github.com/TGA88/inh-lib/compare/unified-telemetry-core-0.3.1...unified-telemetry-core-0.3.2) (2025-10-26)
+
+
+### Bug Fixes
+
+* **unified-telemetry-core:** add function createChildLogger to Interface UnifiedTelemetryLogger ([c0cbc48](https://github.com/TGA88/inh-lib/commit/c0cbc481c2e2639120f89441e541168457fd96eb))
+
 ## [0.3.1](https://github.com/TGA88/inh-lib/compare/unified-telemetry-core-0.3.0...unified-telemetry-core-0.3.1) (2025-09-25)
 
 
