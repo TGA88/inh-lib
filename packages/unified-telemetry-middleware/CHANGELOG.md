@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.8](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.7...unified-telemetry-middleware-0.3.8) (2025-10-27)
+
+
+### Bug Fixes
+
+* **unified-telemetry-middleware:** to support backword compatible CreateLogicFunction to V1 and V2 ([8265319](https://github.com/TGA88/inh-lib/commit/82653198461753b5941f3040a7a8a102d2ac03f4))
+
 ## [0.3.7](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.6...unified-telemetry-middleware-0.3.7) (2025-10-26)
 
 
