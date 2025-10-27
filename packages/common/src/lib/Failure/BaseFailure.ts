@@ -28,15 +28,30 @@ export abstract class BaseFailure extends Error {
     return this;
   }
 
+  // ดึงค่า dataResult จาก details (ถ้ามี)
+  toDataResult(){
+    let defaultDataResult: unknown = null;
+
+    if (this instanceof BaseFailure) {
+      const details = this.details;
+      if (details && typeof details === "object" && "dataResult" in details) {
+        defaultDataResult = (details as { dataResult: unknown }).dataResult;
+      }
+    }
+
+    return defaultDataResult;
+  }
+
   // แปลงเป็น DataResponse
-  toResponse<T = null>(dataResult: T = null as T): DataResponse<T> {
+  toResponse<T = unknown>(dataResult: T = null as T): DataResponse<T> {
+    const defaultDataResult = this.toDataResult();
     return {
       statusCode: this.statusCode,
       isSuccess: false,
       traceId: this.traceId,
       codeResult: this.code,
       message: this.message,
-      dataResult,
+      dataResult: dataResult ?? defaultDataResult as T,
     };
   }
 

@@ -2,8 +2,40 @@ import { BaseFailure } from "./BaseFailure";
 import { Result } from "../ResultV2";
 import { DataResponse } from "../type/endpoint/data-response";
 import {CommonFailures} from "./CommonFailures";
+import { getStatusCodeName, HttpStatusCodeValue, isSuccessStatus } from "./HttpStatusCode";
+
+
+
 
 export class ResponseBuilder {
+
+    /**
+   * 🎯 Generic Response Method - ใช้สร้าง response ทุกแบบ
+   * @param statusCode - HTTP Status Code จาก HttpStatusCode constant (เช่น HttpStatusCode.OK = 200)
+   * @param data - ข้อมูลที่จะส่งกลับ
+   * @param message - ข้อความอธิบาย
+   * @param traceId - Trace ID สำหรับ tracking
+   */
+  static respond<T>(
+    statusCode: HttpStatusCodeValue,
+    data: T,
+    message?: string,
+    traceId?: string
+  ): DataResponse<T> {
+    const codeResult = getStatusCodeName(statusCode);
+    const isSuccess = isSuccessStatus(statusCode);
+    const defaultMessage = getStatusCodeName(statusCode);
+
+    return {
+      statusCode,
+      isSuccess,
+      traceId,
+      codeResult,
+      message: message || defaultMessage,
+      dataResult: data,
+    };
+  }
+  
   // สร้าง Success Response
   static success<T>(
     data: T,
@@ -35,6 +67,56 @@ export class ResponseBuilder {
       dataResult: data,
     };
   }
+
+
+
+  // 🆕 สร้าง Accepted Response (202 - Async Operation)
+  static accepted<T>(
+    data: T,
+    message = 'Request accepted for processing',
+    traceId?: string
+  ): DataResponse<T> {
+    return {
+      statusCode: 202,
+      isSuccess: true,
+      traceId,
+      codeResult: 'ACCEPTED',
+      message,
+      dataResult: data,
+    };
+  }
+
+  // 🆕 สร้าง No Content Response (204)
+  static noContent(
+    message = 'Operation completed successfully',
+    traceId?: string
+  ): DataResponse<null> {
+    return {
+      statusCode: 204,
+      isSuccess: true,
+      traceId,
+      codeResult: 'SUCCESS',
+      message,
+      dataResult: null,
+    };
+  }
+
+  // 🆕 สร้าง Partial Content Response (206 - Range Request)
+  static partialContent<T>(
+    data: T,
+    message = 'Partial content',
+    traceId?: string
+  ): DataResponse<T> {
+    return {
+      statusCode: 206,
+      isSuccess: true,
+      traceId,
+      codeResult: 'PARTIAL_CONTENT',
+      message,
+      dataResult: data,
+    };
+  }
+
 
   // สร้าง Error Response จาก BaseFailure
   static error<T = null>(
@@ -93,14 +175,16 @@ export interface ResultToResponseOptions<E = null> {
   traceId?: string;
 }
 
-export const resultToResponse = <T, E = null>(
+export const resultToResponse = <T, E = unknown >(
   result: Result<T, BaseFailure>,
   options?: ResultToResponseOptions<E>
 ): DataResponse<T | E | null> => {
-  const { successMessage = 'Success', errorDataResult, traceId } = options || {};
+  
+  const defaultMessage = getStatusCodeName(result.httpStatusCode as HttpStatusCodeValue ?? 200);
+  const { successMessage = defaultMessage, errorDataResult, traceId } = options || {};
 
   if (result.isSuccess) {
-    return ResponseBuilder.success(result.getValue(), successMessage, traceId);
+    return ResponseBuilder.respond(result.httpStatusCode as HttpStatusCodeValue ?? 200, result.getValue(), successMessage, traceId ?? result.traceId);
   }
 
   const error = result.error;
@@ -115,7 +199,9 @@ export const resultToResponse = <T, E = null>(
     error.withTraceId(traceId);
   }
 
-  return ResponseBuilder.error(error, errorDataResult ?? null);
+   const defaultDataResult = error.toDataResult();
+
+  return ResponseBuilder.error(error, errorDataResult ?? defaultDataResult as E);
 };
 
 // ========== Helper / Example Functions (Refactored) ==========
@@ -131,7 +217,7 @@ interface User {
   processedAt?: Date;
 }
 
-interface ControllerReq<P = any, B = any> {
+interface ControllerReq<P = unknown, B = unknown> {
   params: P;
   body: B;
 }

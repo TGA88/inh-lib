@@ -1,8 +1,13 @@
+import { resultToResponse, ResultToResponseOptions } from "./Failure/ResponseBuilder";
+import { UnifiedResponseContext } from "./type/unified/unified-context";
+
 export class Result<T, F = unknown> {
   public readonly isSuccess: boolean;
   public readonly isFailure: boolean;
   public readonly error?: F;
   private readonly _value?: T; // ✅ แก้: เพิ่ม readonly
+  public traceId?: string;
+  public httpStatusCode?: number;
 
   private constructor(isSuccess: boolean, error?: F, value?: T) {
     if (isSuccess && error) {
@@ -18,6 +23,17 @@ export class Result<T, F = unknown> {
     this._value = value;
     
     Object.freeze(this);
+  }
+
+   // Set traceId (เรียกใช้ตอน สร้าง DataResponse )
+  withTraceId(traceId: string): this {
+    this.traceId = traceId;
+    return this;
+  }
+   // Set successHttpCode (เรียกใช้ตอน สร้าง DataResponse )
+  withHttpStatusCode(statusCode: number): this {
+    this.httpStatusCode = statusCode;
+    return this;
   }
 
   public getValue(): T {
@@ -114,13 +130,31 @@ export class Result<T, F = unknown> {
       : onError(this.error as F);
   }
 
+
+  public toUnifiedResponse(res: UnifiedResponseContext, options?: ResultToResponseOptions) {
+    const response = resultToResponse(this, options);
+    return res.status(response.statusCode).json(response);
+  }
+
+
   public toHttpResponse(res: { 
     json: (data: unknown) => void; 
     status: (code: number) => { json: (data: unknown) => void } 
   }) {
-    return this.isSuccess
-      ? res.json({ success: true, data: this._value })
-      : res.status(400).json({ success: false, error: this.error });
+
+  if (this.isFailure) {
+    const response = resultToResponse(this);
+    return res.status(response.statusCode).json(response);
+  }
+  const options: ResultToResponseOptions = {
+    traceId: this.traceId,
+  };
+  const response = resultToResponse(this, options);
+  return res.status(response.statusCode).json(response);
+  
+    // return this.isSuccess
+    //   ? res.json({ success: true, data: this._value })
+    //   : res.status(400).json({ success: false, error: this.error });
   }
 
   // ========== Static Methods ==========
