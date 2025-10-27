@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.11.0](https://github.com/TGA88/inh-lib/compare/common-1.10.2...common-1.11.0) (2025-10-27)
+
+
+### Features
+
+* **common:** new feature to BaseFailure,HttpStatusCode,ResponseBuilder,ResultV2 ([4c80eb7](https://github.com/TGA88/inh-lib/commit/4c80eb7821ac8f4fd1be990f246ac2d2f1d9291a))
+
 ## [1.10.2](https://github.com/TGA88/inh-lib/compare/common-1.10.1...common-1.10.2) (2025-10-03)
 
 
