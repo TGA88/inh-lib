@@ -12,6 +12,7 @@ export { TelemetryMiddlewareService } from './services/telemetry-middleware.serv
 export type { TelemetryMiddlewareConfig } from './services/telemetry-middleware.service';
 
 export * from './services/processor.service';
+export * from './services/processorV2.service';
 
 // Export public types
 export type {
