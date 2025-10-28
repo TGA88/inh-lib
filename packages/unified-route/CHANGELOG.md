@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.4.2](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.1...unified-route-0.4.2) (2025-10-28)
+
+
+### Bug Fixes
+
+* **unified-route:** add UnifiedRoutePipeline ([80d9023](https://github.com/TGA88/inh-lib/commit/80d9023df56f56b27cf4dcf3cd237f0c6c1ba6ec))
+
 ## [0.4.1](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.0...unified-route-0.4.1) (2025-10-22)
 
 
