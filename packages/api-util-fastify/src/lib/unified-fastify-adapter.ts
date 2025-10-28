@@ -17,7 +17,7 @@ function isReadableStream(data: unknown): data is Readable {
   return data instanceof Readable;
 }
 
- function createUnifiedRequest<TBody = Record<string, unknown>>(
+function createUnifiedRequest<TBody = Record<string, unknown>>(
   req: FastifyRequest
 ): UnifiedRequestContext & { body: TBody } {
   return {
@@ -32,31 +32,48 @@ function isReadableStream(data: unknown): data is Readable {
     userAgent: req.headers['user-agent'],
   } as UnifiedRequestContext & { body: TBody };
 }
+function createUnifiedResponse(res: FastifyReply): UnifiedResponseContext {
+  // ✅ Track sent state ด้วย closure
+  let isSent = false;
 
- function createUnifiedResponse(res: FastifyReply): UnifiedResponseContext {
-  return {
+  // ✅ Cache instance เพื่อ share state
+  const unifiedResponse: UnifiedResponseContext = {
+    get sent(): boolean {
+      return isSent;
+    },
+
     status: (code: number) => {
       res.status(code);
-      return createUnifiedResponse(res);
+      return unifiedResponse; // ✅ return instance เดิม
     },
+
     json: <T>(data: T) => {
       res.send(data);
+      isSent = true; // ✅ set ใน closure เดียวกัน
     },
-    send: (data: unknown): void | FastifyReply  => {
+
+    send: (data: unknown): void | FastifyReply => {
       if (isReadableStream(data)) {
-        // ✅ Fastify รับได้เฉพาะ Readable stream
-        return res.send(data);
+        const result = res.send(data); // ส่งก่อน
+        isSent = true; // ✅ set หลัง (ก่อน return)
+        return result;
       }
-       res.send(data);
+      res.send(data);
+      isSent = true;
     },
+
     header: (name: string, value: string) => {
       res.header(name, value);
-      return createUnifiedResponse(res);
+      return unifiedResponse; // ✅ return instance เดิม
     },
+
     redirect: (url: string) => {
       res.redirect(url);
+      isSent = true;
     }
   };
+
+  return unifiedResponse;
 }
 
 export function createUnifiedContext<TBody = Record<string, unknown>>(
@@ -79,15 +96,15 @@ export function createUnifiedFastifyHandler(
       req.unifiedAppContext = context;
     }
 
-   return await handler(req.unifiedAppContext);
+    return await handler(req.unifiedAppContext);
   };
 
   return fastifyHandler
 }
 
- 
+
 export class FastifyTelemetryLoggerAdapter implements UnifiedBaseTelemetryLogger {
-  constructor(private readonly fastifyLog: FastifyBaseLogger) {}
+  constructor(private readonly fastifyLog: FastifyBaseLogger) { }
   createChildLogger(scope: string, attributes?: Record<string, unknown>): UnifiedBaseTelemetryLogger {
     const childLogger = this.fastifyLog.child({ scope, ...(attributes || {}) });
     return new FastifyTelemetryLoggerAdapter(childLogger);
@@ -98,14 +115,14 @@ export class FastifyTelemetryLoggerAdapter implements UnifiedBaseTelemetryLogger
   }
 
   info(message: string, attributes?: Record<string, unknown>): void {
-    this.fastifyLog.info(attributes,message);
+    this.fastifyLog.info(attributes, message);
   }
 
   warn(message: string, attributes?: Record<string, unknown>): void {
-    this.fastifyLog.warn(attributes,message );
+    this.fastifyLog.warn(attributes, message);
   }
 
   error(message: string, attributes?: Record<string, unknown>): void {
-    this.fastifyLog.error(attributes,message);
+    this.fastifyLog.error(attributes, message);
   }
 }

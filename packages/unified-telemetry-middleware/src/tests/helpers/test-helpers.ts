@@ -32,6 +32,7 @@ export function createMockContext(overrides: Partial<UnifiedHttpContext> = {}): 
       send: jest.fn(),
       header: jest.fn().mockReturnThis(),
       redirect: jest.fn(),
+      sent: false,
       ...overrides.response,
     },
     registry: {},
