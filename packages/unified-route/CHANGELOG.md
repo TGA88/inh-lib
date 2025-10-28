@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.4.3](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.2...unified-route-0.4.3) (2025-10-28)
+
+
+### Bug Fixes
+
+* **unified-route:** change repsonse.json type as unknown instead void for spupport return stream ([a414462](https://github.com/TGA88/inh-lib/commit/a4144624e069b1ca6f6f80920eec6faa8d1b5d9c))
+
 ## [0.4.2](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.1...unified-route-0.4.2) (2025-10-28)
 
 
