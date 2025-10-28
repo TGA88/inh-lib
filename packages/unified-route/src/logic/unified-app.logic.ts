@@ -104,6 +104,7 @@ class ResponseBuilder {
 
   createResponseContext(): UnifiedResponseContext {
     return {
+      sent: this.response.sent,
       status: this.status.bind(this),
       json: this.json.bind(this),
       send: this.send.bind(this),

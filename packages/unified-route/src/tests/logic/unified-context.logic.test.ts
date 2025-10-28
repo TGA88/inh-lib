@@ -26,14 +26,16 @@ describe('Unified Base Service Functions', () => {
         method: 'POST',
         url: '/api/users/123',
         ip: '192.168.1.1',
-        userAgent: 'test-client/1.0'
+        userAgent: 'test-client/1.0',
+        route: '/api/users/123'
       },
       response: {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
         send: jest.fn(),
         header: jest.fn().mockReturnThis(),
-        redirect: jest.fn()
+        redirect: jest.fn(),
+        sent: false
       },
       registry: {}
     };

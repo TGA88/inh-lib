@@ -13,11 +13,13 @@ export interface UnifiedRequestContext {
 }
 
 export interface UnifiedResponseContext {
+  readonly sent: boolean;
   status(code: number): UnifiedResponseContext;
   json<T>(data: T): void;
   send(data: unknown): unknown;
   header(name: string, value: string): UnifiedResponseContext;
   redirect(url: string): void;
+  
 }
 
 export interface UnifiedHttpContext {
@@ -25,3 +27,15 @@ export interface UnifiedHttpContext {
   response: UnifiedResponseContext;
   registry: Record<string, unknown>;
 }
+
+// ========================================
+// Handler Types
+// ========================================
+
+export type UnifiedPreHandlerFn = (
+  ctx: UnifiedHttpContext
+) => Promise<void> | void;
+
+export type UnifiedHandlerFn = (
+  ctx: UnifiedHttpContext
+) => Promise<void> | void;
