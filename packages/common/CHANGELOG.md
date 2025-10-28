@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.11.1](https://github.com/TGA88/inh-lib/compare/common-1.11.0...common-1.11.1) (2025-10-28)
+
+
+### Bug Fixes
+
+* **common:** add function to ResultV2.toStreamResponse ([fce02d1](https://github.com/TGA88/inh-lib/commit/fce02d1521bf3063cc30db3afad310237934bbaa))
+
 ## [1.11.0](https://github.com/TGA88/inh-lib/compare/common-1.10.2...common-1.11.0) (2025-10-27)
 
 
