@@ -48,8 +48,9 @@ function createUnifiedResponse(res: FastifyReply): UnifiedResponseContext {
     },
 
     json: <T>(data: T) => {
-      res.send(data);
-      isSent = true; // ✅ set ใน closure เดียวกัน
+      // isSent = true; // ✅ set ใน closure เดียวกัน
+      // res.send(data);
+      unifiedResponse.send(data); // ใช้ send แทน
     },
 
     send: (data: unknown): void | FastifyReply => {
