@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.3.9](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.8...api-util-fastify-1.3.9) (2025-10-28)
+
+
+### Bug Fixes
+
+* **api-util-fastify:** add flag sent at UnifiedReponse to break RoutePipeline ([af67901](https://github.com/TGA88/inh-lib/commit/af679010ce42634bb471e0d6b2d729dee35d63d0))
+
 ## [1.3.8](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.7...api-util-fastify-1.3.8) (2025-10-22)
 
 
