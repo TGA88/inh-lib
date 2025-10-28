@@ -15,7 +15,13 @@ export interface UnifiedRequestContext {
 export interface UnifiedResponseContext {
   readonly sent: boolean;
   status(code: number): UnifiedResponseContext;
-  json<T>(data: T): unknown;
+  //  // Terminal methods - ไม่ return (void)
+  // json<T>(data: T): void;
+  // text(data: string): void;
+  // html(data: string): void;
+  // redirect(url: string): void;
+  json<T>(data: T): void;
+  // สำหรับ return stream หรือ data ทั่วไป
   send(data: unknown): unknown;
   header(name: string, value: string): UnifiedResponseContext;
   redirect(url: string): void;
