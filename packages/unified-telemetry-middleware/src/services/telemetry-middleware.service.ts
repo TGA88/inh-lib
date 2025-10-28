@@ -811,5 +811,19 @@ export class TelemetryMiddlewareService {
   };
   
 
+
+  /**
+   * Get active telemetry (logger, span, traceId) from context
+   * this method expect telemetry middleware is already initialized in context
+   * using in by Handler and preHandler function of UnifiedRoutePipeline
+   * UnifiedTelemetryProcessor will create active span and logger in context
+   */
+
+   getActiveTelemetry (context: UnifiedHttpContext): { telemetryLogger: UnifiedTelemetryLogger; telemetrySpan: UnifiedTelemetrySpan, traceId?: string }  {
+    const telemetryLogger = this.getCurrentLogger(context) as UnifiedTelemetryLogger ;
+    const telemetrySpan = this.getCurrentSpan(context) as UnifiedTelemetrySpan;
+    const traceId = telemetrySpan.getTraceId();
+    return { telemetryLogger, telemetrySpan,traceId };
+}
   //
 }
