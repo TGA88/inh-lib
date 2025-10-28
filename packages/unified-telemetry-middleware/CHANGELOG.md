@@ -2,6 +2,14 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.9](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.8...unified-telemetry-middleware-0.3.9) (2025-10-28)
+
+
+### Bug Fixes
+
+* **api-util-fastify:** add flag sent at UnifiedReponse to break RoutePipeline ([af67901](https://github.com/TGA88/inh-lib/commit/af679010ce42634bb471e0d6b2d729dee35d63d0))
+* **unified-telemetry-middleware:** add function getActiveTelemtry ([d988f1e](https://github.com/TGA88/inh-lib/commit/d988f1e42b4f4688adfece7797465a5114adcd0a))
+
 ## [0.3.8](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.7...unified-telemetry-middleware-0.3.8) (2025-10-27)
 
 
