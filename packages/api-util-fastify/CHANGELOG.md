@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.3.10](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.9...api-util-fastify-1.3.10) (2025-10-28)
+
+
+### Bug Fixes
+
+* **api-util-fastify:**  reponse.json auto call send method ([4ca5c68](https://github.com/TGA88/inh-lib/commit/4ca5c68b5832d56063c73763026c9756e74f35e5))
+
 ## [1.3.9](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.8...api-util-fastify-1.3.9) (2025-10-28)
 
 
