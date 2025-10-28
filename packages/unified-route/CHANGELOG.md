@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.4.4](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.3...unified-route-0.4.4) (2025-10-28)
+
+
+### Bug Fixes
+
+* **unified-route:** change method json of UnifiedResponseContext  to retun void for genereal data except stream that need return reponse type of a framework ([f0caf9a](https://github.com/TGA88/inh-lib/commit/f0caf9aef9841325fc6fce8f15de64e5b77eae95))
+
 ## [0.4.3](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.2...unified-route-0.4.3) (2025-10-28)
 
 
