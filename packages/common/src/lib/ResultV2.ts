@@ -1,5 +1,6 @@
 import { resultToResponse, ResultToResponseOptions } from "./Failure/ResponseBuilder";
-import { UnifiedResponseContext } from "./type/unified/unified-context";
+// import { UnifiedResponseContext } from "./type/unified/unified-context";
+// import { UnifiedResponseContext } from "@inh-lib/unified-route";
 
 export class Result<T, F = unknown> {
   public readonly isSuccess: boolean;
@@ -131,31 +132,46 @@ export class Result<T, F = unknown> {
   }
 
 
-  public toUnifiedResponse(res: UnifiedResponseContext, options?: ResultToResponseOptions) {
-    const response = resultToResponse(this, options);
-    return res.status(response.statusCode).json(response);
-  }
+  // public toUnifiedResponse(res: UnifiedResponseContext, options?: ResultToResponseOptions) {
+  //   const response = resultToResponse(this, options);
+  //   return res.status(response.statusCode).send(response);
+  // }
 
-
+  // to Support response general data (Terminal Data like text,html,json) then json must be return void
+  //  to support UnifiedResponseContext interface from unified-route package 
+  // (cannot import directly here due to circular dependency)
   public toHttpResponse(res: { 
     json: (data: unknown) => void; 
-    status: (code: number) => { json: (data: unknown) => void } 
-  }) {
+    status: (code: number) => { json: (data: unknown) => void}
+  }, options?: ResultToResponseOptions) {
+
 
   if (this.isFailure) {
-    const response = resultToResponse(this);
+    const response = resultToResponse(this,options);
     return res.status(response.statusCode).json(response);
   }
-  const options: ResultToResponseOptions = {
-    traceId: this.traceId,
-  };
   const response = resultToResponse(this, options);
   return res.status(response.statusCode).json(response);
   
-    // return this.isSuccess
-    //   ? res.json({ success: true, data: this._value })
-    //   : res.status(400).json({ success: false, error: this.error });
   }
+
+  // to Support response stream data 
+  //  to support UnifiedResponseContext interface from unified-route package 
+  // (cannot import directly here due to circular dependency)
+  public toStreamResponse(res: { 
+    send: (data: unknown) => unknown;
+    status: (code: number) => { send: (data: unknown) => unknown }
+  }, options?: ResultToResponseOptions) {
+
+
+  if (this.isFailure) {
+    const response = resultToResponse(this,options);
+    return res.status(response.statusCode).send(response);
+  }
+  const response = resultToResponse(this, options);
+  return res.status(response.statusCode).send(response);
+  }
+
 
   // ========== Static Methods ==========
 

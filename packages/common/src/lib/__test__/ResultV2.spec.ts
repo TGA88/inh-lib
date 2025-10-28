@@ -1,4 +1,5 @@
 import { Result, isSuccess, isFailure, sequence } from '../ResultV2';
+import { CommonFailures } from '../Failure/CommonFailures';
 
 interface TestUser {
   id: string;
@@ -10,6 +11,10 @@ interface TestError {
   code: string;
   message: string;
 }
+
+// Helper functions to reduce nesting
+const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+const sumReducer = (sum: number, val: number): number => sum + val;
 
 describe('ResultV2 Complete Test Suite', () => {
   
@@ -389,63 +394,206 @@ describe('ResultV2 Complete Test Suite', () => {
 
   describe('HTTP Response Integration', () => {
     let mockResponse: {
-      json: jest.Mock;
-      status: jest.Mock;
+      json: jest.Mock<void, [unknown]>;
+      send: jest.Mock<unknown, [unknown]>;
+      status: jest.Mock<{ json: jest.Mock<void, [unknown]>; send: jest.Mock<unknown, [unknown]> }, [number]>;
     };
 
     beforeEach(() => {
+      const mockJsonMethod = jest.fn<void, [unknown]>();
+      const mockSendMethod = jest.fn<unknown, [unknown]>();
+      
+      const mockChainableResponse = {
+        json: mockJsonMethod,
+        send: mockSendMethod
+      };
+
       mockResponse = {
-        json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        json: jest.fn<void, [unknown]>(),
+        send: jest.fn<unknown, [unknown]>(),
+        status: jest.fn<{ json: jest.Mock<void, [unknown]>; send: jest.Mock<unknown, [unknown]> }, [number]>().mockReturnValue(mockChainableResponse)
       };
     });
 
     it('toHttpResponse() should send success response for successful Result', () => {
+      mockResponse.status.mockClear();
+      
       const user: TestUser = { id: '1', name: 'John', email: 'john@test.com' };
       const result = Result.ok<TestUser>(user);
       
       result.toHttpResponse(mockResponse);
       
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        success: true,
-        data: user
+      const statusReturn = mockResponse.status.mock.results[0]?.value;
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(statusReturn?.json).toHaveBeenCalledWith({
+        statusCode: 200,
+        isSuccess: true,
+        codeResult: 'OK',
+        message: 'OK',
+        dataResult: user,
+        traceId: undefined
       });
-      expect(mockResponse.status).not.toHaveBeenCalled();
     });
 
     it('toHttpResponse() should send error response for failed Result', () => {
-      const result = Result.fail<TestUser>('User not found');
+      mockResponse.status.mockClear();
+      
+      const result = Result.fail<TestUser>(new CommonFailures.NotFoundFail('User'));
       
       result.toHttpResponse(mockResponse);
       
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        success: false,
-        error: 'User not found'
+      const statusReturn = mockResponse.status.mock.results[0]?.value;
+      expect(mockResponse.status).toHaveBeenCalledWith(404);
+      expect(statusReturn?.json).toHaveBeenCalledWith({
+        statusCode: 404,
+        isSuccess: false,
+        codeResult: 'NOT_FOUND',
+        message: 'User not found',
+        dataResult: null,
+        traceId: undefined
       });
     });
 
     it('toHttpResponse() should handle undefined value correctly', () => {
+      mockResponse.status.mockClear();
+      
       const result = Result.ok<void>();
       
       result.toHttpResponse(mockResponse);
       
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        success: true,
-        data: undefined
+      const statusReturn = mockResponse.status.mock.results[0]?.value;
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(statusReturn?.json).toHaveBeenCalledWith({
+        statusCode: 200,
+        isSuccess: true,
+        codeResult: 'OK',
+        message: 'OK',
+        dataResult: undefined,
+        traceId: undefined
       });
     });
 
-    it('toHttpResponse() should handle complex error objects', () => {
-      const error: TestError = { code: 'VALIDATION_ERROR', message: 'Invalid data' };
-      const result = Result.fail<TestUser, TestError>(error);
+    it('toHttpResponse() should handle custom options', () => {
+      mockResponse.status.mockClear();
       
-      result.toHttpResponse(mockResponse);
+      const user: TestUser = { id: '1', name: 'John', email: 'john@test.com' };
+      const result = Result.ok<TestUser>(user);
       
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        success: false,
-        error: error
+      result.toHttpResponse(mockResponse, {
+        successMessage: 'User created successfully',
+        traceId: 'test-trace-123'
+      });
+      
+      const statusReturn = mockResponse.status.mock.results[0]?.value;
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(statusReturn?.json).toHaveBeenCalledWith({
+        statusCode: 200,
+        isSuccess: true,
+        codeResult: 'OK',
+        message: 'User created successfully',
+        dataResult: user,
+        traceId: 'test-trace-123'
+      });
+    });
+
+    it('toStreamResponse() should send success response for successful Result', () => {
+      mockResponse.status.mockClear();
+      
+      const user: TestUser = { id: '1', name: 'John', email: 'john@test.com' };
+      const result = Result.ok<TestUser>(user);
+      
+      result.toStreamResponse(mockResponse);
+      
+      const statusReturn = mockResponse.status.mock.results[0]?.value;
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(statusReturn?.send).toHaveBeenCalledWith({
+        statusCode: 200,
+        isSuccess: true,
+        codeResult: 'OK',
+        message: 'OK',
+        dataResult: user,
+        traceId: undefined
+      });
+    });
+
+    it('toStreamResponse() should send error response for failed Result', () => {
+      mockResponse.status.mockClear();
+      
+      const result = Result.fail<TestUser>(new CommonFailures.InternalFail('Stream error'));
+      
+      result.toStreamResponse(mockResponse);
+      
+      const statusReturn = mockResponse.status.mock.results[0]?.value;
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(statusReturn?.send).toHaveBeenCalledWith({
+        statusCode: 500,
+        isSuccess: false,
+        codeResult: 'INTERNAL_ERROR',
+        message: 'Stream error',
+        dataResult: null,
+        traceId: undefined
+      });
+    });
+
+    it('toStreamResponse() should handle string data correctly', () => {
+      mockResponse.status.mockClear();
+      
+      const result = Result.ok<string>('Hello Stream');
+      
+      result.toStreamResponse(mockResponse);
+      
+      const statusReturn = mockResponse.status.mock.results[0]?.value;
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(statusReturn?.send).toHaveBeenCalledWith({
+        statusCode: 200,
+        isSuccess: true,
+        codeResult: 'OK',
+        message: 'OK',
+        dataResult: 'Hello Stream',
+        traceId: undefined
+      });
+    });
+
+    it('toStreamResponse() should handle custom options', () => {
+      mockResponse.status.mockClear();
+      
+      const data = { content: 'Stream content', type: 'text' };
+      const result = Result.ok(data);
+      
+      result.toStreamResponse(mockResponse, {
+        successMessage: 'Stream data sent successfully',
+        traceId: 'stream-trace-456'
+      });
+      
+      const statusReturn = mockResponse.status.mock.results[0]?.value;
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(statusReturn?.send).toHaveBeenCalledWith({
+        statusCode: 200,
+        isSuccess: true,
+        codeResult: 'OK',
+        message: 'Stream data sent successfully',
+        dataResult: data,
+        traceId: 'stream-trace-456'
+      });
+    });
+
+    it('toStreamResponse() should handle binary data', () => {
+      mockResponse.status.mockClear();
+      
+      const binaryData = Buffer.from('binary content');
+      const result = Result.ok(binaryData);
+      
+      result.toStreamResponse(mockResponse);
+      
+      const statusReturn = mockResponse.status.mock.results[0]?.value;
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(statusReturn?.send).toHaveBeenCalledWith({
+        statusCode: 200,
+        isSuccess: true,
+        codeResult: 'OK',
+        message: 'OK',
+        dataResult: binaryData,
+        traceId: undefined
       });
     });
   });
@@ -479,8 +627,8 @@ describe('ResultV2 Complete Test Suite', () => {
 
     it('from() should handle complex operations', () => {
       const parseNumber = (str: string) => {
-        const num = parseInt(str, 10);
-        if (isNaN(num)) throw new Error('Not a valid number');
+        const num = Number.parseInt(str, 10);
+        if (Number.isNaN(num)) throw new Error('Not a valid number');
         return num;
       };
 
@@ -495,20 +643,24 @@ describe('ResultV2 Complete Test Suite', () => {
     });
 
     it('fromAsync() should create successful Result when async function succeeds', async () => {
-      const result = await Result.fromAsync<number, string>(async () => {
-        await new Promise(resolve => setTimeout(resolve, 1));
+      const asyncOperation = async () => {
+        await delay(1);
         return 42;
-      });
+      };
+
+      const result = await Result.fromAsync<number, string>(asyncOperation);
       
       expect(result.isSuccess).toBe(true);
       expect(result.getValue()).toBe(42);
     });
 
     it('fromAsync() should create failed Result when async function throws', async () => {
-      const result = await Result.fromAsync<number, string>(async () => {
-        await new Promise(resolve => setTimeout(resolve, 1));
+      const asyncOperation = async () => {
+        await delay(1);
         throw new Error('async error');
-      });
+      };
+
+      const result = await Result.fromAsync<number, string>(asyncOperation);
       
       expect(result.isFailure).toBe(true);
       expect(result.errorValue()).toEqual(new Error('async error'));
@@ -572,10 +724,7 @@ describe('ResultV2 Complete Test Suite', () => {
         Result.ok<number>(3)
       ];
       
-      const combined = Result.combineWith(
-        results,
-        values => values.reduce((sum, val) => sum + val, 0)
-      );
+      const combined = Result.combineWith(results, values => values.reduce(sumReducer, 0));
       
       expect(combined.isSuccess).toBe(true);
       expect(combined.getValue()).toBe(6);
@@ -588,10 +737,7 @@ describe('ResultV2 Complete Test Suite', () => {
         Result.ok<number>(3)
       ];
       
-      const combined = Result.combineWith(
-        results,
-        values => values.reduce((sum, val) => sum + val, 0)
-      );
+      const combined = Result.combineWith(results, values => values.reduce(sumReducer, 0));
       
       expect(combined.isFailure).toBe(true);
       expect(combined.errorValue()).toBe('error');
