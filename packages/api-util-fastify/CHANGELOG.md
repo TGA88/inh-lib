@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.3.11](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.10...api-util-fastify-1.3.11) (2025-10-28)
+
+
+### Bug Fixes
+
+* **api-util-fastify:** Adapter FastifyResponseAdapter method json for reteun HttpData and send both stream and general data ([26c0acf](https://github.com/TGA88/inh-lib/commit/26c0acfe531e7bfb280131d2bfab6540b763c6ee))
+
 ## [1.3.10](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.9...api-util-fastify-1.3.10) (2025-10-28)
 
 
