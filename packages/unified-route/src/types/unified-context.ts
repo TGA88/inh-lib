@@ -15,7 +15,7 @@ export interface UnifiedRequestContext {
 export interface UnifiedResponseContext {
   readonly sent: boolean;
   status(code: number): UnifiedResponseContext;
-  json<T>(data: T): void;
+  json<T>(data: T): unknown;
   send(data: unknown): unknown;
   header(name: string, value: string): UnifiedResponseContext;
   redirect(url: string): void;
