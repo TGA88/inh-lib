@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.3](https://github.com/TGA88/inh-lib/compare/unified-telemetry-core-0.3.2...unified-telemetry-core-0.3.3) (2025-10-29)
+
+
+### Bug Fixes
+
+* **unified-telemetry-core:** remove add SpanEvent double time when call createChildLogger ([76328ea](https://github.com/TGA88/inh-lib/commit/76328ea96c0a611a043c2567a1b9c4ef3c636e14))
+
 ## [0.3.2](https://github.com/TGA88/inh-lib/compare/unified-telemetry-core-0.3.1...unified-telemetry-core-0.3.2) (2025-10-26)
 
 
