@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.2](https://github.com/TGA88/inh-lib/compare/unified-telemetry-otel-0.3.1...unified-telemetry-otel-0.3.2) (2025-10-29)
+
+
+### Bug Fixes
+
+* **unified-telemetry-otel:** add resourceMeasurementUnit when add SpanEvent ([ced6261](https://github.com/TGA88/inh-lib/commit/ced626100746c2f1214b07bdde4a259d28a5712f))
+
 ## [0.3.1](https://github.com/TGA88/inh-lib/compare/unified-telemetry-otel-0.3.0...unified-telemetry-otel-0.3.1) (2025-09-25)
 
 
