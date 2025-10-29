@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.11.3](https://github.com/TGA88/inh-lib/compare/common-1.11.2...common-1.11.3) (2025-10-29)
+
+
+### Bug Fixes
+
+* **common:** add export ProcessPipeline ([a45b92c](https://github.com/TGA88/inh-lib/commit/a45b92cfb0a0283e85c20b63abd9e5d7d6365bda))
+
 ## [1.11.2](https://github.com/TGA88/inh-lib/compare/common-1.11.1...common-1.11.2) (2025-10-29)
 
 
