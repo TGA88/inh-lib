@@ -52,12 +52,11 @@ export class DefaultUnifiedTelemetryLogger implements UnifiedTelemetryLogger {
   }
   createChildLogger(operationName: string, attributes?: Record<string, string | number | boolean>): UnifiedTelemetryLogger {
 
-
     const childContext = createChildLoggerWithSameSpan(this.context, operationName, attributes);
-    if (this.options.autoAddSpanEvents && this.span) {
-      const eventAttributes = attributes ? { operationName, ...attributes } : { operationName };
-      this.span.addEvent('childLogger.created', eventAttributes);
-    }
+    // if (this.options.autoAddSpanEvents && this.span) {
+    //   const eventAttributes = attributes ? { operationName, ...attributes } : { operationName };
+    //   this.span.addEvent('childLogger.created', eventAttributes);
+    // }
 
     return new DefaultUnifiedTelemetryLogger(this.baseLogger, childContext);
   }
