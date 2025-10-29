@@ -7,20 +7,38 @@
  */
  
 
-import { 
-  UnifiedTelemetrySpan, 
-  UnifiedSpanStatus, 
+import {
+  UnifiedTelemetrySpan,
+  UnifiedSpanStatus,
   UnifiedTelemetrySpanMetadata
 } from '@inh-lib/unified-telemetry-core';
+import {
+  ResourceTrackingService, UnifiedStopResourceMeasurementResult,
+  UnifiedResourceMeasurement
+} from '@inh-lib/unified-telemetry-middleware';
 import { OtelSpanInstance } from '../types/otel.types';
 import { convertSpanStatus, extractTraceIdFromSpan, extractSpanIdFromSpan } from '../logic/otel.logic';
 
+
 export class OtelSpanAdapter implements UnifiedTelemetrySpan {
   public readonly startTime: Date;
+  private spanMeasurementUnit: UnifiedResourceMeasurement;
+  private currentMeasurementUnit: UnifiedResourceMeasurement;
+  private latestMeasurementUnit: UnifiedStopResourceMeasurementResult;
 
   constructor(private readonly otelSpan: OtelSpanInstance, startTime: Date, private readonly parentSpan?: UnifiedTelemetrySpanMetadata) {
     this.startTime = startTime;
+    this.spanMeasurementUnit = ResourceTrackingService.startTracking();
+    this.currentMeasurementUnit = this.spanMeasurementUnit;
+    this.latestMeasurementUnit = ResourceTrackingService.stopTracking(this.spanMeasurementUnit);
   }
+  getCurrentMeasurementUnit(): UnifiedResourceMeasurement {
+    return this.currentMeasurementUnit;
+  }
+  getLatestMeasurementUnit(): UnifiedStopResourceMeasurementResult {
+    return this.latestMeasurementUnit;
+  }
+  
   
   getStartTime(): Date {
     return this.startTime;
@@ -47,7 +65,18 @@ export class OtelSpanAdapter implements UnifiedTelemetrySpan {
   }
 
   addEvent(name: string, attributes?: Record<string, string | number | boolean>): UnifiedTelemetrySpan {
-    this.otelSpan.addEvent(name, attributes);
+    // calculate latest measurement unit
+    
+    this.latestMeasurementUnit = ResourceTrackingService.stopTracking(this.currentMeasurementUnit);
+    this.currentMeasurementUnit = this.latestMeasurementUnit.endMeasurement;
+
+    // ลบ endMeasurement ออก
+    const {endMeasurement, ...restObj} = this.latestMeasurementUnit;
+
+    const attr = {...attributes, ...restObj};
+
+    // add event with resource measurement attributes
+    this.otelSpan.addEvent(name, attr);
     return this;
   }
 
