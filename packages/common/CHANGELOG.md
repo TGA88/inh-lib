@@ -2,6 +2,14 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.11.2](https://github.com/TGA88/inh-lib/compare/common-1.11.1...common-1.11.2) (2025-10-29)
+
+
+### Bug Fixes
+
+* **common:** add feature process-pipeline and test ([4282d44](https://github.com/TGA88/inh-lib/commit/4282d44639538463e13b5f2058288ee65996a866))
+* **common:** add ProcessPipelin Usage guide ([cc1947e](https://github.com/TGA88/inh-lib/commit/cc1947e5cf6c6551af14cfa57a75340f5207df90))
+
 ## [1.11.1](https://github.com/TGA88/inh-lib/compare/common-1.11.0...common-1.11.1) (2025-10-28)
 
 

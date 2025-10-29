@@ -1,6 +1,6 @@
 {
   "name": "@inh-lib/common",
-  "version": "1.11.1",
+  "version": "1.11.2",
   "type": "commonjs",
   "publishConfig": {
     "access": "public"
