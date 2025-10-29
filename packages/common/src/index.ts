@@ -26,6 +26,12 @@ export * from './lib/Failure/CommonFailures'
 export * from './lib/Failure/HttpStatusCode'
 
 
+// Process Pipeline
+export * from './lib/ProcessPipeline/core/process-pipeline';
+export * from './lib/ProcessPipeline/types/process-pipeline';
+export * from './lib/ProcessPipeline/utils/process-helpers';
+
+
 
 // ==============
 export * from './lib/type/inh-http-client'
