@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.11.4](https://github.com/TGA88/inh-lib/compare/common-1.11.3...common-1.11.4) (2025-10-31)
+
+
+### Bug Fixes
+
+* **common:** process-pipeline reutrn ResultV2 instead ProcessResult ([755deae](https://github.com/TGA88/inh-lib/commit/755deae6b245f789d5afbf8ed402098020f20574))
+
 ## [1.11.3](https://github.com/TGA88/inh-lib/compare/common-1.11.2...common-1.11.3) (2025-10-29)
 
 
