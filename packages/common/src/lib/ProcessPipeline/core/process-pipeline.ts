@@ -1,11 +1,14 @@
 // core/process-pipeline.ts
 
+import {  Result } from '../../ResultV2';
+import {BaseFailure} from '../../Failure/BaseFailure';
+
 import {
   ProcessContext,
   ProcessStepFn,
-  ProcessActionFn,
-  ProcessResult
+  ProcessActionFn
 } from '../types/process-pipeline';
+import { CommonFailures } from '../../Failure/CommonFailures';
 
 export class ProcessPipeline<TInput = unknown, TOutput = unknown> {
   private readonly middlewares: ProcessStepFn<TInput, TOutput>[] = [];
@@ -34,7 +37,7 @@ export class ProcessPipeline<TInput = unknown, TOutput = unknown> {
   // Execution
   // ========================================
 
-  async execute(input: TInput): Promise<ProcessResult<TOutput>> {
+  async execute(input: TInput): Promise<Result<TOutput,BaseFailure>> {
     // Create context
     const ctx = this.createContext(input);
 
@@ -42,35 +45,40 @@ export class ProcessPipeline<TInput = unknown, TOutput = unknown> {
       // Execute middlewares
       for (const middleware of this.middlewares) {
         // ✅ ไม่ break เมื่อมี output - ให้ทำงานต่อ
-        if (ctx.failed) {
+        if (ctx.failed || ctx.completed) {
           break; // หยุดเมื่อ fail เท่านั้น
         }
 
         await middleware(ctx);
       }
 
-      // Execute handler ถ้ายังไม่ fail
-      if (!ctx.failed && this.handler) {
-        await this.handler(ctx);
-      }
+      // // Execute handler ถ้ายังไม่ fail
+      // if (!ctx.failed && this.handler) {
+      //   await this.handler(ctx);
+      // }
 
       // Return result
-      return {
-        success: !ctx.failed,
-        output: ctx.output,
-        error: ctx.error,
-        state: ctx.state
-      };
+      // return {
+      //   success: !ctx.failed,
+      //   output: ctx.output,
+      //   error: ctx.error,
+      //   state: ctx.state
+      // };
+      if (ctx.failed) {
+        return Result.fail(ctx.error as BaseFailure);
+      }
+      return Result.ok(ctx.output);
 
     } catch (error) {
       // Handle unexpected errors
       const err = error instanceof Error ? error : new Error(String(error));
       
-      return {
-        success: false,
-        error: err,
-        state: ctx.state
-      };
+      // return {
+      //   success: false,
+      //   error: err,
+      //   state: ctx.state
+      // };
+      return Result.fail(new CommonFailures.InternalFail(err.message));
     }
   }
 
