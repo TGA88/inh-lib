@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.11.6](https://github.com/TGA88/inh-lib/compare/common-1.11.5...common-1.11.6) (2025-11-02)
+
+
+### Bug Fixes
+
+* **common:** type DataParser return both Result or Either type ([fefa070](https://github.com/TGA88/inh-lib/commit/fefa070abab2ecf7946d8506fb993c5f2c4286a5))
+
 ## [1.11.5](https://github.com/TGA88/inh-lib/compare/common-1.11.4...common-1.11.5) (2025-11-02)
 
 ## [1.11.4](https://github.com/TGA88/inh-lib/compare/common-1.11.3...common-1.11.4) (2025-10-31)
