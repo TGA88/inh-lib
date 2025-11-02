@@ -1,4 +1,5 @@
-import { Either, left, Result } from "./Result";
+import {  Result } from "./Result";
+import { left,Either } from "./Either";
 import { createEventLogFormatFn, EventLogFormatter, InhLogContext, InhLogger } from "./type/inh-logger";
 
 export type FunctionChainState = Record<string, unknown>
