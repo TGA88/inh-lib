@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.11.9](https://github.com/TGA88/inh-lib/compare/common-1.11.8...common-1.11.9) (2025-11-03)
+
+
+### Bug Fixes
+
+* **common:** error ResultV2.withTraceId cannot be set ([a36dc6c](https://github.com/TGA88/inh-lib/commit/a36dc6c09de8aed0820ce9ec41a65f1749b0cef9))
+
 ## [1.11.8](https://github.com/TGA88/inh-lib/compare/common-1.11.7...common-1.11.8) (2025-11-03)
 
 
