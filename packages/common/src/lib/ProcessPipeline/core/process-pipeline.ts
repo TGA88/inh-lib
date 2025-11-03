@@ -45,8 +45,11 @@ export class ProcessPipeline<TInput = unknown, TOutput = unknown> {
       // Execute middlewares
       for (const middleware of this.middlewares) {
         // ✅ ไม่ break เมื่อมี output - ให้ทำงานต่อ
-        if (ctx.failed || ctx.completed) {
+        if (ctx.failed ) {
           break; // หยุดเมื่อ fail เท่านั้น
+        }
+        if (ctx.completed ) {
+          break; // หยุดเมื่อ completed เท่านั้น
         }
 
         await middleware(ctx);
