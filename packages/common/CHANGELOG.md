@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.11.7](https://github.com/TGA88/inh-lib/compare/common-1.11.6...common-1.11.7) (2025-11-03)
+
+
+### Bug Fixes
+
+* **common:** processPipeline not break when complete or Fail ([afef742](https://github.com/TGA88/inh-lib/commit/afef74262b37471dbe4fe88b9634480b6cfcc9f2))
+
 ## [1.11.6](https://github.com/TGA88/inh-lib/compare/common-1.11.5...common-1.11.6) (2025-11-02)
 
 
