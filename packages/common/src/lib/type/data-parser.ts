@@ -1,4 +1,4 @@
-import { Either } from "../Either";
+// import { Either } from "../Either";
 import { Result } from "../Result";
 
-export type DataParser<I, O,F=unknown> = (input: I) => Result<O,F> | Either<F,O>;
+export type DataParser<I, O,F=unknown> = (input: I) => Result<O,F>;
