@@ -1,3 +1,4 @@
+import { trace } from "console";
 import { resultToResponse, ResultToResponseOptions } from "./Failure/ResponseBuilder";
 // import { UnifiedResponseContext } from "./type/unified/unified-context";
 // import { UnifiedResponseContext } from "@inh-lib/unified-route";
@@ -7,8 +8,16 @@ export class Result<T, F = unknown> {
   public readonly isFailure: boolean;
   public readonly error?: F;
   private readonly _value?: T; // ✅ แก้: เพิ่ม readonly
-  public traceId?: string;
-  public httpStatusCode?: number;
+  private _traceId?: string;
+  
+  public get traceId(): string | undefined {
+    return this._traceId;
+  }
+  private _httpStatusCode?: number;
+  public get httpStatusCode(): number | undefined {
+    return this._httpStatusCode;
+  }
+  
 
   private constructor(isSuccess: boolean, error?: F, value?: T) {
     if (isSuccess && error) {
@@ -26,14 +35,14 @@ export class Result<T, F = unknown> {
     Object.freeze(this);
   }
 
-   // Set traceId (เรียกใช้ตอน สร้าง DataResponse )
+  // Set traceId (เรียกใช้ตอน สร้าง DataResponse )
   withTraceId(traceId: string): this {
-    this.traceId = traceId;
+    this._traceId = traceId;
     return this;
   }
    // Set successHttpCode (เรียกใช้ตอน สร้าง DataResponse )
   withHttpStatusCode(statusCode: number): this {
-    this.httpStatusCode = statusCode;
+    this._httpStatusCode = statusCode;
     return this;
   }
 
@@ -145,12 +154,13 @@ export class Result<T, F = unknown> {
     status: (code: number) => { json: (data: unknown) => void}
   }, options?: ResultToResponseOptions) {
 
-
+    const defaultOptions = { traceId: this.traceId, ...options };
   if (this.isFailure) {
-    const response = resultToResponse(this,options);
+    
+    const response = resultToResponse(this, defaultOptions);
     return res.status(response.statusCode).json(response);
   }
-  const response = resultToResponse(this, options);
+  const response = resultToResponse(this, defaultOptions);
   return res.status(response.statusCode).json(response);
   
   }
