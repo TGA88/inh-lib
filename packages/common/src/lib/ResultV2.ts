@@ -1,4 +1,4 @@
-import { trace } from "console";
+
 import { resultToResponse, ResultToResponseOptions } from "./Failure/ResponseBuilder";
 // import { UnifiedResponseContext } from "./type/unified/unified-context";
 // import { UnifiedResponseContext } from "@inh-lib/unified-route";
