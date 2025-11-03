@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.11.8](https://github.com/TGA88/inh-lib/compare/common-1.11.7...common-1.11.8) (2025-11-03)
+
+
+### Bug Fixes
+
+* **common:** data-parser return union type dosn't work ([48c149c](https://github.com/TGA88/inh-lib/commit/48c149ccd3b803ac1ffacdc0f673fd33fb1eb326))
+
 ## [1.11.7](https://github.com/TGA88/inh-lib/compare/common-1.11.6...common-1.11.7) (2025-11-03)
 
 
