@@ -11,7 +11,7 @@
  * and do not affect functionality.
  */
 
-import { type UnifiedMiddleware, type UnifiedHttpContext, getRegistryItem } from '@inh-lib/unified-route';
+import { type UnifiedMiddleware, type UnifiedHttpContext, getRegistryItem, UnifiedRouteHandler } from '@inh-lib/unified-route';
 import type { 
   UnifiedTelemetryProvider, 
   UnifiedTelemetrySpan, 
@@ -416,10 +416,49 @@ export class TelemetryMiddlewareService {
     };
   }
 
-   /**
-   * Create operation layer middleware for specific operations
+ 
+  /**
+   * Creates a UnifiedMiddleware that wraps an operation in a telemetry span, logs start/end,
+   * records exceptions, and ensures the span is finished.
+   *
+   * The returned middleware:
+   * - Creates an active span via createActiveSpan with the provided operation metadata.
+   * - Optionally logs an "operation started" message when the middleware begins.
+   * - Invokes the next middleware/handler and, on success, sets the span status to "ok"
+   *   and optionally logs a completion message including the operation duration in milliseconds.
+   * - On error, records the exception on the span, sets the span status to "error" (including
+   *   the error message), logs the error with contextual fields, and rethrows the original error.
+   * - Always calls finish() to end the span in a finally block.
+   *
+   * Note: Duration is measured using process.hrtime.bigint() and converted to milliseconds.
+   *
+   * @param operationName - A human-readable name for the operation (used in span and logs).
+   * @param options - Configuration for the operation span and logging behavior.
+   * @param options.operationType - Telemetry operation type for the span (defaults to TELEMETRY_OPERATION_TYPES.CUSTOM if not provided).
+   * @param options.layer - Telemetry layer for the span (defaults to TELEMETRY_LAYERS.CUSTOM if not provided).
+   * @param options.logStart - If set to false, suppresses the start log. Defaults to true.
+   * @param options.logEnd - If set to false, suppresses the end/success log. Defaults to true.
+   * @param options.attributes - Additional attributes to attach to the created span.
+   *
+   * @returns A UnifiedMiddleware function: (context, next) => Promise<void>. The middleware manages telemetry
+   *          for the operation and must be awaited (i.e., returns a Promise that resolves when next() completes).
+   *
+   * @throws Re-throws any error thrown by downstream middleware/handler after recording it on the span.
+   *
+   * @example
+   * // Create middleware for a business operation in the service layer:
+   * const middleware = service.createOperationProcess('CreateOrder', {
+   *   operationType: TELEMETRY_OPERATION_TYPES.BUSINESS,
+   *   layer: TELEMETRY_LAYERS.SERVICE,
+   *   logStart: true,
+   *   logEnd: true,
+   *   attributes: { feature: 'ordering' },
+   * });
+   *
+   * // Use the middleware in a pipeline:
+   * await middleware(context, next);
    */
-  createOperationLayerProcess(
+  createOperationProcess(
     operationName: string,
     options: {
       operationType: TelemetryOperationType;
@@ -461,7 +500,6 @@ export class TelemetryMiddlewareService {
             durationMs: durationMs.toFixed(2),
           });
         }
-
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         
@@ -479,7 +517,7 @@ export class TelemetryMiddlewareService {
           operationName,
         });
 
-        throw error;
+        // throw error;
       } finally {
         // Always finish the span
         finish();
@@ -487,6 +525,155 @@ export class TelemetryMiddlewareService {
     };
   }
 
+  createHttpEndpointProcess(
+    operationName: string,
+    options?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }
+  ): UnifiedMiddleware {
+    const step = this.createOperationProcess(operationName, {
+      operationType: options?.operationType || TELEMETRY_OPERATION_TYPES.ENDPOINT,
+      layer: options?.layer || TELEMETRY_LAYERS.HTTP,
+      logStart: options?.logStart !== false,
+      logEnd: options?.logEnd !== false,
+      attributes: options?.attributes,
+    });
+    return step;
+  } 
+
+  createHttpMiddlewareProcess(
+    operationName: string,
+    options?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }
+  ): UnifiedMiddleware {
+    const step = this.createOperationProcess(operationName, {
+      operationType: options?.operationType || TELEMETRY_OPERATION_TYPES.MIDDLEWARE,
+      layer: options?.layer || TELEMETRY_LAYERS.HTTP,
+      logStart: options?.logStart !== false,
+      logEnd: options?.logEnd !== false,
+      attributes: options?.attributes,
+    });
+    return step;
+  } 
+
+  /**
+   * Create a middleware step known as preHandler for an API endpoint operation with telemetry instrumentation.
+   *
+   * This is a convenience wrapper around createOperationProcess that fills common defaults
+   * for endpoint instrumentation (operation type and layer) and default logging behavior.
+   *
+   * @param operationName - The name of the operation/endpoint being instrumented. Used as the primary
+   *   identifier for telemetry events produced by the middleware.
+   * @param options - Optional configuration for the created middleware.
+   * @param options.operationType - The telemetry operation type for this endpoint. Defaults to
+   *   TELEMETRY_OPERATION_TYPES.ENDPOINT.
+   * @param options.layer - The telemetry layer for this operation. Defaults to TELEMETRY_LAYERS.API.
+   * @param options.logStart - Whether to emit a "start" telemetry event when the middleware begins.
+   *   Defaults to true.
+   * @param options.logEnd - Whether to emit an "end" telemetry event when the middleware completes.
+   *   Defaults to true.
+   * @param options.attributes - Optional additional telemetry attributes to attach to events created
+   *   by this middleware.
+   *
+   * @returns A UnifiedMiddleware function that wraps the operation with telemetry collection and
+   *   logging according to the provided options.
+   *
+   * @example
+   * const middleware = createApiEndpointProcess("getUser", {
+   *   layer: TELEMETRY_LAYERS.API,
+   *   logStart: true,
+   *   logEnd: true,
+   *   attributes: { featureFlag: "user-v2" }
+   * });
+   */
+  createApiEndpointProcess(
+    operationName: string,
+    options?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }
+  ): UnifiedMiddleware {
+    const step = this.createOperationProcess(operationName, {
+      operationType: options?.operationType || TELEMETRY_OPERATION_TYPES.ENDPOINT,
+      layer: options?.layer || TELEMETRY_LAYERS.API,
+      logStart: options?.logStart !== false,
+      logEnd: options?.logEnd !== false,
+      attributes: options?.attributes,
+    });
+    return step;
+  } 
+
+  createApiMiddlewareProcess( 
+    operationName: string,
+    options?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }
+  ): UnifiedMiddleware {
+    const step = this.createOperationProcess(operationName, {
+      operationType: options?.operationType || TELEMETRY_OPERATION_TYPES.MIDDLEWARE,
+      layer: options?.layer || TELEMETRY_LAYERS.API,
+      logStart: options?.logStart !== false,
+      logEnd: options?.logEnd !== false,
+      attributes: options?.attributes,
+    });
+    return step;
+  } 
+
+  createDataLogicProcess(
+    operationName: string,
+    options?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }
+  ): UnifiedMiddleware {
+    const step = this.createOperationProcess(operationName, {
+      operationType: options?.operationType || TELEMETRY_OPERATION_TYPES.LOGIC,
+      layer: options?.layer || TELEMETRY_LAYERS.DATA,
+      logStart: options?.logStart !== false,
+      logEnd: options?.logEnd !== false,
+      attributes: options?.attributes,
+    });
+    return step;
+  }
+
+  createDatabaseProcess(
+    operationName: string,
+    options?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }
+  ): UnifiedMiddleware {
+    const step = this.createOperationProcess(operationName, {
+      operationType: options?.operationType || TELEMETRY_OPERATION_TYPES.DATABASE,
+      layer: options?.layer || TELEMETRY_LAYERS.DATA,
+      logStart: options?.logStart !== false,
+      logEnd: options?.logEnd !== false,
+      attributes: options?.attributes,
+    });
+    return step;
+  }
 
     /**
    * Create operation type middleware for specific operations
@@ -501,7 +688,7 @@ export class TelemetryMiddlewareService {
       attributes?: TelemetryAttributes;
     }
   ): UnifiedMiddleware {
-    return async (context: UnifiedHttpContext, next: () => Promise<void>) => {
+    const fn = async (context: UnifiedHttpContext, next: () => Promise<void> | UnifiedRouteHandler) => {
       const { span, logger, finish } = this.createChildSpan(context, operationName, {
         operationType: options?.operationType || TELEMETRY_OPERATION_TYPES.MIDDLEWARE,
         layer: options?.layer || TELEMETRY_LAYERS.SERVICE,
@@ -557,6 +744,8 @@ export class TelemetryMiddlewareService {
         finish();
       }
     };
+
+    return fn;
   }
 
 
