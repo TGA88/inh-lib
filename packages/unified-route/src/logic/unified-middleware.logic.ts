@@ -21,3 +21,8 @@ export const composeMiddleware = (middlewares: UnifiedMiddleware[]) => {
     };
   };
 };
+
+export function isUnifiedMiddleware(middleware: unknown): middleware is UnifiedMiddleware {
+  return typeof middleware === 'function' && middleware.length === 2;
+}
+

@@ -2,8 +2,11 @@
 // Route Pipeline
 // ========================================
 
+
 import { UnifiedHandlerFn, UnifiedHttpContext, UnifiedPreHandlerFn } from "../types/unified-context";
+import { UnifiedMiddleware, UnifiedRouteHandler } from "../types/unified-middleware";
 import { getRegistryItem } from "./unified-context.logic";
+import { composeMiddleware } from "./unified-middleware.logic";
 
 export class UnifiedRoutePipeline {
   private readonly preHandlers: UnifiedPreHandlerFn[] = [];
@@ -69,4 +72,33 @@ export class UnifiedRoutePipeline {
       }
     }
   }
+}
+
+// Type Guards
+export function isUnifiedRouteHandler(next: unknown): next is UnifiedRouteHandler {
+  return typeof next === 'function' && next.length === 1 && next.toString().includes('UnifiedHttpContext');
+}
+
+export function isUnifiedPreHandlerFn(next: unknown): next is UnifiedPreHandlerFn {
+  return typeof next === 'function' && next.length === 1 && next.toString().includes('UnifiedHttpContext');
+}
+export function isUnifiedHandlerFn(next: unknown): next is UnifiedHandlerFn {
+  return typeof next === 'function' && next.length === 1 && next.toString().includes('UnifiedHttpContext');
+}
+
+
+
+export function createRouteStep({ handler, middleware }: { handler: UnifiedHandlerFn | UnifiedPreHandlerFn, middleware?: UnifiedMiddleware[] }): UnifiedHandlerFn | UnifiedPreHandlerFn {
+  if (!middleware || middleware.length === 0) {
+    return handler;
+  }
+  const routeHandler: UnifiedRouteHandler = async (context: UnifiedHttpContext) => {
+    return await handler(context);
+  }
+
+  const composedHandler = composeMiddleware(middleware)(routeHandler);
+  const stepHandler: UnifiedPreHandlerFn = async (context: UnifiedHttpContext) => {
+    await composedHandler(context);
+  };
+  return stepHandler;
 }
