@@ -2,6 +2,14 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.10](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.9...unified-telemetry-middleware-0.3.10) (2025-11-08)
+
+
+### Bug Fixes
+
+* **unified-telemeter-middleware:** add utitity function to create Middleware process for UnifiedRouteStep and ProcessStep ([b35e54f](https://github.com/TGA88/inh-lib/commit/b35e54fba6c699a263fa4f6ae5bce97485ae08c7))
+* **unified-telemetry-middleware:** fix test fail ([84b906d](https://github.com/TGA88/inh-lib/commit/84b906d0a091f5d60308a2770f7d1eaff892c53c))
+
 ## [0.3.9](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.8...unified-telemetry-middleware-0.3.9) (2025-10-28)
 
 
