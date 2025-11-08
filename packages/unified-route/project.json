@@ -38,7 +38,9 @@
       "outputs": ["{workspaceRoot}/coverage/packages/unified-route"],
       "options": {
         "jestConfig": "packages/unified-route/jest.config.ts",
-        "passWithNoTests": true
+        "passWithNoTests": true,
+        "silent": true,
+        "ci": true
       }
     },
     "version": {
