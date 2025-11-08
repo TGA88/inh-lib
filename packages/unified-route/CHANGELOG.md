@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.4.5](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.4...unified-route-0.4.5) (2025-11-08)
+
+
+### Bug Fixes
+
+* **unified-route:**  add helpers function for routePipeline and middleware ([c5d5193](https://github.com/TGA88/inh-lib/commit/c5d5193e6de470105ff3ae935553af59b02ac555))
+
 ## [0.4.4](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.3...unified-route-0.4.4) (2025-10-28)
 
 
