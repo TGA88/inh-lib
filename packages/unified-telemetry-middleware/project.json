@@ -38,7 +38,9 @@
       "outputs": ["{workspaceRoot}/coverage/packages/unified-telemetry-middleware"],
       "options": {
         "jestConfig": "packages/unified-telemetry-middleware/jest.config.ts",
-        "passWithNoTests": true
+        "passWithNoTests": true,
+        "ci": true,
+        "silent": true
       }
     },
     "version": {

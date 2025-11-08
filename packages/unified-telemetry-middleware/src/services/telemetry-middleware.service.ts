@@ -61,6 +61,7 @@ import { INTERNAL_REGISTRY_KEYS } from '../internal/constants/telemetry.const';
 import { InitializeTelemetryContextResult } from '../types/telemetry.types';
 import { TELEMETRY_LAYERS, TELEMETRY_OPERATION_TYPES } from '../constants/telemetry-middleware.const';
 
+
 /**
  * Configuration for telemetry middleware
  */
@@ -134,8 +135,6 @@ export class TelemetryMiddlewareService {
   createMiddleware(): UnifiedMiddleware {
     return async (context: UnifiedHttpContext, next: () => Promise<void>) => {
 
- 
-
       // Setup telemetry at request start
       const performanceData = this.extractor.extractAndSetupTelemetry(context);
       storePerformanceData(context, performanceData);
@@ -151,6 +150,7 @@ export class TelemetryMiddlewareService {
         correlationId: performanceData.requestContext.correlationId,
       });
 
+      
       let statusCode = 200; // Initialize with default status code
       let error: Error | null = null;
 
@@ -161,15 +161,6 @@ export class TelemetryMiddlewareService {
         // Extract final status code
         statusCode = extractTelemetryStatusCode(context);
 
-        // Finalize telemetry data
-        await finalizeTelemetryForRequest(
-          context,
-          statusCode,
-          this.config,
-          this.resourceTracker,
-          this.metricsCollector,
-          "BUSINESS_LOGIC_CONTEXT"
-        );
       } catch (err) {
         error = err instanceof Error ? err : new Error(String(err));
         statusCode = 500;
@@ -185,9 +176,12 @@ export class TelemetryMiddlewareService {
           errorType: error.constructor.name,
           errorMessage: error.message,
         });
-        
-        throw error;
+
+          context.response.status(statusCode).json(undefined);
+    
       } finally {
+        
+       performanceData.logger.info('Finalizing telemetry for request in finally block');
         // Finalize telemetry at request end
         await finalizeTelemetryForRequest(
           context,

@@ -3,34 +3,43 @@
  */
 
 import { TelemetryMiddlewareService } from '../../services/telemetry-middleware.service';
-import { NoOpUnifiedTelemetryProvider } from '@inh-lib/unified-telemetry-core';
+import { ConsoleUnifiedTelemetryProvider, NoOpUnifiedTelemetryProvider } from '@inh-lib/unified-telemetry-core';
 import type { UnifiedHttpContext, UnifiedMiddleware } from '@inh-lib/unified-route';
 import { composeMiddleware, getRegistryItem, addRegistryItem } from '@inh-lib/unified-route';
+import { INTERNAL_REGISTRY_KEYS } from '../../internal/constants/telemetry.const';
+import exp = require('constants');
+
 
 // Mock context factory
-const createMockContext = (overrides: Partial<UnifiedHttpContext> = {}): UnifiedHttpContext => ({
-  request: {
-    body: {},
-    params: {},
-    query: {},
-    headers: {},
-    method: 'GET',
-    url: '/test',
-    ip: '127.0.0.1',
-    userAgent: 'test-agent',
-    ...overrides.request,
-  },
-  response: {
-    status: jest.fn().mockReturnThis(),
-    json: jest.fn(),
-    send: jest.fn(),
-    header: jest.fn().mockReturnThis(),
-    redirect: jest.fn(),
-    ...overrides.response,
-  },
-  registry: {},
-  ...overrides,
-});
+const createMockContext = (overrides: Partial<UnifiedHttpContext> & { request?: Partial<UnifiedHttpContext['request']>; response?: Partial<UnifiedHttpContext['response']> } = {}): UnifiedHttpContext => {
+  const reqOverrides = (overrides.request ?? {}) as Partial<UnifiedHttpContext['request']>;
+  const resOverrides = (overrides.response ?? {}) as Partial<UnifiedHttpContext['response']>;
+
+  return {
+    request: {
+      body: reqOverrides.body ?? {},
+      params: reqOverrides.params ?? {},
+      query: reqOverrides.query ?? {},
+      headers: reqOverrides.headers ?? {},
+      method: reqOverrides.method ?? 'GET',
+      url: reqOverrides.url ?? '/test',
+      route: reqOverrides.route ?? '/test', // ensure route is always a string
+      ip: reqOverrides.ip ?? '127.0.0.1',
+      userAgent: reqOverrides.userAgent ?? 'test-agent',
+    },
+    response: {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+      send: jest.fn(),
+      header: jest.fn().mockReturnThis(),
+      redirect: jest.fn(),
+      ...resOverrides,
+      sent: resOverrides.sent ?? false,
+    },
+    registry: {},
+    ...overrides,
+  };
+};
 
 describe('TelemetryMiddlewareService', () => {
   let telemetryService: TelemetryMiddlewareService;
@@ -56,6 +65,7 @@ describe('TelemetryMiddlewareService', () => {
       enableCorrelationId: true,
       enableSystemMetrics: false, // Disable for testing
       enableRegistryCleanup: false, // Disable cleanup for testing
+      
     });
 
     // Create middleware
@@ -118,8 +128,10 @@ describe('TelemetryMiddlewareService', () => {
       const error = new Error('Test middleware error');
       const nextMock = jest.fn().mockRejectedValue(error);
 
-      await expect(cleanupMiddleware(context, nextMock)).rejects.toThrow(error);
-      
+      await cleanupMiddleware(context, nextMock);
+      expect(context.response.json).toHaveBeenCalledTimes(1);
+      expect(context.response.status).toHaveBeenCalledWith(500);
+
       // Registry should be cleaned up (items set to undefined)
       const span = getRegistryItem(context, 'telemetry:span');
       const logger = getRegistryItem(context, 'telemetry:logger');
@@ -139,6 +151,7 @@ describe('TelemetryMiddlewareService', () => {
           query: {},
           method: 'GET',
           url: '/test',
+          route: '/test',
           ip: '127.0.0.1',
           userAgent: 'test-agent',
           headers: {
@@ -163,6 +176,7 @@ describe('TelemetryMiddlewareService', () => {
           query: {},
           method: 'GET',
           url: '/test',
+          route: '/test',
           ip: '127.0.0.1',
           userAgent: 'test-agent',
           headers: {
@@ -245,6 +259,7 @@ describe('TelemetryMiddlewareService', () => {
           query: {},
           method: 'GET',
           url: '/test',
+          route: '/test',
           ip: '127.0.0.1',
           userAgent: 'test-agent',
           headers: {
@@ -253,6 +268,7 @@ describe('TelemetryMiddlewareService', () => {
         },
       });
       const nextMock = jest.fn().mockResolvedValue(undefined);
+      
 
       // Execute middleware to setup context
       await telemetryMiddleware(context, nextMock);
@@ -269,7 +285,7 @@ describe('TelemetryMiddlewareService', () => {
           'POST',
           '/api/users',
           201,
-          0.150,
+          0.15,
           1024,
           0.005
         );
@@ -371,14 +387,19 @@ describe('TelemetryMiddlewareService', () => {
       });
 
       const middleware = noResourceService.createMiddleware();
-      const context = createMockContext();
+        const context = createMockContext();
+     
       const nextMock = jest.fn().mockResolvedValue(undefined);
-
+  
       await middleware(context, nextMock);
 
+    
       // Should still work but with minimal resource tracking
       const span = getRegistryItem(context, 'telemetry:span');
       expect(!(span instanceof Error)).toBe(true);
+
+      // Ensure the temporary service is shut down to avoid leaking handles/timers
+      await noResourceService.shutdown();
     });
   });
 });
