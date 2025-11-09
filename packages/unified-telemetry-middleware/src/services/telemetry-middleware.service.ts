@@ -60,6 +60,7 @@ import type { GetActiveSpanOptions } from '../internal/types/span-extraction.typ
 import { INTERNAL_REGISTRY_KEYS } from '../internal/constants/telemetry.const';
 import { InitializeTelemetryContextResult } from '../types/telemetry.types';
 import { TELEMETRY_LAYERS, TELEMETRY_OPERATION_TYPES } from '../constants/telemetry-middleware.const';
+import {  CommonFailures, fail, ProcessContext, ProcessStepFn, toBaseFailure } from '@inh-lib/common';
 
 
 /**
@@ -668,6 +669,106 @@ export class TelemetryMiddlewareService {
     });
     return step;
   }
+
+
+ createProcessStepWithTelemetry<TInput, TOutput>(
+    context: UnifiedHttpContext,
+    fn: ProcessStepFn<TInput, TOutput>,
+    operationName: string,
+    options: {
+      operationType: TelemetryOperationType;
+      layer: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }
+  ): ProcessStepFn<TInput, TOutput> {
+
+
+    const wrappedStep:ProcessStepFn<TInput, TOutput> = async(
+      processCtx: ProcessContext<TInput, TOutput>
+    ) => {
+      const { span, logger, finish } = this.createActiveSpan(context, operationName, {
+        operationType: options?.operationType || TELEMETRY_OPERATION_TYPES.MIDDLEWARE,
+        layer: options?.layer || TELEMETRY_LAYERS.SERVICE,
+        attributes: options?.attributes,
+      });
+
+      const startTime = process.hrtime.bigint();
+
+      // Log operation start
+      if (options?.logStart !== false) {
+        logger.info(`${operationName} started`, {
+          operationName,
+          operationType: options?.operationType || 'business',
+          layer: options?.layer || 'service',
+        });
+      }
+
+      try {
+        // Execute next middleware/handler
+        await fn(processCtx);
+
+            
+        if (processCtx.failed) {
+          const err = toBaseFailure(processCtx.error)
+   
+          // Record exception and set error status
+          span.recordException(err);
+          span.setStatus({
+            code: 'error',
+            message: err.message
+          });
+
+          // Log error
+          logger.error(`${operationName} failed`, err, {
+            errorType: err.constructor.name,
+            errorMessage: err.message,
+            operationName,
+          });
+      
+        }
+
+        if (processCtx.completed) {
+          // Set success status
+          span.setStatus({ code: 'ok' });
+
+          // Log operation success
+          if (options?.logEnd !== false) {
+            const durationMs = Number(process.hrtime.bigint() - startTime) / 1000000;
+            logger.info(`${operationName} completed successfully`, {
+              durationMs: durationMs.toFixed(2),
+            });
+          }
+        }
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        const failure =  new CommonFailures.TryCatchFail(err.message, {error: err});
+        fail(processCtx, failure);
+        
+        // Record exception and set error status
+        span.recordException(failure);
+        span.setStatus({ 
+          code: 'error', 
+          message: failure.message 
+        });
+
+        // Log error
+        logger.error(`${operationName} failed`, failure, {
+          errorType: failure.constructor.name,
+          errorMessage: failure.message,
+          operationName,
+        });
+      } finally {
+        // Always finish the span
+        finish();
+      }
+    };
+
+    return wrappedStep;
+  }
+
+ 
 
     /**
    * Create operation type middleware for specific operations

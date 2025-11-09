@@ -3,11 +3,11 @@
  */
 
 import { TelemetryMiddlewareService } from '../../services/telemetry-middleware.service';
-import { ConsoleUnifiedTelemetryProvider, NoOpUnifiedTelemetryProvider } from '@inh-lib/unified-telemetry-core';
+import {  NoOpUnifiedTelemetryProvider } from '@inh-lib/unified-telemetry-core';
 import type { UnifiedHttpContext, UnifiedMiddleware } from '@inh-lib/unified-route';
 import { composeMiddleware, getRegistryItem, addRegistryItem } from '@inh-lib/unified-route';
-import { INTERNAL_REGISTRY_KEYS } from '../../internal/constants/telemetry.const';
-import exp = require('constants');
+
+
 
 
 // Mock context factory
