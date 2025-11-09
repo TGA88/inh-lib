@@ -8,6 +8,10 @@ export const composeMiddleware = (middlewares: UnifiedMiddleware[]) => {
       let index = 0;
       
       const next = async (): Promise<void> => {
+        if (context.response.sent) {
+          return; // หยุดถ้า response ถูกส่งแล้ว
+        }
+        
         if (index >= middlewares.length) {
           await handler(context);
           return;
