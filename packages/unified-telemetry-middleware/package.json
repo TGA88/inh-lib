@@ -1,6 +1,6 @@
 {
   "name": "@inh-lib/unified-telemetry-middleware",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "type": "commonjs",
   "publishConfig": {
     "access": "public"

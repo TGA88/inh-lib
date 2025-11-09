@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.11](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.10...unified-telemetry-middleware-0.3.11) (2025-11-09)
+
+
+### Bug Fixes
+
+* **unified-telemetry-middleware:**  add function createProcessStepWithTelemetry for using inside Repository method to create span for dataAccess method ([0112629](https://github.com/TGA88/inh-lib/commit/0112629cd2cdff11b202a3b59a81c5db778b593f))
+
 ## [0.3.10](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.9...unified-telemetry-middleware-0.3.10) (2025-11-08)
 
 
