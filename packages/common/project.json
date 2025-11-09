@@ -38,7 +38,9 @@
       "outputs": ["{workspaceRoot}/coverage/packages/common"],
       "options": {
         "jestConfig": "packages/common/jest.config.ts",
-        "passWithNoTests": true
+        "passWithNoTests": true,
+        "ci": true,
+        "silent": true
       }
     },
     "version": {

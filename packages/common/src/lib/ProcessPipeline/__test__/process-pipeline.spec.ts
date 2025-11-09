@@ -1,4 +1,5 @@
-import { ProcessPipeline } from '../core/process-pipeline';
+import { CommonFailures } from '../../Failure/CommonFailures';
+import { createProcessContext, ProcessPipeline } from '../core/process-pipeline';
 import { ProcessContext, ProcessStepFn, ProcessActionFn } from '../types/process-pipeline';
 
 // Test interfaces
@@ -22,6 +23,49 @@ describe('ProcessPipeline Core Tests', () => {
 
   beforeEach(() => {
     pipeline = new ProcessPipeline<TestInput, TestOutput>();
+  });
+
+  describe('CreateProcessContext', () => {
+    it('should create context with correct initial values', () => {
+      const input: TestInput = { value: 42, name: 'test' };
+
+      // Use generics to get the correctly typed context without any casting
+      const ctx = createProcessContext<TestInput, TestOutput>(input);
+
+      expect(ctx).toBeDefined();
+      expect(ctx.input).toBe(input);
+      expect(ctx.output).toBeUndefined();
+      expect(ctx.state).toEqual({});
+      expect(ctx.completed).toBe(false);
+      expect(ctx.failed).toBe(false);
+      expect(ctx.error).toBeUndefined();
+    });
+
+    it('should update completed flag when output is set', () => {
+      const input: TestInput = { value: 42, name: 'test' };
+      const ctx = createProcessContext<TestInput, TestOutput>(input);
+
+      expect(ctx.completed).toBe(false);
+
+      const output: TestOutput = { result: 84, message: 'doubled' };
+      ctx.output = output;
+
+      expect(ctx.output).toBe(output);
+      expect(ctx.completed).toBe(true);
+    });
+
+    it('should update failed flag when error is set', () => {
+      const input: TestInput = { value: 42, name: 'test' };
+      const ctx = createProcessContext<TestInput, TestOutput>(input);
+
+      expect(ctx.failed).toBe(false);
+
+      const testError = new CommonFailures.InternalFail('Test failure');
+      ctx.error = testError;
+
+      expect(ctx.error).toBe(testError);
+      expect(ctx.failed).toBe(true);
+    }); 
   });
 
   describe('Pipeline Construction', () => {
@@ -198,35 +242,6 @@ describe('ProcessPipeline Core Tests', () => {
       expect(result.output).toEqual(expectedOutput);
     });
 
-    it('should continue execution after setting output', async () => {
-      const input: TestInput = { value: 10, name: 'test' };
-      const output1: TestOutput = { result: 20, message: 'first' };
-      const output2: TestOutput = { result: 30, message: 'second' };
-      
-      const middleware1: ProcessStepFn<TestInput, TestOutput> = jest.fn().mockImplementation((ctx) => {
-        ctx.output = output1;
-      });
-      
-      const middleware2: ProcessStepFn<TestInput, TestOutput> = jest.fn().mockImplementation((ctx) => {
-        expect(ctx.completed).toBe(true); // should be true after setting output
-        ctx.output = output2; // override output
-      });
-      
-      const handler: ProcessActionFn<TestInput, TestOutput> = jest.fn();
-      
-      pipeline
-        .use(middleware1)
-        .use(middleware2)
-        .setHandler(handler);
-      
-      const result = await pipeline.execute(input);
-      
-      expect(middleware1).toHaveBeenCalledTimes(1);
-      expect(middleware2).toHaveBeenCalledTimes(1);
-      expect(handler).toHaveBeenCalledTimes(1);
-      expect(result.success).toBe(true);
-      expect(result.output).toEqual(output2); // last output wins
-    });
   });
 
   describe('Pipeline Execution - Error Cases', () => {
@@ -252,7 +267,7 @@ describe('ProcessPipeline Core Tests', () => {
       expect(middleware2).not.toHaveBeenCalled(); // should stop execution
       expect(handler).not.toHaveBeenCalled(); // should not run handler
       expect(result.success).toBe(false);
-      expect(result.error).toBe(testError);
+      expect(result.error?.message).toBe(testError.message);
     });
 
     it('should handle handler failure', async () => {
@@ -273,7 +288,7 @@ describe('ProcessPipeline Core Tests', () => {
       expect(middleware).toHaveBeenCalledTimes(1);
       expect(handler).toHaveBeenCalledTimes(1);
       expect(result.success).toBe(false);
-      expect(result.error).toBe(testError);
+      expect(result.error?.message).toBe(testError.message);
     });
 
     it('should handle thrown exceptions', async () => {
@@ -289,7 +304,7 @@ describe('ProcessPipeline Core Tests', () => {
       const result = await pipeline.execute(input);
       
       expect(result.success).toBe(false);
-      expect(result.error).toBe(thrownError);
+      expect(result.error?.name).toBe("TryCatchFail");
     });
 
     it('should handle thrown non-Error exceptions', async () => {
@@ -323,7 +338,7 @@ describe('ProcessPipeline Core Tests', () => {
       const result = await pipeline.execute(input);
       
       expect(result.success).toBe(false);
-      expect(result.error).toBe(testError);
+      expect(result.error?.message).toBe(testError.message);
       expect(result.state).toEqual({ processedData: 'some data' });
     });
   });

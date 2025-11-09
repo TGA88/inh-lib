@@ -1,5 +1,11 @@
 // types/process-pipeline.ts
 
+import { BaseFailure } from "../../Failure/BaseFailure";
+
+
+
+
+
 // ========================================
 // Process Context
 // ========================================
@@ -19,20 +25,22 @@ export interface ProcessContext<TInput = unknown, TOutput = unknown> {
   readonly failed: boolean;
   
   // Error handling
-  error?: Error;
+  error?: BaseFailure;
 }
 
 // ========================================
 // Process Middleware Types
 // ========================================
 
-export type ProcessStepFn<TInput = unknown, TOutput = unknown> = (
+export type ProcessMiddlewareFn<TInput = unknown, TOutput = unknown> = (
   ctx: ProcessContext<TInput, TOutput>
 ) => Promise<void> | void;
 
 export type ProcessActionFn<TInput = unknown, TOutput = unknown> = (
   ctx: ProcessContext<TInput, TOutput>
 ) => Promise<void> | void;
+
+export type ProcessStepFn<TInput = unknown, TOutput = unknown> = ProcessMiddlewareFn<TInput, TOutput> | ProcessActionFn<TInput, TOutput>;
 
 // ========================================
 // Process Result
@@ -41,6 +49,6 @@ export type ProcessActionFn<TInput = unknown, TOutput = unknown> = (
 export interface ProcessResult<TOutput = unknown> {
   success: boolean;
   output?: TOutput;
-  error?: Error;
+  error?: BaseFailure;
   state: Record<string, unknown>;
 }

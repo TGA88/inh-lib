@@ -142,6 +142,16 @@ import { BaseFailure } from "./BaseFailure";
     );
   }
 }
+ class TryCatchFail extends BaseFailure {
+  constructor(message?: string, details?: unknown) {
+    super(
+      'TRYCATCH_FAIL',
+      message || 'Error occurred from external service by try catch block',
+      580,
+      details
+    );
+  }
+}
 
 // Backward-compatible grouped export (optional usage: CommonFailures.ParseFail)
 export const CommonFailures = {
@@ -157,5 +167,8 @@ export const CommonFailures = {
   ConflictFail,
   InternalFail,
   ServiceUnavailableFail,
-  BadRequestFail
+  BadRequestFail,
+  TryCatchFail
 };
+
+

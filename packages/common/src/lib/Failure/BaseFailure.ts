@@ -3,7 +3,7 @@ import { DataResponse } from "../type/endpoint/data-response";
 export abstract class BaseFailure extends Error {
   public readonly code: string;
   public readonly statusCode: number;
-  public readonly details?: unknown;
+  public readonly details?: unknown ;
   public traceId?: string;
 
   constructor(
@@ -17,6 +17,15 @@ export abstract class BaseFailure extends Error {
     this.code = code;
     this.statusCode = statusCode;
     this.details = details;
+
+    if (details && typeof details === "object" && "error" in details) {
+      const inner = (details as { error?: unknown }).error;
+      if (inner instanceof Error) {
+        // use inner error's stack if available
+        if (inner.stack) this.stack = inner.stack;
+      }
+    }
+    
 
     // ทำให้ instanceof ทำงานได้ถูกต้องใน TypeScript
     Object.setPrototypeOf(this, new.target.prototype);
@@ -66,3 +75,4 @@ export abstract class BaseFailure extends Error {
     };
   }
 }
+

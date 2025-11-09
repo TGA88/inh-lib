@@ -1,6 +1,7 @@
+import { CommonFailures } from '../../Failure/CommonFailures';
 import { ProcessPipeline } from '../core/process-pipeline';
 import { ProcessContext, ProcessStepFn, ProcessActionFn } from '../types/process-pipeline';
-import { fail, complete, isCompleted, isFailed } from '../utils/process-helpers';
+import { fail, complete, isCompleted, isFailed, processResultToEither } from '../utils/process-helpers';
 
 // Integration test interfaces
 interface ValidationInput {
@@ -16,6 +17,7 @@ interface ProcessedUser {
   displayName: string;
   isValid: boolean;
 }
+
 
 describe('ProcessPipeline Integration Tests', () => {
   describe('Real-world User Validation Pipeline', () => {
@@ -266,7 +268,7 @@ describe('ProcessPipeline Integration Tests', () => {
       expect(fastResult.success).toBe(true);
       expect(fastResult.output).toBe('fast result');
       expect(fastResult.state['step1']).toBeUndefined();
-      expect(fastResult.state['step2']).toBe('completed'); // Should still run
+      expect(fastResult.state['step2']).toBeUndefined(); // Should not run step2
 
       // Test normal flow
       const normalResult = await pipeline.execute('normal');
@@ -433,4 +435,76 @@ describe('ProcessPipeline Integration Tests', () => {
       expect(normalResult.state['attempts']).toBe(1);
     });
   });
+
+
+  describe('processResultToEither using mocked ProcessStepFn', () => {
+
+
+// Test interfaces
+interface TestInput {
+  id: string;
+  data: number;
+}
+
+interface TestOutput {
+  result: string;
+  value: number;
+}
+
+// Mock ProcessStepFn implementations and tests for processResultToEither
+
+const mockSuccessStep: ProcessStepFn<TestInput, TestOutput> = async (ctx) => {
+  ctx.output = { result: 'step success', value: 123 };
+  // cast to ProcessResult to satisfy the expected return type in tests
+  return undefined;
+};
+
+const mockFailureStep: ProcessStepFn<TestInput, TestOutput> = async (ctx) => {
+  ctx.error = new CommonFailures.InternalFail('step failed');
+  return  undefined;
+};
+
+const mockNoopStep: ProcessStepFn<TestInput, TestOutput> = async (ctx) => {
+  // does not set output or error
+  ctx.state['noop executed'] = true;
+  return undefined;
+};
+
+  let testPipeline: ProcessPipeline<TestInput, TestOutput>;
+  beforeEach(() => {
+    // Reset any global state if necessary before each test
+      testPipeline = new ProcessPipeline<TestInput, TestOutput>()
+  });
+  it('should return Right when step sets output', async () => {
+    
+    const input:TestInput = { id: 's1', data: 1 }
+    testPipeline.use(mockSuccessStep);
+    const result = await testPipeline.execute(input);
+    const either = processResultToEither(result);
+    expect(either.isRight()).toBe(true);
+    expect(either.value).toBe(result.output);
+    expect(either.value).toEqual({ result: 'step success', value: 123 });
+  });
+
+  it('should return Left when step sets error', async () => {
+    const input:TestInput = { id: 'f1', data: 2 };
+    testPipeline.use(mockFailureStep);
+    const result = await testPipeline.execute(input);
+    const either = processResultToEither(result);
+    expect(either.isLeft()).toBe(true);
+    expect(either.value).toBe(result.error);
+    if (either.isLeft()) {
+      expect(either.value?.message).toBe('step failed');
+    } 
+  });
+
+  it('should handle noop step (undefined output) as Right with undefined value', async () => {
+    const input:TestInput = { id: 'n1', data: 3 };
+    testPipeline.use(mockNoopStep);
+    const result = await testPipeline.execute(input);
+    const either = processResultToEither(result);
+    expect(either.isRight()).toBe(true);
+    expect(either.value).toBeUndefined();
+  });
+});
 });

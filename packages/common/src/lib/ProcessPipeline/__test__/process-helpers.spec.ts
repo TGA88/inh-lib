@@ -1,5 +1,9 @@
-import { fail, complete, isCompleted, isFailed } from '../utils/process-helpers';
+import { fail, complete, isCompleted, isFailed, processContextToEither, processContextToResult } from '../utils/process-helpers';
 import { ProcessContext } from '../types/process-pipeline';
+import { CommonFailures } from '../../Failure/CommonFailures';
+import { BaseFailure } from '../../Failure/BaseFailure';
+
+
 
 // Test interfaces
 interface TestInput {
@@ -15,7 +19,7 @@ interface TestOutput {
 // Mock context factory
 const createMockContext = <TInput, TOutput>(input: TInput): ProcessContext<TInput, TOutput> => {
   let contextOutput: TOutput | undefined;
-  let contextError: Error | undefined;
+  let contextError: BaseFailure | undefined;
   let isCompletedFlag = false;
   let isFailedFlag = false;
 
@@ -43,11 +47,11 @@ const createMockContext = <TInput, TOutput>(input: TInput): ProcessContext<TInpu
       return isFailedFlag;
     },
 
-    get error(): Error | undefined {
+    get error(): BaseFailure | undefined {
       return contextError;
     },
 
-    set error(err: Error | undefined) {
+    set error(err: BaseFailure | undefined) {
       contextError = err;
       if (err) {
         isFailedFlag = true;
@@ -63,13 +67,119 @@ describe('ProcessHelpers Utils Tests', () => {
     mockContext = createMockContext<TestInput, TestOutput>({ id: 'test', data: 42 });
   });
 
+  describe('processContextToEither function after ProcessStep is executed', () => {
+    it('should return Right with output when not failed', () => {
+      const testOutput: TestOutput = { result: 'success', value: 100 };
+      mockContext.output = testOutput;
+      
+      const either = processContextToEither(mockContext);
+      
+      expect(either.isRight()).toBe(true);
+      expect(either.value).toBe(testOutput);
+    });
+
+    it('should return Left with error when failed', () => {
+      const testError = new CommonFailures.InternalFail('Processing error');
+      mockContext.error = testError;
+      
+      const either = processContextToEither(mockContext);
+      
+      expect(either.isLeft()).toBe(true);
+      expect(either.value).toBe(testError);
+    });
+    it('should handle undefined output gracefully', () => {
+      const either = processContextToEither(mockContext);
+      
+      expect(either.isRight()).toBe(true);
+      expect(either.value).toBeUndefined();
+    });
+
+    it('should handle complex output objects', () => {
+      const complexOutput: TestOutput = { result: 'complex result', value: Number.MAX_SAFE_INTEGER };
+      mockContext.output = complexOutput;
+      
+      const either = processContextToEither(mockContext);
+      
+      expect(either.isRight()).toBe(true);
+      expect(either.value).toEqual(complexOutput);
+      expect(either.value).toBe(complexOutput); // same reference
+    });
+
+    it('should handle multiple calls consistently', () => {
+      const testOutput: TestOutput = { result: 'first call', value: 1 };
+      mockContext.output = testOutput;
+      
+      const firstEither = processContextToEither(mockContext);
+      expect(firstEither.isRight()).toBe(true);
+      expect(firstEither.value).toBe(testOutput);   
+  });
+  });
+
+  describe('processContextToResult function', () => {
+    it('should return Ok with output when not failed', () => {
+      const testOutput: TestOutput = { result: 'success', value: 200 };
+      mockContext.output = testOutput;
+      
+      const result = processContextToResult(mockContext);
+      
+      expect(result.isSuccess).toBe(true);
+      expect(result.getValue()).toBe(testOutput);
+    });
+    it('should return Fail with error when failed', () => {
+      const testError = new CommonFailures.InternalFail('Another processing error');
+      mockContext.error = testError;
+      
+      const result = processContextToResult(mockContext);
+      
+      expect(result.isFailure).toBe(true);
+      expect(result.errorValue()).toBe(testError);
+    });
+    it('should handle undefined output gracefully', () => {
+      const result = processContextToResult(mockContext);
+      
+      expect(result.isSuccess).toBe(true);
+      expect(result.getValue()).toBeUndefined();
+    });
+
+    it('should handle complex output objects', () => {
+      const complexOutput: TestOutput = { result: 'detailed result', value: Number.MIN_SAFE_INTEGER };
+      mockContext.output = complexOutput;
+      
+      const result = processContextToResult(mockContext);
+      
+      expect(result.isSuccess).toBe(true);
+      expect(result.getValue()).toEqual(complexOutput);
+      expect(result.getValue()).toBe(complexOutput); // same reference
+    });
+
+    it('should handle multiple calls consistently', () => {
+      const testOutput: TestOutput = { result: 'second call', value: 2 };
+      mockContext.output = testOutput;
+      
+      const firstResult = processContextToResult(mockContext);
+      expect(firstResult.isSuccess).toBe(true);
+      expect(firstResult.getValue()).toBe(testOutput);   
+    });
+  });
+
+  describe('processResultToEither function', () => {
+    
+    // Similar tests can be written for processResultToEither
+  });
+
+  describe('processResultToResult function', () => {
+    // Similar tests can be written for processResultToResult
+  });
+
+
   describe('fail() helper function', () => {
-    it('should set error from Error object', () => {
+    it('should set error from BaseFailure object', () => {
       const testError = new Error('Test error message');
+      const failure = new CommonFailures.InternalFail('Internal failure occurred', { error: testError });
       
       fail(mockContext, testError);
       
-      expect(mockContext.error).toBe(testError);
+      expect(mockContext.error?.name).toBe(failure.name);
       expect(mockContext.failed).toBe(true);
       expect(mockContext.completed).toBe(false);
     });
@@ -79,7 +189,7 @@ describe('ProcessHelpers Utils Tests', () => {
       
       fail(mockContext, errorMessage);
       
-      expect(mockContext.error).toBeInstanceOf(Error);
+      expect(mockContext.error).toBeInstanceOf(BaseFailure);
       expect(mockContext.error?.message).toBe(errorMessage);
       expect(mockContext.failed).toBe(true);
       expect(mockContext.completed).toBe(false);
@@ -109,10 +219,10 @@ describe('ProcessHelpers Utils Tests', () => {
       const secondError = new Error('Second error');
       
       fail(mockContext, firstError);
-      expect(mockContext.error).toBe(firstError);
+      expect(mockContext.error?.message).toBe(firstError.message);
       
       fail(mockContext, secondError);
-      expect(mockContext.error).toBe(secondError);
+      expect(mockContext.error?.message).toBe(secondError.message);
       expect(mockContext.failed).toBe(true);
     });
   });
@@ -152,7 +262,7 @@ describe('ProcessHelpers Utils Tests', () => {
     });
 
     it('should not affect error state when completing', () => {
-      const testError = new Error('Existing error');
+      const testError = new CommonFailures.InternalFail('Existing error');
       mockContext.error = testError;
       const testOutput: TestOutput = { result: 'test', value: 300 };
       
@@ -213,7 +323,7 @@ describe('ProcessHelpers Utils Tests', () => {
 
     it('should not be affected by error state', () => {
       mockContext.output = { result: 'completed', value: 123 };
-      mockContext.error = new Error('Some error');
+      mockContext.error = new CommonFailures.InternalFail('Some error');
       
       const result = isCompleted(mockContext);
       
@@ -246,7 +356,7 @@ describe('ProcessHelpers Utils Tests', () => {
     });
 
     it('should return true when error is set', () => {
-      mockContext.error = new Error('Test error');
+      mockContext.error = new CommonFailures.InternalFail('Test error');
       
       const result = isFailed(mockContext);
       
@@ -263,15 +373,15 @@ describe('ProcessHelpers Utils Tests', () => {
     });
 
     it('should remain true after error is set multiple times', () => {
-      mockContext.error = new Error('First error');
+      mockContext.error = new CommonFailures.InternalFail('First error');
       expect(isFailed(mockContext)).toBe(true);
       
-      mockContext.error = new Error('Second error');
+      mockContext.error = new CommonFailures.InternalFail('Second error');
       expect(isFailed(mockContext)).toBe(true);
     });
 
     it('should not be affected by completion state', () => {
-      mockContext.error = new Error('Failed');
+      mockContext.error = new CommonFailures.InternalFail('Failed');
       mockContext.output = { result: 'but completed', value: 123 };
       
       const result = isFailed(mockContext);

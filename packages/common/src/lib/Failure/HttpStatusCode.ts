@@ -70,6 +70,9 @@ export const HttpStatusCode = {
   LOOP_DETECTED: 508,
   NOT_EXTENDED: 510,
   NETWORK_AUTHENTICATION_REQUIRED: 511,
+
+  // 580-599: Custom Server Error
+  TRYCATCH_FAIL: 580
 } as const;
 
 

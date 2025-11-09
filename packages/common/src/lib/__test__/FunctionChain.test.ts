@@ -1,5 +1,6 @@
 import { FunctionChain, FunctionStep } from '../FunctionChain';
-import { left, right, Result, Either } from '../Result';
+import {  Result } from '../Result';
+import { left, right, Either } from '../Either';
 import { InhLogContext, InhLogger } from '../type/inh-logger';
 
 describe('FunctionChain', () => {
