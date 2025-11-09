@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.11.11](https://github.com/TGA88/inh-lib/compare/common-1.11.10...common-1.11.11) (2025-11-09)
+
+
+### Bug Fixes
+
+* **common:** fix test fail and add function  convert processStepResult and processContext to Either or Result ([91032ff](https://github.com/TGA88/inh-lib/commit/91032ff503137446cd6ae3d37e1f4a91291125b4))
+
 ## [1.11.10](https://github.com/TGA88/inh-lib/compare/common-1.11.9...common-1.11.10) (2025-11-03)
 
 
