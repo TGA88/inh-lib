@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.4.6](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.5...unified-route-0.4.6) (2025-11-09)
+
+
+### Bug Fixes
+
+* **unified-route:**  to break middleware when context.response is sent ([1469064](https://github.com/TGA88/inh-lib/commit/14690643151673c2d4d19567f443fa28f1ebfcc9))
+
 ## [0.4.5](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.4...unified-route-0.4.5) (2025-11-08)
 
 
