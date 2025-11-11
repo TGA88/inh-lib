@@ -11,6 +11,8 @@
  * and do not affect functionality.
  */
 
+import { BaseFailure, CommonFailures, createProcessContext, Either, fail, left, ProcessContext, processContextToEither, ProcessStepFn, right, toBaseFailure } from '@inh-lib/common';
+
 import { type UnifiedMiddleware, type UnifiedHttpContext, getRegistryItem, UnifiedRouteHandler } from '@inh-lib/unified-route';
 import type {
   UnifiedTelemetryProvider,
@@ -60,7 +62,7 @@ import type { GetActiveSpanOptions } from '../internal/types/span-extraction.typ
 import { INTERNAL_REGISTRY_KEYS } from '../internal/constants/telemetry.const';
 import { InitializeTelemetryContextResult } from '../types/telemetry.types';
 import { TELEMETRY_LAYERS, TELEMETRY_OPERATION_TYPES } from '../constants/telemetry-middleware.const';
-import { CommonFailures, fail, ProcessContext, ProcessStepFn, toBaseFailure } from '@inh-lib/common';
+
 
 
 /**
@@ -412,6 +414,8 @@ export class TelemetryMiddlewareService {
   }
 
 
+  // === Utility Functions For Create UnifiedMiddleware with Telemetry to use with UnifiedRoutePipeline ===
+
   /**
    * Creates a UnifiedMiddleware that wraps an operation in a telemetry span, logs start/end,
    * records exceptions, and ensures the span is finished.
@@ -691,104 +695,9 @@ export class TelemetryMiddlewareService {
     });
     return step;
   }
+// === End Utility Functions For Create UnifiedMiddleware with Telemetry to use with UnifiedRoutePipeline ===
 
 
-  createProcessStepWithTelemetry<TInput, TOutput>(
-    context: UnifiedHttpContext,
-    fn: ProcessStepFn<TInput, TOutput>,
-    operationName: string,
-    options: {
-      operationType: TelemetryOperationType;
-      layer: TelemetryLayerType;
-      logStart?: boolean;
-      logEnd?: boolean;
-      attributes?: TelemetryAttributes;
-    }
-  ): ProcessStepFn<TInput, TOutput> {
-
-
-    const wrappedStep: ProcessStepFn<TInput, TOutput> = async (
-      processCtx: ProcessContext<TInput, TOutput>
-    ) => {
-      const { span, logger, finish } = this.createActiveSpan(context, operationName, {
-        operationType: options?.operationType || TELEMETRY_OPERATION_TYPES.MIDDLEWARE,
-        layer: options?.layer || TELEMETRY_LAYERS.SERVICE,
-        attributes: options?.attributes,
-      });
-
-      const startTime = process.hrtime.bigint();
-
-      // Log operation start
-      if (options?.logStart !== false) {
-        logger.info(`${operationName} started`, {
-          operationName,
-          operationType: options?.operationType || 'business',
-          layer: options?.layer || 'service',
-        });
-      }
-
-      try {
-        // Execute next middleware/handler
-        await fn(processCtx);
-
-
-        if (processCtx.failed) {
-          const err = toBaseFailure(processCtx.error)
-
-          // Record exception and set error status
-          span.recordException(err);
-          span.setStatus({
-            code: 'error',
-            message: err.message
-          });
-
-          // Log error
-          logger.error(`${operationName} failed`, err, {
-            errorType: err.constructor.name,
-            errorMessage: err.message,
-            operationName,
-          });
-
-        }
-
-        if (processCtx.completed) {
-          // Set success status
-          span.setStatus({ code: 'ok' });
-
-          // Log operation success
-          if (options?.logEnd !== false) {
-            const durationMs = Number(process.hrtime.bigint() - startTime) / 1000000;
-            logger.info(`${operationName} completed successfully`, {
-              durationMs: durationMs.toFixed(2),
-            });
-          }
-        }
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        const failure = new CommonFailures.TryCatchFail(err.message, { error: err });
-        fail(processCtx, failure);
-
-        // Record exception and set error status
-        span.recordException(failure);
-        span.setStatus({
-          code: 'error',
-          message: failure.message
-        });
-
-        // Log error
-        logger.error(`${operationName} failed`, failure, {
-          errorType: failure.constructor.name,
-          errorMessage: failure.message,
-          operationName,
-        });
-      } finally {
-        // Always finish the span
-        finish();
-      }
-    };
-
-    return wrappedStep;
-  }
 
 
 
@@ -1132,4 +1041,271 @@ export class TelemetryMiddlewareService {
     return { telemetryLogger, telemetrySpan, traceId };
   }
   //
+
+
+// === Utility Functions For Execute Function and ProcessStep on the fly without ProcessPipeline===
+
+  createProcessStepWithTelemetry<TInput, TOutput>(
+    context: UnifiedHttpContext,
+    fn: ProcessStepFn<TInput, TOutput>,
+    operationName: string,
+    options: {
+      operationType: TelemetryOperationType;
+      layer: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }
+  ): ProcessStepFn<TInput, TOutput> {
+
+
+    const wrappedStep: ProcessStepFn<TInput, TOutput> = async (
+      processCtx: ProcessContext<TInput, TOutput>
+    ) => {
+      const { span, logger, finish } = this.createActiveSpan(context, operationName, {
+        operationType: options?.operationType || TELEMETRY_OPERATION_TYPES.MIDDLEWARE,
+        layer: options?.layer || TELEMETRY_LAYERS.SERVICE,
+        attributes: options?.attributes,
+      });
+
+      const startTime = process.hrtime.bigint();
+
+      // Log operation start
+      if (options?.logStart !== false) {
+        logger.info(`${operationName} started`, {
+          operationName,
+          operationType: options?.operationType || 'business',
+          layer: options?.layer || 'service',
+        });
+      }
+
+      try {
+        // Execute next middleware/handler
+        await fn(processCtx);
+
+
+        if (processCtx.failed) {
+          const err = toBaseFailure(processCtx.error)
+
+          // Record exception and set error status
+          span.recordException(err);
+          span.setStatus({
+            code: 'error',
+            message: err.message
+          });
+
+          // Log error
+          logger.error(`${operationName} failed`, err, {
+            errorType: err.constructor.name,
+            errorMessage: err.message,
+            operationName,
+          });
+
+        }
+
+        if (processCtx.completed) {
+          // Set success status
+          span.setStatus({ code: 'ok' });
+
+          // Log operation success
+          if (options?.logEnd !== false) {
+            const durationMs = Number(process.hrtime.bigint() - startTime) / 1000000;
+            logger.info(`${operationName} completed successfully`, {
+              durationMs: durationMs.toFixed(2),
+            });
+          }
+        }
+      } catch (error) {
+        const err = toBaseFailure(error);
+        const failure = new CommonFailures.TryCatchFail(err.message, { error: err });
+        fail(processCtx, failure);
+
+        // Record exception and set error status
+        span.recordException(failure);
+        span.setStatus({
+          code: 'error',
+          message: failure.message
+        });
+
+        // Log error
+        logger.error(`${operationName} failed`, failure, {
+          errorType: failure.constructor.name,
+          errorMessage: failure.message,
+          operationName,
+        });
+      } finally {
+        // Always finish the span
+        finish();
+      }
+    };
+
+    return wrappedStep;
+  }
+
+ async executeApiLogicStep<TInput,TOutput>(context: UnifiedHttpContext, stepFunction: ProcessStepFn<TInput, TOutput>, input: TInput,spanOptions?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }): Promise<Either<BaseFailure, TOutput>> {
+
+      const defaultOptions={  
+        operationType: spanOptions?.operationType || TELEMETRY_OPERATION_TYPES.LOGIC,
+        layer: spanOptions?.layer || TELEMETRY_LAYERS.API,
+        attributes: spanOptions?.attributes,
+      }
+     const telemetryStep = this.executeStep<TInput,TOutput>(context,stepFunction, input,defaultOptions);
+     return telemetryStep;
+    }
+
+  // for tracking database calls
+async  executeDbStep<TInput,TOutput>(context: UnifiedHttpContext , stepFunction: ProcessStepFn<TInput, TOutput>, input: TInput,spanOptions?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }): Promise<Either<BaseFailure, TOutput>> {
+
+      const defaultOptions={  
+        operationType: spanOptions?.operationType || TELEMETRY_OPERATION_TYPES.DATABASE,
+        layer: spanOptions?.layer || TELEMETRY_LAYERS.DATA,
+        attributes: spanOptions?.attributes,
+      }
+     const telemetryStep = this.executeStep<TInput,TOutput>(context,stepFunction, input,defaultOptions);
+     return telemetryStep;
+    }
+
+    // for tracking client call to external endpoint 
+ async  executeExternalEndpointStep<TInput,TOutput>(context: UnifiedHttpContext , stepFunction: ProcessStepFn<TInput, TOutput>, input: TInput,spanOptions?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }): Promise<Either<BaseFailure, TOutput>> {
+
+      const defaultOptions={  
+        operationType: spanOptions?.operationType || TELEMETRY_OPERATION_TYPES.ENDPOINT,
+        layer: spanOptions?.layer || TELEMETRY_LAYERS.SERVICE,
+        attributes: spanOptions?.attributes,
+      }
+     const telemetryStep = this.executeStep<TInput,TOutput>(context,stepFunction, input,defaultOptions);
+     return telemetryStep;
+    }
+  
+ async  executeStep<TInput,TOutput>(context: UnifiedHttpContext , stepFunction: ProcessStepFn<TInput, TOutput>, input: TInput,spanOptions?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }): Promise<Either<BaseFailure, TOutput>> {
+
+      const defaultOptions={
+        operationType: spanOptions?.operationType || TELEMETRY_OPERATION_TYPES.CUSTOM,
+        layer: spanOptions?.layer || TELEMETRY_LAYERS.CUSTOM,
+        attributes: spanOptions?.attributes,
+      }
+     const telemetryStep =   this.createProcessStepWithTelemetry(context,stepFunction,stepFunction.name,defaultOptions);
+   
+    
+    // execute currentPackSizeStep
+    const telemetryStepCtx = createProcessContext<TInput, TOutput>(input);
+    await telemetryStep(telemetryStepCtx);
+    const telemetryStepEither = processContextToEither(telemetryStepCtx);
+    if (telemetryStepEither.isLeft()) {
+    return left(telemetryStepEither.value);
+    }
+    return right(telemetryStepEither.value);
+
+}
+
+
+ async  executeFunctionWithApiLogicSpan<TInput,TOutput>(context: UnifiedHttpContext , fn: (params:TInput)=>Either<BaseFailure, TOutput>|Promise<Either<BaseFailure, TOutput>>, input: TInput,spanOptions?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }): Promise<Either<BaseFailure, TOutput>> {
+
+      const defaultOptions={  
+        operationType: spanOptions?.operationType || TELEMETRY_OPERATION_TYPES.LOGIC,
+        layer: spanOptions?.layer || TELEMETRY_LAYERS.API,
+        attributes: spanOptions?.attributes,
+      }
+     const telemetryStepResult = this.executeFunctionWithTelemetry<TInput,TOutput>(context,fn, input,defaultOptions);
+     return telemetryStepResult;
+    }
+ async  executeFunctionWithExternalEndpointSpan<TInput,TOutput>(context: UnifiedHttpContext , fn: (params:TInput)=>Either<BaseFailure, TOutput>|Promise<Either<BaseFailure, TOutput>>, input: TInput,spanOptions?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }): Promise<Either<BaseFailure, TOutput>> {
+
+      const defaultOptions={  
+        operationType: spanOptions?.operationType || TELEMETRY_OPERATION_TYPES.ENDPOINT,
+        layer: spanOptions?.layer || TELEMETRY_LAYERS.SERVICE,
+        attributes: spanOptions?.attributes,
+      }
+     const telemetryStepResult = this.executeFunctionWithTelemetry<TInput,TOutput>(context,fn, input,defaultOptions);
+     return telemetryStepResult;
+    }
+ async  executeFunctionWithDbSpan<TInput,TOutput>(context: UnifiedHttpContext , fn: (params:TInput)=>Either<BaseFailure, TOutput>|Promise<Either<BaseFailure, TOutput>>, input: TInput,spanOptions?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }): Promise<Either<BaseFailure, TOutput>> {
+
+      const defaultOptions={  
+        operationType: spanOptions?.operationType || TELEMETRY_OPERATION_TYPES.DATABASE,
+        layer: spanOptions?.layer || TELEMETRY_LAYERS.DATA,
+        attributes: spanOptions?.attributes,
+      }
+     const telemetryStepResult = this.executeFunctionWithTelemetry<TInput,TOutput>(context,fn, input,defaultOptions);
+     return telemetryStepResult;
+    }
+
+ async  executeFunctionWithTelemetry<TInput,TOutput>(context: UnifiedHttpContext , fn: (params:TInput)=>Either<BaseFailure, TOutput>|Promise<Either<BaseFailure, TOutput>>, input: TInput,spanOptions?: {
+      operationType?: TelemetryOperationType;
+      layer?: TelemetryLayerType;
+      logStart?: boolean;
+      logEnd?: boolean;
+      attributes?: TelemetryAttributes;
+    }): Promise<Either<BaseFailure, TOutput>> {
+
+      const defaultOptions={
+        operationType: spanOptions?.operationType || TELEMETRY_OPERATION_TYPES.CUSTOM,
+        layer: spanOptions?.layer || TELEMETRY_LAYERS.CUSTOM,
+        attributes: spanOptions?.attributes,
+      }
+
+      const stepFunction:ProcessStepFn<TInput,TOutput> = async (params):Promise<void>=>{
+        const result = await fn(params.input);
+        if (result.isLeft()) {
+            params.error = result.value;
+            return;
+        }
+        params.output = result.value;
+      };
+     const telemetryStep =   this.createProcessStepWithTelemetry(context,stepFunction,stepFunction.name,defaultOptions);
+
+    // execute telemetryStep
+    const telemetryStepCtx = createProcessContext<TInput, TOutput>(input);
+    await telemetryStep(telemetryStepCtx);
+    const telemetryStepEither = processContextToEither(telemetryStepCtx);
+    if (telemetryStepEither.isLeft()) {
+    return left(telemetryStepEither.value);
+    }
+    return right(telemetryStepEither.value)
+}
+
+
+// === End Utility Functions ===
 }
