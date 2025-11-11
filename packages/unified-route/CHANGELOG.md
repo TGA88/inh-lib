@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.4.7](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.6...unified-route-0.4.7) (2025-11-11)
+
+
+### Bug Fixes
+
+* **unified-route:** add get statusCode for responseContext ([e4e988f](https://github.com/TGA88/inh-lib/commit/e4e988f04ba9a1680321acad5ab4cfb77f492f1e))
+
 ## [0.4.6](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.5...unified-route-0.4.6) (2025-11-09)
 
 
