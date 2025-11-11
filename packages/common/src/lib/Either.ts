@@ -89,6 +89,18 @@ export const defaultErrorMapper = (error: unknown): Error => {
     return new Error(errorMessage);
 }
 
+export const eitherToThrown = <L, A>(
+  either: Either<L, A>,
+  errorMapper?: (err: L) => Error
+): A => {
+  if (either.isLeft()) {
+    const err = errorMapper
+      ? errorMapper(either.value)
+      : defaultErrorMapper(either.value as unknown);
+    throw err;
+  }
+  return either.value;
+};
 // ========================================
 
 

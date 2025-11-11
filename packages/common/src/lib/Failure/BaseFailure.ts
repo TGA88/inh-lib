@@ -20,7 +20,7 @@ export abstract class BaseFailure extends Error {
 
     if (details && typeof details === "object" && "error" in details) {
       const inner = (details as { error?: unknown }).error;
-      if (inner instanceof Error) {
+      if (inner instanceof Error || inner instanceof BaseFailure) {
         // use inner error's stack if available
         if (inner.stack) this.stack = inner.stack;
       }
