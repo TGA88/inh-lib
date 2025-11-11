@@ -116,6 +116,40 @@ export function createDatabaseSpanAttributes(
 }
 
 /**
+ * Create generic operation span attributes
+ * Useful for custom operations with optional resource, duration, status and extra metadata
+ */
+export function createOperationSpanAttributes(
+  operationName: string,
+  resource?: string,
+  durationMs?: number,
+  status?: string,
+  metadata?: Record<string, string | number | boolean>
+): Record<string, string | number | boolean> {
+  const attributes: Record<string, string | number | boolean> = {
+    'operation.name': operationName,
+  };
+
+  if (resource) {
+    attributes['operation.resource'] = resource;
+  }
+
+  if (durationMs !== undefined) {
+    attributes['operation.duration_ms'] = durationMs;
+  }
+
+  if (status) {
+    attributes['operation.status'] = status;
+  }
+
+  if (metadata && Object.keys(metadata).length > 0) {
+    return mergeSpanAttributes(attributes, metadata);
+  }
+
+  return attributes;
+}
+
+/**
  * Create external API span attributes
  * Standard attributes for external service calls
  */
