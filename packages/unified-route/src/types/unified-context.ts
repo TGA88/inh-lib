@@ -15,6 +15,7 @@ export interface UnifiedRequestContext {
 export interface UnifiedResponseContext {
   readonly sent: boolean;
   status(code: number): UnifiedResponseContext;
+  statusCode?: number;
   //  // Terminal methods - ไม่ return (void)
   // json<T>(data: T): void;
   // text(data: string): void;
