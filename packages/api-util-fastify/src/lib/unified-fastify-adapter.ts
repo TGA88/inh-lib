@@ -42,6 +42,10 @@ function createUnifiedResponse(res: FastifyReply): UnifiedResponseContext {
       return isSent;
     },
 
+    get statusCode(): number | undefined {
+      return res.statusCode;
+    },
+
     status: (code: number) => {
       res.status(code);
       return unifiedResponse; // ✅ return instance เดิม
