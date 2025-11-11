@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.4](https://github.com/TGA88/inh-lib/compare/unified-telemetry-core-0.3.3...unified-telemetry-core-0.3.4) (2025-11-11)
+
+
+### Bug Fixes
+
+* **unified-telemetry-core:** add utils function createOperationSpanAttributes ([894584d](https://github.com/TGA88/inh-lib/commit/894584d2fee05300571123c0c525c60ed91ed25f))
+
 ## [0.3.3](https://github.com/TGA88/inh-lib/compare/unified-telemetry-core-0.3.2...unified-telemetry-core-0.3.3) (2025-10-29)
 
 
