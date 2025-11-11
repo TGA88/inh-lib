@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.11.12](https://github.com/TGA88/inh-lib/compare/common-1.11.11...common-1.11.12) (2025-11-11)
+
+
+### Bug Fixes
+
+* **common:** add utility function for either and BaseFailure ([fecbc39](https://github.com/TGA88/inh-lib/commit/fecbc39b71608f225ec0375c894ddab307e4ac71))
+
 ## [1.11.11](https://github.com/TGA88/inh-lib/compare/common-1.11.10...common-1.11.11) (2025-11-09)
 
 
