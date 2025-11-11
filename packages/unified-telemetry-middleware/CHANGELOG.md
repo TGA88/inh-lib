@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.12](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.11...unified-telemetry-middleware-0.3.12) (2025-11-11)
+
+
+### Bug Fixes
+
+* **unified-telemetry-middleware:** break and add SpanEvent Error when response.send is called at createOperationProcess ([c1fcb12](https://github.com/TGA88/inh-lib/commit/c1fcb1220f912a47bbe9697fa087c1c23198ef3f))
+
 ## [0.3.11](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.10...unified-telemetry-middleware-0.3.11) (2025-11-09)
 
 
