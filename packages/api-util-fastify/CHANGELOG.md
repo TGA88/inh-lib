@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.3.12](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.11...api-util-fastify-1.3.12) (2025-11-11)
+
+
+### Bug Fixes
+
+* **api-util-fastify:** add implementation get statusCode as UnifeidResponse Interface ([b222cea](https://github.com/TGA88/inh-lib/commit/b222cea45d9a9552d59ae25ede25d9a2bd85f67f))
+
 ## [1.3.11](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.10...api-util-fastify-1.3.11) (2025-10-28)
 
 
