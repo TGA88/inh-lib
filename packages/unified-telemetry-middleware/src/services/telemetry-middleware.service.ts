@@ -12,17 +12,17 @@
  */
 
 import { type UnifiedMiddleware, type UnifiedHttpContext, getRegistryItem, UnifiedRouteHandler } from '@inh-lib/unified-route';
-import type { 
-  UnifiedTelemetryProvider, 
-  UnifiedTelemetrySpan, 
-  UnifiedTelemetryLogger, 
+import type {
+  UnifiedTelemetryProvider,
+  UnifiedTelemetrySpan,
+  UnifiedTelemetryLogger,
   UnifiedTelemetrySpanMetadata
 } from '@inh-lib/unified-telemetry-core';
-import type { 
+import type {
   InternalTelemetryMiddlewareConfig,
   InternalTelemetryDependencies,
 } from '../internal/types/middleware.types';
-import type { 
+import type {
   TelemetryOperationType,
   TelemetryLayerType,
   TelemetryAttributes
@@ -30,19 +30,19 @@ import type {
 import { createTelemetryExtractorAdapter } from '../internal/adapters/telemetry-extractor.adapter';
 import { createMetricsCollector } from '../internal/logic/metrics-collector.logic';
 import { createResourceTracker, createSystemMetricsMonitor } from '../internal/logic/resource-tracker.logic';
-import { 
+import {
   storePerformanceData,
   getPerformanceData,
   updateRequestContextWithRouteInfo,
 } from '../internal/utils/context.utils';
 
-import { 
-  pushSpanToStack, 
-  popSpanFromStack, 
+import {
+  pushSpanToStack,
+  popSpanFromStack,
   getCurrentSpan as getCurrentSpanFromContext,
   getCurrentSpanLevel,
 } from '../internal/utils/span-context.utils';
-import { 
+import {
   executeSpanExtractionStrategy,
   createChildSpanWithoutContext
 } from '../internal/logic/span-extraction.logic';
@@ -60,7 +60,7 @@ import type { GetActiveSpanOptions } from '../internal/types/span-extraction.typ
 import { INTERNAL_REGISTRY_KEYS } from '../internal/constants/telemetry.const';
 import { InitializeTelemetryContextResult } from '../types/telemetry.types';
 import { TELEMETRY_LAYERS, TELEMETRY_OPERATION_TYPES } from '../constants/telemetry-middleware.const';
-import {  CommonFailures, fail, ProcessContext, ProcessStepFn, toBaseFailure } from '@inh-lib/common';
+import { CommonFailures, fail, ProcessContext, ProcessStepFn, toBaseFailure } from '@inh-lib/common';
 
 
 /**
@@ -120,12 +120,12 @@ export class TelemetryMiddlewareService {
 
     if (this.config.enableSystemMetrics) {
       // Initialize system metrics monitoring
-        startSystemMetricsMonitoring(
-          this.config,
-          config.serviceName,
-          this.systemMetricsMonitor,
-          this.metricsCollector
-        );
+      startSystemMetricsMonitoring(
+        this.config,
+        config.serviceName,
+        this.systemMetricsMonitor,
+        this.metricsCollector
+      );
     }
   }
 
@@ -151,7 +151,7 @@ export class TelemetryMiddlewareService {
         correlationId: performanceData.requestContext.correlationId,
       });
 
-      
+
       let statusCode = 200; // Initialize with default status code
       let error: Error | null = null;
 
@@ -165,12 +165,12 @@ export class TelemetryMiddlewareService {
       } catch (err) {
         error = err instanceof Error ? err : new Error(String(err));
         statusCode = 500;
-        
+
         // Record exception in span and log
         performanceData.span.recordException(error);
-        performanceData.span.setStatus({ 
-          code: 'error', 
-          message: error.message 
+        performanceData.span.setStatus({
+          code: 'error',
+          message: error.message
         });
 
         performanceData.logger.error('BUSINESS_LOGIC failed with exception', error, {
@@ -178,11 +178,11 @@ export class TelemetryMiddlewareService {
           errorMessage: error.message,
         });
 
-          context.response.status(statusCode).json(undefined);
-    
+        context.response.status(statusCode).json(undefined);
+
       } finally {
-        
-       performanceData.logger.info('Finalizing telemetry for request in finally block');
+
+        performanceData.logger.info('Finalizing telemetry for request in finally block');
         // Finalize telemetry at request end
         await finalizeTelemetryForRequest(
           context,
@@ -238,14 +238,14 @@ export class TelemetryMiddlewareService {
     cpuSeconds?: number
   ): void {
     const labels = createHttpMetricsLabels(method, route, statusCode);
-    
+
     this.metricsCollector.recordHttpRequest(labels);
     this.metricsCollector.recordHttpDuration(durationSeconds, labels);
-    
+
     if (memoryBytes !== undefined) {
       this.metricsCollector.recordHttpMemoryUsage(memoryBytes, labels);
     }
-    
+
     if (cpuSeconds !== undefined) {
       this.metricsCollector.recordHttpCpuUsage(cpuSeconds, labels);
     }
@@ -270,14 +270,14 @@ export class TelemetryMiddlewareService {
       layer?: TelemetryLayerType;
       attributes?: TelemetryAttributes;
     }
-  ): { 
-    span: UnifiedTelemetrySpan; 
-    logger: UnifiedTelemetryLogger; 
-    finish: () => void 
+  ): {
+    span: UnifiedTelemetrySpan;
+    logger: UnifiedTelemetryLogger;
+    finish: () => void
   } {
     // Get current active span (could be root or another child span)
     let parentSpan = getCurrentSpanFromContext(context);
-    
+
     // If no current span, get root span from performance data
     if (!parentSpan) {
       console.log('No current span found, extracting from performance data');
@@ -341,14 +341,14 @@ export class TelemetryMiddlewareService {
       layer?: TelemetryLayerType;
       attributes?: TelemetryAttributes;
     }
-  ): { 
-    span: UnifiedTelemetrySpan; 
-    logger: UnifiedTelemetryLogger; 
-    finish: () => void 
+  ): {
+    span: UnifiedTelemetrySpan;
+    logger: UnifiedTelemetryLogger;
+    finish: () => void
   } {
     // Get current active span (could be root or another child span)
     let parentSpan = getCurrentSpanFromContext(context);
-    
+
     // If no current span, get root span from performance data
     if (!parentSpan) {
       console.log('No current span found, extracting from performance data');
@@ -387,7 +387,7 @@ export class TelemetryMiddlewareService {
 
     // get requestId from registry
     const requestIdOrError = getRegistryItem<string>(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_REQUEST_ID);
-    const requestId = requestIdOrError instanceof Error ? undefined : requestIdOrError; 
+    const requestId = requestIdOrError instanceof Error ? undefined : requestIdOrError;
     // Create logger for the new child span (always fresh logger for current span)
     const childLogger = this.dependencies.provider.logger.getLogger({
       span: childSpan,
@@ -396,7 +396,7 @@ export class TelemetryMiddlewareService {
         operationName: operationName,
         layer: layerType,
         autoAddSpanEvents: true,
-        requestId: requestId 
+        requestId: requestId
       }
     });
 
@@ -411,7 +411,7 @@ export class TelemetryMiddlewareService {
     };
   }
 
- 
+
   /**
    * Creates a UnifiedMiddleware that wraps an operation in a telemetry span, logs start/end,
    * records exceptions, and ensures the span is finished.
@@ -485,6 +485,28 @@ export class TelemetryMiddlewareService {
         // Execute next middleware/handler
         await next();
 
+        if (context.response.sent) {
+          logger.debug(`${operationName} response already sent, skipping success logging.`);
+          if (context.response.statusCode && context.response.statusCode >= 400) {
+
+            const err = toBaseFailure(`Response already sent with error status code ${context.response.statusCode}. please check the previous spanEvent for details.`);
+
+            // Record exception and set error status
+            span.recordException(err);
+            span.setStatus({
+              code: 'error',
+              message: err.message
+            });
+
+            // Log error
+            logger.error(`${operationName} failed`, err, {
+              errorType: err.constructor.name,
+              errorMessage: err.message,
+              operationName,
+            });
+            return;
+          }
+        }
         // Set success status
         span.setStatus({ code: 'ok' });
 
@@ -497,12 +519,12 @@ export class TelemetryMiddlewareService {
         }
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
-        
+
         // Record exception and set error status
         span.recordException(err);
-        span.setStatus({ 
-          code: 'error', 
-          message: err.message 
+        span.setStatus({
+          code: 'error',
+          message: err.message
         });
 
         // Log error
@@ -538,7 +560,7 @@ export class TelemetryMiddlewareService {
       attributes: options?.attributes,
     });
     return step;
-  } 
+  }
 
   createHttpMiddlewareProcess(
     operationName: string,
@@ -558,7 +580,7 @@ export class TelemetryMiddlewareService {
       attributes: options?.attributes,
     });
     return step;
-  } 
+  }
 
   /**
    * Create a middleware step known as preHandler for an API endpoint operation with telemetry instrumentation.
@@ -608,9 +630,9 @@ export class TelemetryMiddlewareService {
       attributes: options?.attributes,
     });
     return step;
-  } 
+  }
 
-  createApiMiddlewareProcess( 
+  createApiMiddlewareProcess(
     operationName: string,
     options?: {
       operationType?: TelemetryOperationType;
@@ -628,7 +650,7 @@ export class TelemetryMiddlewareService {
       attributes: options?.attributes,
     });
     return step;
-  } 
+  }
 
   createDataLogicProcess(
     operationName: string,
@@ -671,7 +693,7 @@ export class TelemetryMiddlewareService {
   }
 
 
- createProcessStepWithTelemetry<TInput, TOutput>(
+  createProcessStepWithTelemetry<TInput, TOutput>(
     context: UnifiedHttpContext,
     fn: ProcessStepFn<TInput, TOutput>,
     operationName: string,
@@ -685,7 +707,7 @@ export class TelemetryMiddlewareService {
   ): ProcessStepFn<TInput, TOutput> {
 
 
-    const wrappedStep:ProcessStepFn<TInput, TOutput> = async(
+    const wrappedStep: ProcessStepFn<TInput, TOutput> = async (
       processCtx: ProcessContext<TInput, TOutput>
     ) => {
       const { span, logger, finish } = this.createActiveSpan(context, operationName, {
@@ -709,10 +731,10 @@ export class TelemetryMiddlewareService {
         // Execute next middleware/handler
         await fn(processCtx);
 
-            
+
         if (processCtx.failed) {
           const err = toBaseFailure(processCtx.error)
-   
+
           // Record exception and set error status
           span.recordException(err);
           span.setStatus({
@@ -726,7 +748,7 @@ export class TelemetryMiddlewareService {
             errorMessage: err.message,
             operationName,
           });
-      
+
         }
 
         if (processCtx.completed) {
@@ -743,14 +765,14 @@ export class TelemetryMiddlewareService {
         }
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
-        const failure =  new CommonFailures.TryCatchFail(err.message, {error: err});
+        const failure = new CommonFailures.TryCatchFail(err.message, { error: err });
         fail(processCtx, failure);
-        
+
         // Record exception and set error status
         span.recordException(failure);
-        span.setStatus({ 
-          code: 'error', 
-          message: failure.message 
+        span.setStatus({
+          code: 'error',
+          message: failure.message
         });
 
         // Log error
@@ -768,11 +790,11 @@ export class TelemetryMiddlewareService {
     return wrappedStep;
   }
 
- 
 
-    /**
-   * Create operation type middleware for specific operations
-   */
+
+  /**
+ * Create operation type middleware for specific operations
+ */
   createOperationTypeStep(
     operationName: string,
     options: {
@@ -818,12 +840,12 @@ export class TelemetryMiddlewareService {
 
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
-        
+
         // Record exception and set error status
         span.recordException(err);
-        span.setStatus({ 
-          code: 'error', 
-          message: err.message 
+        span.setStatus({
+          code: 'error',
+          message: err.message
         });
 
         // Log error
@@ -867,7 +889,7 @@ export class TelemetryMiddlewareService {
     });
     return step;
   }
-  
+
   /**
    * Create API middleware for specific operations
    */
@@ -916,7 +938,7 @@ export class TelemetryMiddlewareService {
   }
 
 
- 
+
 
   /**
    * Get current span from context (for manual span operations)
@@ -928,7 +950,7 @@ export class TelemetryMiddlewareService {
     }
     const performanceData = getPerformanceData(context);
     if (performanceData instanceof Error) {
-      return  new Error(`No telemetry data found in context. Ensure telemetry middleware is applied first. : ${performanceData.message}`);
+      return new Error(`No telemetry data found in context. Ensure telemetry middleware is applied first. : ${performanceData.message}`);
     }
     return performanceData.span;
   }
@@ -946,13 +968,13 @@ export class TelemetryMiddlewareService {
       }
       return performanceData.logger;
     }
-    
+
     // Get operation metadata from current span
     const metadata = getOperationMetadataFromSpan();
 
     const requestIdOrError = getRegistryItem<string>(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_REQUEST_ID);
- 
-    const requestId = requestIdOrError instanceof Error ? undefined : requestIdOrError;  
+
+    const requestId = requestIdOrError instanceof Error ? undefined : requestIdOrError;
 
     // Create fresh logger for current span
     return this.dependencies.provider.logger.getLogger({
@@ -962,7 +984,7 @@ export class TelemetryMiddlewareService {
         operationName: metadata.operationName,
         layer: metadata.layer,
         autoAddSpanEvents: true,
-        requestId: requestId ,
+        requestId: requestId,
       }
     });
   }
@@ -984,7 +1006,7 @@ export class TelemetryMiddlewareService {
     headers?: Record<string, string>,
     fallbackOptions?: GetActiveSpanOptions
   ): UnifiedTelemetrySpan | null {
-    
+
     const extractionResult = executeSpanExtractionStrategy(
       headers,
       this.dependencies.provider,
@@ -1007,12 +1029,12 @@ export class TelemetryMiddlewareService {
       layer?: TelemetryLayerType;
       attributes?: TelemetryAttributes;
     }
-  ): { 
-    span: UnifiedTelemetrySpan; 
-    logger: UnifiedTelemetryLogger; 
-    finish: () => void 
+  ): {
+    span: UnifiedTelemetrySpan;
+    logger: UnifiedTelemetryLogger;
+    finish: () => void
   } {
-    
+
     return createChildSpanWithoutContext(
       parentSpanOrHeaders,
       operationName,
@@ -1029,48 +1051,48 @@ export class TelemetryMiddlewareService {
    * Extract TraceContext format W3C and then B3 then if not found create new span W3C format and store it in UnifiedHttpContext
    * 
    */
-  initializeContext(context: UnifiedHttpContext) : UnifiedHttpContext {
+  initializeContext(context: UnifiedHttpContext): UnifiedHttpContext {
     // Setup telemetry at request start
     const performanceData = this.extractor.extractAndSetupTelemetry(context);
     storePerformanceData(context, performanceData);
 
-      // Log request start
-      performanceData.logger.info('API_LOGIC is started', {
-        method: performanceData.requestContext.method,
-        route: performanceData.requestContext.route,
-        url: performanceData.requestContext.url,
-        traceId: performanceData.span.getTraceId(),
-        spanId: performanceData.span.getSpanId(),
-        originTraceId: performanceData.traceContext.traceId,
-        originSpanId: performanceData.traceContext.spanId,
-        requestId: performanceData.requestContext.requestId,
-        correlationId: performanceData.requestContext.correlationId,
-      });
-    return context; 
-    };
+    // Log request start
+    performanceData.logger.info('API_LOGIC is started', {
+      method: performanceData.requestContext.method,
+      route: performanceData.requestContext.route,
+      url: performanceData.requestContext.url,
+      traceId: performanceData.span.getTraceId(),
+      spanId: performanceData.span.getSpanId(),
+      originTraceId: performanceData.traceContext.traceId,
+      originSpanId: performanceData.traceContext.spanId,
+      requestId: performanceData.requestContext.requestId,
+      correlationId: performanceData.requestContext.correlationId,
+    });
+    return context;
+  };
 
-    /**
-     * Static helper to initialize telemetry context outside of instance
-     */
-     getInitializeContext(
-      context: UnifiedHttpContext
-    ): InitializeTelemetryContextResult {
+  /**
+   * Static helper to initialize telemetry context outside of instance
+   */
+  getInitializeContext(
+    context: UnifiedHttpContext
+  ): InitializeTelemetryContextResult {
 
-      const performanceData = getPerformanceData(context);
+    const performanceData = getPerformanceData(context);
 
-      if (performanceData instanceof Error) {
-       throw new Error(`No telemetry data found in context. Ensure telemetry middleware is applied first. : ${performanceData.message}`);
-      }
-
-      return performanceData;
+    if (performanceData instanceof Error) {
+      throw new Error(`No telemetry data found in context. Ensure telemetry middleware is applied first. : ${performanceData.message}`);
     }
+
+    return performanceData;
+  }
 
   /**
    * 
    * cleanup UnifiedHttpContext after request end and record performance data metrics
    * 
    */
-  async finalizeContext(context: UnifiedHttpContext,statusCode?: number): Promise<void> {
+  async finalizeContext(context: UnifiedHttpContext, statusCode?: number): Promise<void> {
 
 
     await finalizeTelemetryForRequest(
@@ -1089,11 +1111,11 @@ export class TelemetryMiddlewareService {
    * like Fastify hooks route path is available at preHandler hook
    * 
    */
-  async updateRouteInfo(context: UnifiedHttpContext,method:string,route:string,url:string): Promise<UnifiedHttpContext> {
-    updateRequestContextWithRouteInfo(context,method,route,url)
+  async updateRouteInfo(context: UnifiedHttpContext, method: string, route: string, url: string): Promise<UnifiedHttpContext> {
+    updateRequestContextWithRouteInfo(context, method, route, url)
     return context;
   };
-  
+
 
 
   /**
@@ -1103,11 +1125,11 @@ export class TelemetryMiddlewareService {
    * UnifiedTelemetryProcessor will create active span and logger in context
    */
 
-   getActiveTelemetry (context: UnifiedHttpContext): { telemetryLogger: UnifiedTelemetryLogger; telemetrySpan: UnifiedTelemetrySpan, traceId?: string }  {
-    const telemetryLogger = this.getCurrentLogger(context) as UnifiedTelemetryLogger ;
+  getActiveTelemetry(context: UnifiedHttpContext): { telemetryLogger: UnifiedTelemetryLogger; telemetrySpan: UnifiedTelemetrySpan, traceId?: string } {
+    const telemetryLogger = this.getCurrentLogger(context) as UnifiedTelemetryLogger;
     const telemetrySpan = this.getCurrentSpan(context) as UnifiedTelemetrySpan;
     const traceId = telemetrySpan.getTraceId();
-    return { telemetryLogger, telemetrySpan,traceId };
-}
+    return { telemetryLogger, telemetrySpan, traceId };
+  }
   //
 }
