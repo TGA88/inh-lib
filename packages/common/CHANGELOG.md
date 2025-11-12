@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.11.13](https://github.com/TGA88/inh-lib/compare/common-1.11.12...common-1.11.13) (2025-11-12)
+
+
+### Bug Fixes
+
+* **common:** ResultV2.withTraceId , withHttpStatusCode  fail ([c4cc971](https://github.com/TGA88/inh-lib/commit/c4cc971c327d58468c4afd5468928bec03f65ae5))
+
 ## [1.11.12](https://github.com/TGA88/inh-lib/compare/common-1.11.11...common-1.11.12) (2025-11-11)
 
 
