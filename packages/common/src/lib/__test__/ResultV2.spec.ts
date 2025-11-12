@@ -598,6 +598,152 @@ describe('ResultV2 Complete Test Suite', () => {
     });
   });
 
+  describe('withTraceId function', () => {
+    it('withTraceId should set traceId and return new instance when traceId changes, preserve immutability', () => {
+      const original = Result.ok<string>('payload');
+      expect(original.traceId).toBeUndefined();
+
+      const withTrace = original.withTraceId('trace-123');
+      // New instance because traceId changed from undefined -> 'trace-123'
+      expect(withTrace).not.toBe(original);
+      expect(withTrace.traceId).toBe('trace-123');
+      // original remains unchanged and still frozen
+      expect(original.traceId).toBeUndefined();
+      expect(Object.isFrozen(original)).toBe(true);
+      expect(Object.isFrozen(withTrace)).toBe(true);
+
+      // Calling with the same traceId again returns the same instance
+      const sameTrace = withTrace.withTraceId('trace-123');
+      expect(sameTrace).toBe(withTrace);
+
+      // Changing traceId again returns a different instance
+      const changedTrace = withTrace.withTraceId('trace-456');
+      expect(changedTrace).not.toBe(withTrace);
+      expect(changedTrace.traceId).toBe('trace-456');
+    });
+
+    it('withTraceId should work for failed Results and preserve error', () => {
+      const failed = Result.fail<string, string>('boom');
+      expect(failed.isFailure).toBe(true);
+      expect(failed.traceId).toBeUndefined();
+
+      const failedWithTrace = failed.withTraceId('err-trace');
+      expect(failedWithTrace).not.toBe(failed);
+      expect(failedWithTrace.isFailure).toBe(true);
+      expect(failedWithTrace.errorValue()).toBe('boom');
+      expect(failedWithTrace.traceId).toBe('err-trace');
+
+      // same trace -> same instance
+      const same = failedWithTrace.withTraceId('err-trace');
+      expect(same).toBe(failedWithTrace);
+    });
+
+    it('withTraceId should not disturb other metadata like httpStatusCode and value', () => {
+      const base = Result.ok({ a: 1 }).withHttpStatusCode(201);
+      expect(base.httpStatusCode).toBe(201);
+      expect(base.getValue()).toEqual({ a: 1 });
+
+      const traced = base.withTraceId('meta-trace');
+      // preserve httpStatusCode and value
+      expect(traced.httpStatusCode).toBe(201);
+      expect(traced.getValue()).toEqual({ a: 1 });
+      expect(traced.traceId).toBe('meta-trace');
+
+      // original still unchanged
+      expect(base.traceId).toBeUndefined();
+      expect(base.httpStatusCode).toBe(201);
+    });
+  })
+
+  describe('withHttpStatusCode function', () => {
+    it('withHttpStatusCode should set httpStatusCode and return new instance when changed, preserve immutability', () => {
+      const original = Result.ok<string>('payload');
+      expect(original.httpStatusCode).toBeUndefined();
+
+      const withCode = original.withHttpStatusCode(202);
+      expect(withCode).not.toBe(original);
+      expect(withCode.httpStatusCode).toBe(202);
+
+      // original remains unchanged and still frozen
+      expect(original.httpStatusCode).toBeUndefined();
+      expect(Object.isFrozen(original)).toBe(true);
+      expect(Object.isFrozen(withCode)).toBe(true);
+
+      // Calling with the same status code again returns the same instance
+      const same = withCode.withHttpStatusCode(202);
+      expect(same).toBe(withCode);
+
+      // Changing status code again returns a different instance
+      const changed = withCode.withHttpStatusCode(204);
+      expect(changed).not.toBe(withCode);
+      expect(changed.httpStatusCode).toBe(204);
+    });
+
+    it('withHttpStatusCode should work for failed Results and preserve error', () => {
+      const failed = Result.fail<string, string>('boom');
+      expect(failed.isFailure).toBe(true);
+      expect(failed.httpStatusCode).toBeUndefined();
+
+      const failedWithCode = failed.withHttpStatusCode(418);
+      expect(failedWithCode).not.toBe(failed);
+      expect(failedWithCode.isFailure).toBe(true);
+      expect(failedWithCode.errorValue()).toBe('boom');
+      expect(failedWithCode.httpStatusCode).toBe(418);
+
+      // same status code -> same instance
+      const same = failedWithCode.withHttpStatusCode(418);
+      expect(same).toBe(failedWithCode);
+    });
+
+    it('withHttpStatusCode should not disturb other metadata like traceId and value', () => {
+      const base = Result.ok({ a: 1 }).withTraceId('meta-trace');
+      expect(base.traceId).toBe('meta-trace');
+      expect(base.httpStatusCode).toBeUndefined();
+      expect(base.getValue()).toEqual({ a: 1 });
+
+      const withCode = base.withHttpStatusCode(201);
+      // preserve traceId and value
+      expect(withCode.httpStatusCode).toBe(201);
+      expect(withCode.getValue()).toEqual({ a: 1 });
+      expect(withCode.traceId).toBe('meta-trace');
+
+      // original still unchanged
+      expect(base.traceId).toBe('meta-trace');
+      expect(base.httpStatusCode).toBeUndefined();
+    });
+
+    it('withHttpStatusCode should affect toHttpResponse status when provided', () => {
+      const mockJsonMethod = jest.fn<void, [unknown]>();
+      const mockSendMethod = jest.fn<unknown, [unknown]>();
+      const mockChainableResponse = {
+      json: mockJsonMethod,
+      send: mockSendMethod
+      };
+
+      const mockResponse = {
+      json: jest.fn<void, [unknown]>(),
+      send: jest.fn<unknown, [unknown]>(),
+      status: jest.fn<{ json: jest.Mock<void, [unknown]>; send: jest.Mock<unknown, [unknown]> }, [number]>()
+        .mockReturnValue(mockChainableResponse)
+      };
+
+      const user = { id: '1', name: 'John' };
+      const result = Result.ok<typeof user>(user).withHttpStatusCode(201);
+
+      result.toHttpResponse(mockResponse);
+
+      const statusReturn = mockResponse.status.mock.results[0]?.value;
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(statusReturn?.json).toHaveBeenCalledWith({
+      statusCode: 201,
+      isSuccess: true,
+      codeResult: 'CREATED',
+      message: 'CREATED',
+      dataResult: user,
+      traceId: undefined
+      });
+    });
+  })
   describe('Static Factory Methods', () => {
     it('from() should create successful Result when function succeeds', () => {
       const result = Result.from<number, string>(() => 42);

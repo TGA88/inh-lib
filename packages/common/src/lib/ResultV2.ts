@@ -34,16 +34,36 @@ export class Result<T, F = unknown> {
     
     Object.freeze(this);
   }
-
-  // Set traceId (เรียกใช้ตอน สร้าง DataResponse )
   withTraceId(traceId: string): this {
-    this._traceId = traceId;
-    return this;
+    // If traceId is unchanged, return same instance to avoid unnecessary cloning/freezing.
+    if (this._traceId === traceId) {
+      return this;
+    }
+
+    // Create a shallow clone so we don't try to mutate a frozen instance.
+    const clone = Object.assign(
+      Object.create(Object.getPrototypeOf(this)),
+      this
+    ) as Result<T, F>;
+
+    clone._traceId = traceId;
+    Object.freeze(clone);
+    return clone as this;
   }
    // Set successHttpCode (เรียกใช้ตอน สร้าง DataResponse )
   withHttpStatusCode(statusCode: number): this {
-    this._httpStatusCode = statusCode;
-    return this;
+      // If statusCode is unchanged, return same instance to avoid unnecessary cloning/freezing.
+    if (this._httpStatusCode === statusCode) {
+      return this;
+    }
+    // Create a shallow clone so we don't try to mutate a frozen instance.
+    const clone = Object.assign(
+      Object.create(Object.getPrototypeOf(this)),
+      this
+    ) as Result<T, F>;
+    clone._httpStatusCode = statusCode;
+    Object.freeze(clone);
+    return clone as this;
   }
 
   public getValue(): T {
