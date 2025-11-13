@@ -6,10 +6,10 @@
  */
 
 // Export main service class
-export { TelemetryMiddlewareService, makeRouteSteps } from './services/telemetry-middleware.service';
+export { TelemetryMiddlewareService, makeRouteSteps,makeEndpointHandler } from './services/telemetry-middleware.service';
 
 // Export configuration interface
-export type { TelemetryMiddlewareConfig, MakeRouteStepsInut, MakeRouteStepsOutput } from './services/telemetry-middleware.service';
+export type { TelemetryMiddlewareConfig, MakeRouteStepsInut, MakeRouteStepsOutput, MakeEndpointHandlerInput } from './services/telemetry-middleware.service';
 
 export * from './services/processor.service';
 export * from './services/processorV2.service';
