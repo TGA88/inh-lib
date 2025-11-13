@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.17](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.16...unified-telemetry-middleware-0.3.17) (2025-11-13)
+
+
+### Bug Fixes
+
+* **unified-telemetry-middleware:** fix function executeFunctionWithTelemtry is invalid operationName ([55fa76b](https://github.com/TGA88/inh-lib/commit/55fa76b305a4555fe2cd57855bbf56752e1069a4))
+
 ## [0.3.16](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.15...unified-telemetry-middleware-0.3.16) (2025-11-13)
 
 
