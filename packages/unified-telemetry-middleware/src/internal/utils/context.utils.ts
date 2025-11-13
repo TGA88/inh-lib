@@ -74,7 +74,7 @@ export function storePerformanceData(
   addRegistryItem(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_REQUEST_ID, data.requestContext.requestId);
 
    // Initialize span stack with root span
-        pushSpanToStack(context, data.span, 'http_request');
+        pushSpanToStack(context, data.span,data.logger, 'http_request');
 }
 
 /**

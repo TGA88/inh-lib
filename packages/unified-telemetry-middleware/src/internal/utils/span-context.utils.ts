@@ -4,17 +4,20 @@
  */
 
 import type { UnifiedHttpContext } from '@inh-lib/unified-route';
-import type { UnifiedTelemetrySpan } from '@inh-lib/unified-telemetry-core';
+import {  type UnifiedTelemetryLogger, type UnifiedTelemetrySpan } from '@inh-lib/unified-telemetry-core';
 import { getRegistryItem, addRegistryItem } from '@inh-lib/unified-route';
+import { INTERNAL_REGISTRY_KEYS } from '../constants/telemetry.const';
 
 const SPAN_STACK_KEY = 'telemetry:spanStack';
 const CURRENT_SPAN_KEY = 'telemetry:currentSpan';
+export const CURRENT_LOGGER_KEY =  INTERNAL_REGISTRY_KEYS.TELEMETRY_CURRENT_LOGGER
 
 /**
  * Span stack for managing nested spans
  */
-interface SpanStackItem {
+export interface SpanStackItem {
   span: UnifiedTelemetrySpan;
+  logger: UnifiedTelemetryLogger;
   operationName: string;
   level: number;
 }
@@ -24,13 +27,15 @@ interface SpanStackItem {
  */
 export function pushSpanToStack(
   context: UnifiedHttpContext, 
-  span: UnifiedTelemetrySpan, 
+  span: UnifiedTelemetrySpan ,
+  logger:UnifiedTelemetryLogger, 
   operationName: string
 ): void {
   const stack = getSpanStack(context);
   const level = stack.length;
   
   const newItem: SpanStackItem = {
+    logger,
     span,
     operationName,
     level
@@ -41,12 +46,13 @@ export function pushSpanToStack(
   // Update stack and current span in registry
   addRegistryItem(context, SPAN_STACK_KEY, stack);
   addRegistryItem(context, CURRENT_SPAN_KEY, span);
+  addRegistryItem(context, CURRENT_LOGGER_KEY, logger);
 }
 
 /**
  * Pop the current span from the stack (previous span becomes current)
  */
-export function popSpanFromStack(context: UnifiedHttpContext): UnifiedTelemetrySpan | null {
+export function popSpanFromStack(context: UnifiedHttpContext):  SpanStackItem | null {
   const stack = getSpanStack(context);
   
   if (stack.length === 0) {
@@ -56,11 +62,13 @@ export function popSpanFromStack(context: UnifiedHttpContext): UnifiedTelemetryS
   const removedItem = stack.pop();
   
   // Update current span to the previous one in stack
-  const currentSpan = stack.length > 0 ? stack[stack.length - 1].span : null;
+  const currentSpan = stack.at(-1)?.span ?? null;
+  const currentLogger = stack.at(-1)?.logger ?? null;
   addRegistryItem(context, CURRENT_SPAN_KEY, currentSpan);
+  addRegistryItem(context, CURRENT_LOGGER_KEY, currentLogger);
   addRegistryItem(context, SPAN_STACK_KEY, stack);
   
-  return removedItem?.span || null;
+  return removedItem || null;
 }
 
 /**
@@ -93,4 +101,5 @@ export function getCurrentSpanLevel(context: UnifiedHttpContext): number {
 export function clearSpanStack(context: UnifiedHttpContext): void {
   addRegistryItem(context, SPAN_STACK_KEY, []);
   addRegistryItem(context, CURRENT_SPAN_KEY, null);
+  addRegistryItem(context, CURRENT_LOGGER_KEY, null);
 }

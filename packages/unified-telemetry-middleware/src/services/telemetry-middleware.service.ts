@@ -360,8 +360,9 @@ export class TelemetryMiddlewareService {
         throw new Error(`No telemetry data found in context. Ensure telemetry middleware is applied first. : ${performanceData.message}`);
       }
       parentSpan = performanceData.span;
+      const parentLogger = performanceData.logger;
       // Initialize span stack with root span
-      pushSpanToStack(context, parentSpan, 'http_request');
+      pushSpanToStack(context, parentSpan, parentLogger, 'http_request');
     }
 
     // Create child span from current active span
@@ -384,8 +385,7 @@ export class TelemetryMiddlewareService {
       }
     });
 
-    // Push new span to stack (becomes current active span)
-    pushSpanToStack(context, childSpan, operationName);
+
 
     // get requestId from registry
     const requestIdOrError = getRegistryItem<string>(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_REQUEST_ID);
@@ -401,6 +401,8 @@ export class TelemetryMiddlewareService {
         requestId: requestId
       }
     });
+    // Push new span and logger to stack (becomes current active span)
+    pushSpanToStack(context, childSpan,childLogger, operationName);
 
     return {
       span: childSpan,
@@ -878,24 +880,26 @@ export class TelemetryMiddlewareService {
       return performanceData.logger;
     }
 
-    // Get operation metadata from current span
-    const metadata = getOperationMetadataFromSpan();
+    return getRegistryItem<UnifiedTelemetryLogger>(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_CURRENT_LOGGER) ?? new Error('No current logger found for current span in registry.');
+    // // Get operation metadata from current span
+    // const metadata = getOperationMetadataFromSpan();
+    
 
-    const requestIdOrError = getRegistryItem<string>(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_REQUEST_ID);
+    // const requestIdOrError = getRegistryItem<string>(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_REQUEST_ID);
 
-    const requestId = requestIdOrError instanceof Error ? undefined : requestIdOrError;
+    // const requestId = requestIdOrError instanceof Error ? undefined : requestIdOrError;
 
-    // Create fresh logger for current span
-    return this.dependencies.provider.logger.getLogger({
-      span: currentSpan,
-      options: {
-        operationType: metadata.operationType,
-        operationName: metadata.operationName,
-        layer: metadata.layer,
-        autoAddSpanEvents: true,
-        requestId: requestId,
-      }
-    });
+    // // Create fresh logger for current span
+    // return this.dependencies.provider.logger.getLogger({
+    //   span: currentSpan,
+    //   options: {
+    //     operationType: metadata.operationType,
+    //     operationName: metadata.operationName,
+    //     layer: metadata.layer,
+    //     autoAddSpanEvents: true,
+    //     requestId: requestId,
+    //   }
+    // });
   }
 
   /**
