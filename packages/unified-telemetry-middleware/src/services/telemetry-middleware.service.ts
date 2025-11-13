@@ -1294,7 +1294,7 @@ async  executeDbStep<TInput,TOutput>(context: UnifiedHttpContext , stepFunction:
         }
         params.output = result.value;
       };
-     const telemetryStep =   this.createProcessStepWithTelemetry(context,stepFunction,stepFunction.name,defaultOptions);
+     const telemetryStep =   this.createProcessStepWithTelemetry(context,stepFunction,fn.name,defaultOptions);
 
     // execute telemetryStep
     const telemetryStepCtx = createProcessContext<TInput, TOutput>(input);
