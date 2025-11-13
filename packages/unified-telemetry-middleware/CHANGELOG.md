@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.14](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.13...unified-telemetry-middleware-0.3.14) (2025-11-13)
+
+
+### Bug Fixes
+
+* **unified-telemetry-middleware:** add funciton makeRouteSteps ([0bb23bc](https://github.com/TGA88/inh-lib/commit/0bb23bcb9fdce29d9d08cb2e50bf2b6dd756bd75))
+
 ## [0.3.13](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.12...unified-telemetry-middleware-0.3.13) (2025-11-11)
 
 
