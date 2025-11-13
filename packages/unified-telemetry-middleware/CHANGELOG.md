@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.15](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.14...unified-telemetry-middleware-0.3.15) (2025-11-13)
+
+
+### Bug Fixes
+
+* **unified-telemetry-middleware:** add function makeEndpointHandler ([d2d4ba1](https://github.com/TGA88/inh-lib/commit/d2d4ba11b987a33bf5e3c2357f5be700bae98935))
+
 ## [0.3.14](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.13...unified-telemetry-middleware-0.3.14) (2025-11-13)
 
 
