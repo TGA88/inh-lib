@@ -13,7 +13,7 @@
 
 import { BaseFailure, CommonFailures, createProcessContext, Either, fail, left, ProcessContext, processContextToEither, ProcessStepFn, right, toBaseFailure } from '@inh-lib/common';
 
-import { type UnifiedMiddleware, type UnifiedHttpContext, getRegistryItem, UnifiedRouteHandler } from '@inh-lib/unified-route';
+import { type UnifiedMiddleware, type UnifiedHttpContext, getRegistryItem, UnifiedRouteHandler, UnifiedPreHandlerFn, UnifiedHandlerFn, createRouteStep } from '@inh-lib/unified-route';
 import type {
   UnifiedTelemetryProvider,
   UnifiedTelemetrySpan,
@@ -1309,3 +1309,30 @@ async  executeDbStep<TInput,TOutput>(context: UnifiedHttpContext , stepFunction:
 
 // === End Utility Functions ===
 }
+
+
+
+// === Utility Functions For Create Route Steps with Telemetry Middleware===
+export type MakeRouteStepsInut={
+  propContext: {telemetryService: TelemetryMiddlewareService}
+  input:{
+    preHandlers: UnifiedPreHandlerFn[]
+    handler: UnifiedHandlerFn
+  }
+}
+export type MakeRouteStepsOutput = {
+preHandlerSteps: UnifiedPreHandlerFn[]
+handlerStep: UnifiedHandlerFn
+}
+export function makeRouteSteps(params:MakeRouteStepsInut):MakeRouteStepsOutput {
+  const {telemetryService} = params.propContext;
+  const preHandlerSteps = params.input.preHandlers.map((preHandler)=>
+    createRouteStep({handler:preHandler,middleware:[telemetryService.createApiMiddlewareProcess(preHandler.name)]})
+  );
+  const handlerStep = createRouteStep({handler:params.input.handler,middleware:[telemetryService.createApiEndpointProcess(params.input.handler.name)]});
+  return {
+    preHandlerSteps,
+    handlerStep
+  };
+} 
+// === End Utility Functions For Create Route Steps with Telemetry Middleware===
