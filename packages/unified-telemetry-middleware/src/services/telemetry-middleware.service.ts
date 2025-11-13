@@ -13,7 +13,7 @@
 
 import { BaseFailure, CommonFailures, createProcessContext, Either, fail, left, ProcessContext, processContextToEither, ProcessStepFn, right, toBaseFailure } from '@inh-lib/common';
 
-import { type UnifiedMiddleware, type UnifiedHttpContext, getRegistryItem, UnifiedRouteHandler, UnifiedPreHandlerFn, UnifiedHandlerFn, createRouteStep } from '@inh-lib/unified-route';
+import { type UnifiedMiddleware, type UnifiedHttpContext, getRegistryItem, UnifiedRouteHandler, UnifiedPreHandlerFn, UnifiedHandlerFn, createRouteStep, UnifiedRoutePipeline } from '@inh-lib/unified-route';
 import type {
   UnifiedTelemetryProvider,
   UnifiedTelemetrySpan,
@@ -1312,7 +1312,7 @@ async  executeDbStep<TInput,TOutput>(context: UnifiedHttpContext , stepFunction:
 
 
 
-// === Utility Functions For Create Route Steps with Telemetry Middleware===
+// === Utility Functions For UnifiedRoutePipeline with Telemetry Middleware===
 export type MakeRouteStepsInut={
   propContext: {telemetryService: TelemetryMiddlewareService}
   input:{
@@ -1335,4 +1335,29 @@ export function makeRouteSteps(params:MakeRouteStepsInut):MakeRouteStepsOutput {
     handlerStep
   };
 } 
-// === End Utility Functions For Create Route Steps with Telemetry Middleware===
+
+export type MakeEndpointHandlerInput = {
+  propContext: {telemetryService: TelemetryMiddlewareService};
+  input:{
+    preHandlers: UnifiedPreHandlerFn[];
+    handler: UnifiedHandlerFn;
+    pipeline: UnifiedRoutePipeline; 
+  }
+}
+export const makeEndpointHandler= (params:MakeEndpointHandlerInput):UnifiedRouteHandler=>{
+  const telemetryService = params.propContext.telemetryService;
+  const {preHandlers,handler,pipeline} = params.input;
+  for (const preHandler of preHandlers) {
+    const step = createRouteStep({handler:preHandler,middleware:[telemetryService.createApiMiddlewareProcess(preHandler.name)]});
+    pipeline.addPreHandler(step);
+  }
+  const handlerStep = createRouteStep({handler:handler,middleware:[telemetryService.createApiEndpointProcess(handler.name)]});
+  pipeline.setHandler(handlerStep);
+
+  return async (context:UnifiedHttpContext):Promise<void>=>{
+    await pipeline.execute(context);
+  };
+};
+
+
+// === End Utility Functions For UnifiedRoutePipeline with Telemetry Middleware===
