@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.18](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.17...unified-telemetry-middleware-0.3.18) (2025-11-13)
+
+
+### Bug Fixes
+
+* **unified-telemetry-middleware:** fix function getActiveTelemetry  get invalid currentLogger ([0bffc03](https://github.com/TGA88/inh-lib/commit/0bffc03d050c981d5ad89775047d9a64166a886a))
+
 ## [0.3.17](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.16...unified-telemetry-middleware-0.3.17) (2025-11-13)
 
 
