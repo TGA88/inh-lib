@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.3.13](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.12...api-util-fastify-1.3.13) (2025-11-14)
+
+
+### Bug Fixes
+
+* **api-util-fatify:** force upgrade dependency  package ([eacf180](https://github.com/TGA88/inh-lib/commit/eacf180b77c4378cbc3aef3b0b6b3a9df475bb9e))
+
 ## [1.3.12](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.11...api-util-fastify-1.3.12) (2025-11-11)
 
 
