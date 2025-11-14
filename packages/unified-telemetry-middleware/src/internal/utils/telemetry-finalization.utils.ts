@@ -71,6 +71,12 @@ export async function finalizeTelemetryForRequest(
   updateRequestContextWithResponse(context, statusCode);
   performanceData.requestContext.statusCode = statusCode;
 
+  // set root span Status based on Http statusCode
+  performanceData.span.setStatus({
+    code: statusCode >= 400 ? 'error' : 'ok', 
+    message: `HTTP ${statusCode}`
+  });
+
 //   get Route info from context
   const routeInfo = getRegistryItem<{method: string; route: string; url: string}>(context, INTERNAL_REGISTRY_KEYS.TELEMETRY_ROUTE_INFO);
 
