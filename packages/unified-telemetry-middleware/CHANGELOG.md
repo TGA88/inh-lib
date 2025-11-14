@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.19](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.18...unified-telemetry-middleware-0.3.19) (2025-11-14)
+
+
+### Bug Fixes
+
+* **unified-telemetry-middleware:** set spanStatus of root span before response ([f2b886c](https://github.com/TGA88/inh-lib/commit/f2b886c99fb91c87f77bd1bd5c212f9483f2414d))
+
 ## [0.3.18](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.17...unified-telemetry-middleware-0.3.18) (2025-11-13)
 
 
