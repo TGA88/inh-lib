@@ -1,9 +1,9 @@
 import {
   UnifiedRequestContext,
   UnifiedResponseContext,
-  UnifiedHttpContext,
-  UnifiedHandlerFn
+  UnifiedHttpContext
 } from '../types/unified-context';
+import { UnifiedRouteHandler } from '../types/unified-middleware';
 
 /**
  * Unified Internal Request Context
@@ -143,7 +143,7 @@ export class UnifiedInternalHttpContext implements UnifiedHttpContext {
  * จัดการ handlers และให้บริการ internal routing (Mediator Pattern)
  */
 export class UnifiedInternalService {
-  private handlers: Map<string, UnifiedHandlerFn> = new Map();
+  private handlers: Map<string, UnifiedRouteHandler> = new Map();
   private globalRegistry: Record<string, unknown>;
 
   constructor(globalRegistry: Record<string, unknown> = {}) {
@@ -153,7 +153,7 @@ export class UnifiedInternalService {
   /**
    * ลงทะเบียน handler สำหรับ route
    */
-  registerHandler(route: string, handler: UnifiedHandlerFn): void {
+  registerHandler(route: string, handler: UnifiedRouteHandler): void {
     this.handlers.set(route, handler);
   }
 
@@ -246,7 +246,7 @@ export class UnifiedInternalService {
   /**
    * หา handler โดย route matching (legacy method)
    */
-  private findHandler(route: string): UnifiedHandlerFn | undefined {
+  private findHandler(route: string): UnifiedRouteHandler | undefined {
     const result = this.findHandlerWithMatch(route);
     return result ? result.handler : undefined;
   }
@@ -255,7 +255,7 @@ export class UnifiedInternalService {
    * หา handler พร้อมกับ match information
    */
   private findHandlerWithMatch(route: string): {
-    handler: UnifiedHandlerFn;
+    handler: UnifiedRouteHandler;
     matchedRoute: string;
     extractedParams: Record<string, string>;
   } | undefined {

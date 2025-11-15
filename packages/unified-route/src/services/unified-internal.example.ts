@@ -3,7 +3,7 @@ import {
   UnifiedInternalClient, 
   UnifiedInternalError 
 } from './unified-internal.service';
-import type { UnifiedHandlerFn } from '../types/unified-context';
+import type { UnifiedRouteHandler } from '../types/unified-middleware';
 
 /**
  * ตัวอย่างการใช้งาน Unified Internal Service และ Client
@@ -14,7 +14,7 @@ import type { UnifiedHandlerFn } from '../types/unified-context';
 // ตัวอย่าง Handlers สำหรับ document-api
 // ==============================================
 
-const documentGetHandler: UnifiedHandlerFn = async (ctx) => {
+const documentGetHandler: UnifiedRouteHandler = async (ctx) => {
   const { id } = ctx.request.params;
   
   // Mock document retrieval
@@ -28,7 +28,7 @@ const documentGetHandler: UnifiedHandlerFn = async (ctx) => {
   ctx.response.json({ success: true, data: document });
 };
 
-const documentCreateHandler: UnifiedHandlerFn = async (ctx) => {
+const documentCreateHandler: UnifiedRouteHandler = async (ctx) => {
   const { title, content } = ctx.request.body;
   
   // Mock document creation
@@ -46,7 +46,7 @@ const documentCreateHandler: UnifiedHandlerFn = async (ctx) => {
 // ตัวอย่าง Handlers สำหรับ process-setting-api
 // ==============================================
 
-const processSettingGetHandler: UnifiedHandlerFn = async (ctx) => {
+const processSettingGetHandler: UnifiedRouteHandler = async (ctx) => {
   const { processId } = ctx.request.params;
   
   // Mock process setting retrieval
@@ -64,7 +64,7 @@ const processSettingGetHandler: UnifiedHandlerFn = async (ctx) => {
   ctx.response.json({ success: true, data: setting });
 };
 
-const processSettingUpdateHandler: UnifiedHandlerFn = async (ctx) => {
+const processSettingUpdateHandler: UnifiedRouteHandler = async (ctx) => {
   const { processId } = ctx.request.params;
   const { config } = ctx.request.body;
   
@@ -83,7 +83,7 @@ const processSettingUpdateHandler: UnifiedHandlerFn = async (ctx) => {
 // Cross-Service Handler ที่ใช้ Local Service Adapter
 // ==============================================
 
-const documentWithProcessHandler: UnifiedHandlerFn = async (ctx) => {
+const documentWithProcessHandler: UnifiedRouteHandler = async (ctx) => {
   const { documentId, processId } = ctx.request.params;
   
   // ดึง UnifiedInternalClient จาก registry

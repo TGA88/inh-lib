@@ -2,7 +2,7 @@ import {
   UnifiedInternalService,
   UnifiedInternalClient 
 } from '../unified-internal.service';
-import type { UnifiedHandlerFn } from '../../types/unified-context';
+import type { UnifiedRouteHandler } from '../../types/unified-middleware';
 
 describe('UnifiedInternalService', () => {
   test('should create service and client', () => {
@@ -15,7 +15,7 @@ describe('UnifiedInternalService', () => {
 
   test('should register handlers', () => {
     const service = new UnifiedInternalService();
-    const handler: UnifiedHandlerFn = async (ctx) => {
+    const handler: UnifiedRouteHandler = async (ctx) => {
       ctx.response.json({ message: 'test' });
     };
     

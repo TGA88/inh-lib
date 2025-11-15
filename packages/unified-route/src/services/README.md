@@ -38,10 +38,10 @@ const client = new UnifiedInternalClient(service);
 ### 2. Register Handlers
 
 ```typescript
-import { UnifiedHandlerFn } from '@inh/unified-route';
+import { UnifiedRouteHandler } from '@inh/unified-route';
 
 // Handler สำหรับ GET /api/documents/:id
-const getDocumentHandler: UnifiedHandlerFn = async (ctx) => {
+const getDocumentHandler: UnifiedRouteHandler = async (ctx) => {
   const { id } = ctx.request.params;
   
   const document = {
@@ -55,7 +55,7 @@ const getDocumentHandler: UnifiedHandlerFn = async (ctx) => {
 };
 
 // Handler สำหรับ POST /api/documents
-const createDocumentHandler: UnifiedHandlerFn = async (ctx) => {
+const createDocumentHandler: UnifiedRouteHandler = async (ctx) => {
   const { title, content } = ctx.request.body;
   
   const newDocument = {
@@ -124,7 +124,7 @@ const deleteResult = await client.delete('/api/documents/:id',
 
 ```typescript
 // Handler ที่เรียกใช้ services อื่น
-const combinedHandler: UnifiedHandlerFn = async (ctx) => {
+const combinedHandler: UnifiedRouteHandler = async (ctx) => {
   const { documentId, processId } = ctx.request.params;
   
   // ดึง client จาก registry
@@ -257,11 +257,11 @@ export class DocumentInternalService {
     this.service.registerHandler('/api/documents', this.createDocumentHandler.bind(this));
   }
 
-  private getDocumentHandler: UnifiedHandlerFn = async (ctx) => {
+  private getDocumentHandler: UnifiedRouteHandler = async (ctx) => {
     // Implementation...
   };
 
-  private createDocumentHandler: UnifiedHandlerFn = async (ctx) => {
+  private createDocumentHandler: UnifiedRouteHandler = async (ctx) => {
     // Implementation...
   };
 }
