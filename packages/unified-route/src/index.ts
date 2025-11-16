@@ -7,3 +7,4 @@ export * from "./logic/unified-middleware.logic";
 export * from "./logic/unified-app.logic";
 export * from "./logic/unified-route-pipeline.logic";
 export * from "./services/unified-internal.service";
+export * from "./adapters/unified-internal-client.adapter";
