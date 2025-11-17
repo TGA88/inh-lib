@@ -2,6 +2,16 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.4.8](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.7...unified-route-0.4.8) (2025-11-17)
+
+
+### Bug Fixes
+
+* **unified-route:** add unified-internal-service for call cross api in same service ([0a96395](https://github.com/TGA88/inh-lib/commit/0a9639519dfc15f597417fecfc957299ba9e4255))
+* **unified-route:** add UnifiedInternalClientAdapter for converting to InhHttpClient interface for Implemetation Logic of <featiure>-ApiClient that only use InhHttpClient Interface ([57fc333](https://github.com/TGA88/inh-lib/commit/57fc333570144ff2c2d5c91fc30e9db1ba8fcd39))
+* **unified-route:** exclude unneccesary file ([b1eb7af](https://github.com/TGA88/inh-lib/commit/b1eb7afcdd1319052becef2bae4996db2c3dd766))
+* **unified-route:** update integration test and unit test ([415487e](https://github.com/TGA88/inh-lib/commit/415487e3695de4fbe93f201849975912efbc13e8))
+
 ## [0.4.7](https://github.com/TGA88/inh-lib/compare/unified-route-0.4.6...unified-route-0.4.7) (2025-11-11)
 
 
