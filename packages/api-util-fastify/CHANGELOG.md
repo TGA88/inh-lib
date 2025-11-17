@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [1.3.14](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.13...api-util-fastify-1.3.14) (2025-11-17)
+
+
+### Bug Fixes
+
+* **api-util-fastify:** lint and build fail because FastifyBaseLogger Interface  unsupport log function like info,debug ([fcdaea3](https://github.com/TGA88/inh-lib/commit/fcdaea3816a83137a0542da0bfac246a332dd84e))
+
 ## [1.3.13](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.12...api-util-fastify-1.3.13) (2025-11-14)
 
 
