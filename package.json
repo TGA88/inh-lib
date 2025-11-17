@@ -4,6 +4,9 @@
   "license": "MIT",
   "scripts": {
     "build": "nx run-many --target=build --all",
+    "test": "nx run-many --target=test --all",
+    "lint": "nx run-many --target=lint --all",
+    
     "build:affected": "nx affected --target=build",
     "prepare": "husky install",
     "commit-init": "npx commitizen init cz-conventional-changelog --save-dev --save-exact",
