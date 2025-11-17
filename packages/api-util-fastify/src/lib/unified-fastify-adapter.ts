@@ -1,5 +1,5 @@
 // adapters/unified-fastify-adapter.ts
-import { FastifyRequest, FastifyReply, FastifyBaseLogger } from 'fastify';
+import { FastifyRequest, FastifyReply, FastifyLogFn } from 'fastify';
 import { UnifiedRequestContext, UnifiedResponseContext, UnifiedHttpContext, UnifiedRouteHandler } from '@inh-lib/unified-route';
 import { UnifiedBaseTelemetryLogger } from '@inh-lib/unified-telemetry-core';
 import { Readable } from 'node:stream';
@@ -109,9 +109,12 @@ export function createUnifiedFastifyHandler(
 
 
 export class FastifyTelemetryLoggerAdapter implements UnifiedBaseTelemetryLogger {
-  constructor(private readonly fastifyLog: FastifyBaseLogger) { }
+  constructor(private readonly fastifyLog: FastifyLogFn) { }
   createChildLogger(scope: string, attributes?: Record<string, unknown>): UnifiedBaseTelemetryLogger {
-    const childLogger = this.fastifyLog.child({ scope, ...(attributes || {}) });
+    
+    const childLogger = attributes
+      ? this.fastifyLog.child({ scope, ...attributes })
+      : this.fastifyLog.child({ scope });
     return new FastifyTelemetryLoggerAdapter(childLogger);
   }
 

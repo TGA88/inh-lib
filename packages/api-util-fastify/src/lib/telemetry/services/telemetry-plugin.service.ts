@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyInstance, FastifyPluginAsync, FastifyRequest, FastifyReply, FastifyLogFn } from 'fastify';
 import fp from 'fastify-plugin';
 import { addRegistryItem, UnifiedHttpContext } from '@inh-lib/unified-route';
 import { TELEMETRY_CONTEXT_KEYS, UnifiedTelemetryProvider } from '@inh-lib/unified-telemetry-core';
@@ -146,7 +146,7 @@ export class TelemetryPluginService {
   ): void {
     // onRequest hook - start telemetry using middleware
     fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
-      const logger = request.log;
+      const logger = request.log as FastifyLogFn;
       logger.debug('TelemetryPluginService - onRequest hook triggered');
       if (shouldSkipTelemetry(request.url, options.skipRoutes)) {
         logger.debug(`Skipping telemetry for route: ${request.url}`);
@@ -194,7 +194,7 @@ export class TelemetryPluginService {
     });
     // preHandler hook - start to update route info in UnifiedHttpContext
     fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
-      const logger = request.log;
+      const logger = request.log as FastifyLogFn;
       logger.debug('TelemetryPluginService - preHandler hook triggered');
       if (request.unifiedAppContext) {
 
@@ -217,7 +217,7 @@ export class TelemetryPluginService {
 
     // onResponse hook - finish telemetry using middleware
     fastify.addHook('onResponse', async (request: FastifyRequest, reply: FastifyReply) => {
-      const logger = request.log;
+      const logger = request.log as FastifyLogFn;
       logger.debug('TelemetryPluginService - onResponse hook triggered');
       if (request.unifiedAppContext) {
         // Finalize telemetry for the request
@@ -241,7 +241,7 @@ export class TelemetryPluginService {
 
     // onError hook - let middleware handle errors
     fastify.addHook('onError', async (request: FastifyRequest, reply: FastifyReply) => {
-      const logger = request.log;
+      const logger = request.log as FastifyLogFn;
       logger.debug('TelemetryPluginService - onError hook triggered');
       // Middleware should handle error recording in its catch block
       // Error will propagate through middleware's try-catch
