@@ -11,7 +11,7 @@
  * and do not affect functionality.
  */
 
-import { BaseFailure, CommonFailures, createProcessContext, Either, fail, left, ProcessContext, processContextToEither, ProcessStepFn, right, toBaseFailure } from '@inh-lib/common';
+import { BaseFailure, CommonFailures, createProcessContext, Either, fail, left, ProcessContext, processContextToEither, ProcessStepFn, ResultV2 as Result, right, toBaseFailure } from '@inh-lib/common';
 
 import { type UnifiedMiddleware, type UnifiedHttpContext, getRegistryItem, UnifiedRouteHandler, UnifiedPreHandlerFn, UnifiedHandlerFn, createRouteStep, UnifiedRoutePipeline } from '@inh-lib/unified-route';
 import type {
@@ -524,7 +524,10 @@ export class TelemetryMiddlewareService {
           });
         }
       } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
+        // const err = error instanceof Error ? error : new Error(String(error));
+        const err = toBaseFailure(error)
+        err.withTraceId(span.getTraceId());
+
 
         // Record exception and set error status
         span.recordException(err);
@@ -539,6 +542,12 @@ export class TelemetryMiddlewareService {
           errorMessage: err.message,
           operationName,
         });
+
+        if (!context.response.sent) {
+          logger.debug(`${operationName} is thrown error . try send response with error status code.`);
+
+          Result.fail(err).toHttpResponse(context.response);
+        }
 
         // throw error;
       } finally {
