@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [0.3.20](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.19...unified-telemetry-middleware-0.3.20) (2025-12-11)
+
+
+### Bug Fixes
+
+* **unified-telemetry-middleware:**  pre-handler step fail with throw error but not break route-pipeline ([e994649](https://github.com/TGA88/inh-lib/commit/e994649dddc68fd7a4641edcf71f815d34143404))
+
 ## [0.3.19](https://github.com/TGA88/inh-lib/compare/unified-telemetry-middleware-0.3.18...unified-telemetry-middleware-0.3.19) (2025-11-14)
 
 
