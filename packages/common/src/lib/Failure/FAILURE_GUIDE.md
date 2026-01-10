@@ -112,7 +112,51 @@ class BaseFailure extends Error {
   readonly details?: unknown;     // Additional error details
   traceId?: string;              // Trace ID for debugging
 }
+
 ```
+
+#### `Properties details`
+เอาไว้ใช้ เก็บ data ที่เป็นรายละเอียดเพิ่มเติมที่จะแสดงผลใน log และ จะไม่ถูกนำไปเป็นส่วนหนึ่งของ DataResponse เพื่อใช้ ส่งต่ากลับไปกับ HttpResponse  ซึ่งมีประโยชน์มาก เพื่อให้เราสามารถใช้วิเคราะ ขึ้นตอนการทำงานหรือปัญหาได้
+> ข้อยกเว้น ถ้า details เป็น object ที่มี attribute dataResult ค่านี้จะถูกนำไปเป็น attribute ของ DataResponseด้วย ผ่าน method toDataResult
+
+ปกติ details จะเก็บค่าเป็น object โดยจะใช้ Attributes
+- error: ใช้เก็บ Origin Failure ที่เกิดขึ้น เพื่อ จะยังคงรักษา Stack trace ที่ถูกต้องไว้ เพื่อเอาไว้ใช้วิเคราะห์ และหาจุดเริ่มต้นของปัญหาได้ถูกต้อง
+- dataResult: สำหรับ เก็บ Error data ที่ต้องการส่งกลับไปให้ client ผ่าน HttpResonse ด้วย
+- attribute อื่นๆ ใส่ได้ตามที่ ผู้ใช้ต้องการ เพื่อที่จะแสดงค่าใน log สำหรับเอาไว้ วิเคราะปัญหาที่เกิดขึ้นได้
+
+```typescript
+import { CommonFailures, ResponseBuilder } from '@inh-lib/common';
+
+// สร้าง error
+const details = {dataResult: {email: 'example@email.com'},field1: 'data1', field2: 'data2'}
+const error = new CommonFailures.ValidationFail('Email is required',details);
+console.log(error)
+// {
+//   code: 'VALIDATION_FAIL',
+//   message: 'Email is required',
+//   statusCode: 422,
+//   details: { 
+//              dataResult: {email: 'example@email.com'}
+//              field1: 'data1',
+//               field2: 'data2'
+//            }
+// }
+
+// สร้าง response
+
+const response = ResponseBuilder.error(error);
+
+console.log(response);
+// {
+//   statusCode: 422,
+//   isSuccess: false,
+//   codeResult: 'VALIDATION_FAIL',
+//   message: 'Email is required',
+//   dataResult: {email: 'example@email.com'}
+// }
+```
+
+
 
 ### Methods
 
@@ -125,7 +169,7 @@ error.withTraceId('trace-123');
 ```
 
 #### `toDataResult(): unknown`
-ดึงค่า dataResult จาก details (ถ้ามี)
+ดึงค่า dataResult จาก details (ถ้ามี) เพื่อเอาไว้ใช้สำหรับกรณ๊ต้องการ ส่ง Error data ไปกับ  HttpResponse ด้วย
 
 ```typescript
 const error = new CommonFailures.ValidationFail('Invalid data', {
@@ -137,7 +181,7 @@ console.log(error.toDataResult());
 ```
 
 #### `toResponse<T>(dataResult?: T): DataResponse<T>`
-แปลงเป็น DataResponse object
+แปลงเป็น DataResponse object สำหรับ ส่งกลับไปเป็น HttpResponse และ จะไม่ส่ง attribute details ไปด้วย
 
 ```typescript
 const error = new CommonFailures.NotFoundFail('User not found');
