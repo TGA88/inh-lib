@@ -2,6 +2,13 @@
 
 This file was generated using [@jscutlery/semver](https://github.com/jscutlery/semver).
 
+## [2.0.1](https://github.com/TGA88/inh-lib/compare/api-util-fastify-2.0.0...api-util-fastify-2.0.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* **api-util-fastify:** dont specific version fastify pluging at method createPlugin ([ae8a9d1](https://github.com/TGA88/inh-lib/commit/ae8a9d172d85581f349fb685a2dc0cf8602024ea))
+
 ## [2.0.0](https://github.com/TGA88/inh-lib/compare/api-util-fastify-1.3.14...api-util-fastify-2.0.0) (2026-06-18)
 
 
