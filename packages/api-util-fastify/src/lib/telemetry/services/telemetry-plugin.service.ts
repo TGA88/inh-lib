@@ -135,7 +135,7 @@ export class TelemetryPluginService {
 
     return fp(plugin, {
       name: INTERNAL_TELEMETRY_CONSTANTS.PLUGIN_NAME,
-      fastify: '4.x'
+      // fastify: '4.x' 
     });
   }
 
